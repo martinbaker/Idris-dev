@@ -1,0 +1,32 @@
+package algebra
+
+opts = "--partial-eval --total"
+pkgs = contrib
+
+modules = fieldExpression
+        , quaternion
+        , testquaternion
+
+tests = testQuat.test1
+      , testQuat.test2
+      , testQuat.test3
+      , testQuat.test4
+      , testQuat.test5
+      , testQuat.test6
+      , testQuat.test7
+      , testQuat.test8
+      , testQuat.test9
+      , testQuat.test10
+      , testQuat.test11
+      , testQuat.test12
+      , testQuat.test13
+      , testQuat.test14
+      , testQuat.test15
+      , testQuat.test16
+      , testQuat.test17
+      , testQuat.test18
+      , testQuat.test19
+      , testQuat.test20
+      , testQuat.test21
+      , testQuat.test22
+      , testQuat.test23
