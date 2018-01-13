@@ -41,7 +41,7 @@ Num ExpressionField where
 
 ||| make ExpressionField implement Neg
 Neg ExpressionField where
-  abs x = Function "abs" [x]
+  --abs x = Function "abs" [x]
   negate x = Function "negate" [x]
   (-) a b = a - b
 

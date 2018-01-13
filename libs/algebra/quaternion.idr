@@ -107,6 +107,11 @@ namespace quatOps
   conj : FieldIfce r => Quaternion r -> Quaternion r
   conj (Quat w1 x1 y1 z1) = Quat (w1) (-x1) (-y1) (-z1)
 
+  ||| additive inverse
+  negate : FieldIfce r => Quaternion r -> Quaternion r
+  negate (Quat w1 x1 y1 z1) = 
+    Quat (-w1) (-x1) (-y1) (-z1)
+  
   ||| inverse of q, that is: 1/q
   inv : FieldIfce r => Quaternion r -> Quaternion r
   inv (Quat w1 x1 y1 z1) = 
