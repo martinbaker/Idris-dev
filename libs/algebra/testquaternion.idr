@@ -473,3 +473,4 @@ testRotateM2Q53 =
   let q=Quat 0.5 (-0.5) (-0.5) (-0.5)
       m:(Close Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [0, 0, 1], [1, 0, 0]]
   in assertClose q (matrix2Quaternion m)
+  --in putStrLn ("q ="++ show(matrix2Quaternion m))

@@ -56,7 +56,7 @@ interface (Neg ty, Fractional ty, Ord ty) => FieldIfce ty where
     sqrt : ty -> ty
     Zro : ty
     One : ty
-    ifThenElse : Bool -> Lazy ty -> Lazy ty -> ty
+    --ifThenElse : Bool -> Lazy ty -> Lazy ty -> ty
     
 ||| Implementation of FieldIfce over Double
 ||| Use this when we just need a numerical result without
@@ -65,8 +65,8 @@ FieldIfce Double where
   sqrt x = prim__floatSqrt x
   Zro = 0.0
   One = 1.0
-  ifThenElse True  t e = t
-  ifThenElse False t e = e
+  --ifThenElse True  t e = t
+  --ifThenElse False t e = e
 
 ||| Implementation of FieldIfce over ExpressionField
 ||| which contains variables in addition to functions and numbers.
@@ -74,5 +74,5 @@ FieldIfce ExpressionField where
     sqrt x = Function "sqrt" [x]
     Zro = ExpFld 0.0
     One = ExpFld 1.0
-    ifThenElse True  t e = Undefined
-    ifThenElse False t e = Undefined
+    --ifThenElse True  t e = Undefined
+    --ifThenElse False t e = Undefined
