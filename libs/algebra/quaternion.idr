@@ -37,8 +37,14 @@ import public Data.Matrix -- from contrib package
 ||| Quaternion consists of 4 Double numbers
 ||| representing one Real and 3 Imaginary axis.
 ||| The 3 Imaginary axis are proceeded by the i, j and k operators
-data Quaternion r = Quat r r r r
+record Quaternion r where
+  constructor Quat
+  w:r
+  x:r
+  y:r
+  z:r
 
+--data Quaternion r = Quat r r r r
 -- constructors
 
 ||| construct imaginary i term
@@ -53,6 +59,7 @@ j y = Quat 0 0 y 0
 k: FieldIfce r => r -> Quaternion r
 k z = Quat 0 0 0 z
 
+{-
 -- deconstructors
 
 ||| real dimention
@@ -70,7 +77,7 @@ imagY (Quat w x y z) = y
 ||| imaginary dimention z
 imagZ : Quaternion r -> r
 imagZ (Quat w x y z) = z
-
+-}
 -- arithmatic
 
 namespace quatOps
@@ -111,13 +118,13 @@ namespace quatOps
   negate : FieldIfce r => Quaternion r -> Quaternion r
   negate (Quat w1 x1 y1 z1) = 
     Quat (-w1) (-x1) (-y1) (-z1)
-  
+
   ||| inverse of q, that is: 1/q
   inv : FieldIfce r => Quaternion r -> Quaternion r
   inv (Quat w1 x1 y1 z1) = 
     let denom = w1*w1+x1*x1+y1*y1+z1*z1 in
       Quat (w1/denom) (-x1/denom) (-y1/denom) (-z1/denom)
-  
+
   ||| length of quaternion
   magnitude : FieldIfce r => Quaternion r -> r
   magnitude (Quat w1 x1 y1 z1) = sqrt(w1*w1+x1*x1+y1*y1+z1*z1)
@@ -132,36 +139,39 @@ namespace quatOps
 
   ||| When representing rotations in 3D space (not spinors) then
   ||| negating every term does not change rotation represented so it
-  ||| make things more consistent to choose a prefered polariry for real term.
+  ||| makes things more consistent to choose a prefered polariry for real term.
   ||| More information here:
   ||| http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/functions/
   makeRealPositive : FieldIfce r => Quaternion r -> Quaternion r
-  makeRealPositive (Quat w1 x1 y1 z1)=
-      if w1 < Zro
-      then Quat (-w1) (-x1) (-y1) (-z1)
-      else Quat w1 x1 y1 z1
 
-  makeRealPositive2 : FieldIfce Double => Quaternion Double -> Quaternion Double
-  makeRealPositive2 (Quat 0.0 0.0 0.0 z1)=
-    if z1 < Zro
-    then Quat 0.0 0.0 0.0 (-z1)
-    else Quat 0.0 0.0 0.0 z1
+  makeRealPositive q =
+{-    let a:r = w q
+        b = specialDouble a in-}
+          q
 
-  makeRealPositive2 (Quat 0.0 0.0 y1 z1)=
+{-      case x of
+        DZero _ => q
+        DOne _ => q
+        DOther _ => q-}
+
+  --makeRealPositive q = q
+
+{-  makeRealPositive (Quat 0.0 0.0 y1 z1)=
     if y1 < Zro
     then Quat 0.0 0.0 (-y1) (-z1)
     else Quat 0.0 0.0 y1 z1
 
-  makeRealPositive2 (Quat 0.0 x1 y1 z1)=
+  makeRealPositive (Quat 0.0 x1 y1 z1)=
       if x1 < Zro
       then Quat 0.0 (-x1) (-y1) (-z1)
       else Quat 0.0 x1 y1 z1
-
-  makeRealPositive2 (Quat w1 x1 y1 z1)=
+-}  
+{-  makeRealPositiveW : FieldIfce r => Quaternion r -> Quaternion r
+  makeRealPositiveW (Quat w1 x1 y1 z1)=
       if w1 < Zro
       then Quat (-w1) (-x1) (-y1) (-z1)
       else Quat w1 x1 y1 z1
-
+-}
   ||| divide Quaternions
   ||| a / b = a * conj b * 1/(w2*w2 + x2*x2 + y2*y2 + z2*z2)
   (/) : FieldIfce r => Quaternion r -> Quaternion r -> Quaternion r
@@ -298,7 +308,8 @@ matrix2Quaternion m =
               let
                 s:r = (sqrt(-m00 - m11 + m22 + 1))*2 in
                 Quat ((m10-m01)/s) ((m02+m20)/s) ((m21+m12)/s) (s/4)
-  in makeRealPositive(res)
+  in res
+--  in makeRealPositive(res)
 
 ||| Convert a quaternion representation of 3D rotation to a matrix
 ||| For more information about this subject see:

@@ -414,9 +414,11 @@ testRotateM2Q31 =
       m:(Close Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [0, 0, -1], [-1, 0, 0]]
   in assertClose q (matrix2Quaternion m)
 
+||| I had to negate q because 'makeRealPositive' does not make
+||| y term positive if w and x are zero
 testRotateM2Q32 : IO()
 testRotateM2Q32 = 
-  let q=Quat 0.0 0.0 0.7071 (-0.7071)
+  let q=Quat 0.0 0.0 (-0.7071) 0.7071
       m:(Close Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, 0, -1], [0, -1, 0]]
   in assertClose q (matrix2Quaternion m)
 
@@ -432,9 +434,11 @@ testRotateM2Q40 =
       m:(Close Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, -1, 0], [0, 0, -1]]
   in assertClose q (matrix2Quaternion m)
 
+||| I had to negate q because 'makeRealPositive' does not make
+||| x term positive if w is zero
 testRotateM2Q41 : IO()
 testRotateM2Q41 = 
-  let q=Quat 0.0 0.7071 0.0 (-0.7071)
+  let q=Quat 0.0 (-0.7071) 0.0 0.7071
       m:(Close Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [0, -1, 0], [-1, 0, 0]]
   in assertClose q (matrix2Quaternion m)
 
