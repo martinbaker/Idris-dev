@@ -4,28 +4,30 @@ opts = "--partial-eval --total"
 pkgs = contrib
 
 modules = fieldExpression
+        , fieldExpression
         , quaternion
         , testquaternion
 
-tests = testQuat.test1
-      , testQuat.test2
-      , testQuat.test3
-      , testQuat.test4
-      , testQuat.test5
-      , testQuat.test6
-      , testQuat.test7
-      , testQuat.test8
-      , testQuat.test9
-      , testQuat.test10
-      , testQuat.test11
-      , testQuat.test12
-      , testQuat.test13
-      , testQuat.test14
-      , testQuat.test15
-      , testQuat.test16
-      , testQuat.test17
-      , testQuat.test18
-      , testQuat.test19
+tests = testQuat.testExpressionSimplify1
+      , testQuat.testQuaternion1
+      , testQuat.testQuaternion2
+      , testQuat.testQuaternion3
+      , testQuat.testQuaternion4
+      , testQuat.testQuaternion5
+      , testQuat.testQuaternion6
+      , testQuat.testQuaternion7
+      , testQuat.testQuaternion8
+      , testQuat.testQuaternion9
+      , testQuat.testQuaternion10
+      , testQuat.testQuaternion11
+      , testQuat.testQuaternion12
+      , testQuat.testQuaternion13
+      , testQuat.testQuaternion14
+      , testQuat.testQuaternion15
+      , testQuat.testQuaternion16
+      , testQuat.testQuaternion17
+      , testQuat.testQuaternion18
+      , testQuat.testQuaternion19
       , testQuat.testRotate00
       , testQuat.testRotate01
       , testQuat.testRotate02

@@ -15,6 +15,7 @@ module testQuat
 -- Local Variables:
 -- idris-load-packages: ("algebra")
 -- End:
+import public fieldExpression
 import public quaternion
 --import public Data.Vect
 
@@ -52,131 +53,146 @@ assertClose g e = if g ~~ e
     then putStrLn "Test Passed"
     else putStrLn "Test Failed"
 
+assertEq : Eq a => (given : a) -> (expected : a) -> IO ()
+assertEq g e = if g == e
+    then putStrLn "Test Passed"
+    else putStrLn "Test Failed"
+
+||| test simplify expression
+||| 0+x=x
+testExpressionSimplify1 : IO()
+testExpressionSimplify1 = 
+  let e1 = ExpFld 0.0
+      e2 = Var "x"
+      e3 = simplify (fieldexp.(+) e1 e2)    
+      --in assertEq e2 (simplify (fieldexp.(+) e1 e2))
+  in assertEq e2 e3
+
 ||| test multipication - first axioms
 ||| i*i = j*j = k*k = i*j*k = -1
-test1 : IO()
-test1 = 
+testQuaternion1 : IO()
+testQuaternion1 = 
   let qi=Quat 0.0 1.0 0.0 0.0
       qr=Quat (-1) 0.0 0.0 0.0
   in assertClose qr (qi*qi)
  
-test2 : IO()
-test2 = 
+testQuaternion2 : IO()
+testQuaternion2 = 
   let qj=Quat 0.0 0.0 1.0 0.0
       qr=Quat (-1) 0.0 0.0 0.0
   in assertClose qr (qj*qj)
 
-test3 : IO()
-test3 = 
+testQuaternion3 : IO()
+testQuaternion3 = 
   let qk=Quat 0.0 0.0 1.0 0.0
       qr=Quat (-1) 0.0 0.0 0.0
   in assertClose qr (qk*qk)
 
-test4 : IO()
-test4 = 
+testQuaternion4 : IO()
+testQuaternion4 = 
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
       qr=Quat (-1) 0.0 0.0 0.0
   in assertClose qr (qi*qj*qk)
 
-||| test multipication - multiplcation by reals
-test5 : IO()
-test5 = 
+||| testQuaternion multipication - multiplcation by reals
+testQuaternion5 : IO()
+testQuaternion5 = 
   let qr=Quat 1.0 0.0 0.0 0.0
   in assertClose qr (qr*qr)
 
-test6 : IO()
-test6 = 
+testQuaternion6 : IO()
+testQuaternion6 = 
   let qr=Quat 1.0 0.0 0.0 0.0
       qi=Quat 0.0 1.0 0.0 0.0
   in assertClose qi (qr*qi)
  
-test7 : IO()
-test7 = 
+testQuaternion7 : IO()
+testQuaternion7 = 
   let qr=Quat 1.0 0.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
   in assertClose qj (qr*qj)
  
-test8 : IO()
-test8 = 
+testQuaternion8 : IO()
+testQuaternion8 = 
   let qr=Quat 1.0 0.0 0.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertClose qk (qr*qk)
  
-test9 : IO()
-test9 = 
+testQuaternion9 : IO()
+testQuaternion9 = 
   let qr=Quat 1.0 0.0 0.0 0.0
       qi=Quat 0.0 1.0 0.0 0.0
   in assertClose qi (qi*qr)
  
-test10 : IO()
-test10 = 
+testQuaternion10 : IO()
+testQuaternion10 = 
   let qr=Quat 1.0 0.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
   in assertClose qj (qj*qr)
  
-test11 : IO()
-test11 = 
+testQuaternion11 : IO()
+testQuaternion11 = 
   let qr=Quat 1.0 0.0 0.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertClose qk (qk*qr)
 
-||| test multipication - multiplcation of different
+||| testQuaternion multipication - multiplcation of different
 ||| imaginary axes anticommute
-test12 : IO()
-test12 = 
+testQuaternion12 : IO()
+testQuaternion12 = 
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertClose qk (qi*qj)
  
-test13 : IO()
-test13 = 
+testQuaternion13 : IO()
+testQuaternion13 = 
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertClose (-qk) (qj*qi)
  
-test14 : IO()
-test14 = 
+testQuaternion14 : IO()
+testQuaternion14 = 
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertClose qi (qj*qk)
  
-test15 : IO()
-test15 = 
+testQuaternion15 : IO()
+testQuaternion15 = 
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertClose (-qi) (qk*qj)
  
-test16 : IO()
-test16 = 
+testQuaternion16 : IO()
+testQuaternion16 = 
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertClose (-qj) (qi*qk)
  
-test17 : IO()
-test17 = 
+testQuaternion17 : IO()
+testQuaternion17 = 
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertClose qj (qk*qi)
 
-||| test addition
-test18 : IO()
-test18 = 
+||| testQuaternion addition
+testQuaternion18 : IO()
+testQuaternion18 = 
   let qa=Quat 1.0 2.0 3.0 4.0
       qb=Quat 1.0 1.0 1.0 1.0
       qres=Quat 2.0 3.0 4.0 5.0
   in assertClose qres (qa+qb)
 
-||| test subtract
-test19 : IO()
-test19 = 
+||| testQuaternion subtract
+testQuaternion19 : IO()
+testQuaternion19 = 
   let qa=Quat 1.0 2.0 3.0 4.0
       qb=Quat 1.0 1.0 1.0 1.0 
       qres=Quat 0.0 1.0 2.0 3.0
@@ -392,7 +408,7 @@ testRotateM2Q21 =
 
 testRotateM2Q22 : IO()
 testRotateM2Q22 = 
-  let q=Quat 0.0 (-0.7071) 0.7071 0.0
+  let q=Quat 0.0 0.7071 (-0.7071) 0.0
       m:(Close Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [-1, 0, 0], [0, 0,-1]]
   in assertClose q (matrix2Quaternion m)
 
@@ -418,7 +434,7 @@ testRotateM2Q31 =
 ||| y term positive if w and x are zero
 testRotateM2Q32 : IO()
 testRotateM2Q32 = 
-  let q=Quat 0.0 0.0 (-0.7071) 0.7071
+  let q=Quat 0.0 0.0 0.7071 (-0.7071)
       m:(Close Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, 0, -1], [0, -1, 0]]
   in assertClose q (matrix2Quaternion m)
 
@@ -438,7 +454,7 @@ testRotateM2Q40 =
 ||| x term positive if w is zero
 testRotateM2Q41 : IO()
 testRotateM2Q41 = 
-  let q=Quat 0.0 (-0.7071) 0.0 0.7071
+  let q=Quat 0.0 0.7071 0.0 (-0.7071)
       m:(Close Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [0, -1, 0], [-1, 0, 0]]
   in assertClose q (matrix2Quaternion m)
 

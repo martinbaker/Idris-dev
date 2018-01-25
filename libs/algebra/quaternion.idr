@@ -142,36 +142,36 @@ namespace quatOps
   ||| makes things more consistent to choose a prefered polariry for real term.
   ||| More information here:
   ||| http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/functions/
-  makeRealPositive : FieldIfce r => Quaternion r -> Quaternion r
+  ||| called when w==0 so make x positive
+  makeZPositive : FieldIfce r => Quaternion r -> Quaternion r
 
-  makeRealPositive q =
-{-    let a:r = w q
-        b = specialDouble a in-}
-          q
+  makeZPositive q =
+    if (z q) < Zro then -q else q
 
-{-      case x of
-        DZero _ => q
-        DOne _ => q
-        DOther _ => q-}
+  makeYPositive : FieldIfce r => Quaternion r -> Quaternion r
 
-  --makeRealPositive q = q
+  makeYPositive q =
+    case specialDouble (y q) of
+      DZero _ _ => makeZPositive q
+      DOne _ _ => if (y q) < Zro then -q else q
+      DOther _ _ => if (y q) < Zro then -q else q
 
-{-  makeRealPositive (Quat 0.0 0.0 y1 z1)=
-    if y1 < Zro
-    then Quat 0.0 0.0 (-y1) (-z1)
-    else Quat 0.0 0.0 y1 z1
+  makeXPositive : FieldIfce r => Quaternion r -> Quaternion r
 
-  makeRealPositive (Quat 0.0 x1 y1 z1)=
-      if x1 < Zro
-      then Quat 0.0 (-x1) (-y1) (-z1)
-      else Quat 0.0 x1 y1 z1
--}  
-{-  makeRealPositiveW : FieldIfce r => Quaternion r -> Quaternion r
-  makeRealPositiveW (Quat w1 x1 y1 z1)=
-      if w1 < Zro
-      then Quat (-w1) (-x1) (-y1) (-z1)
-      else Quat w1 x1 y1 z1
--}
+  makeXPositive q =
+    case specialDouble (x q) of
+      DZero _ _ => makeYPositive q
+      DOne _ _ => if (x q) < Zro then -q else q
+      DOther _ _ => if (x q) < Zro then -q else q
+
+  makeWPositive : FieldIfce r => Quaternion r -> Quaternion r
+
+  makeWPositive q =
+    case specialDouble (w q) of
+      DZero _ _ => (makeXPositive q)
+      DOne _ _ => if (w q) < Zro then -q else q
+      DOther _ _ => if (w q) < Zro then -q else q
+
   ||| divide Quaternions
   ||| a / b = a * conj b * 1/(w2*w2 + x2*x2 + y2*y2 + z2*z2)
   (/) : FieldIfce r => Quaternion r -> Quaternion r -> Quaternion r
@@ -308,8 +308,7 @@ matrix2Quaternion m =
               let
                 s:r = (sqrt(-m00 - m11 + m22 + 1))*2 in
                 Quat ((m10-m01)/s) ((m02+m20)/s) ((m21+m12)/s) (s/4)
-  in res
---  in makeRealPositive(res)
+  in (makeWPositive res)
 
 ||| Convert a quaternion representation of 3D rotation to a matrix
 ||| For more information about this subject see:
