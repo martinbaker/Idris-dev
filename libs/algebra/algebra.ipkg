@@ -1,14 +1,28 @@
 package algebra
 
-opts = "--partial-eval --total"
+--opts = "--partial-eval --total"
+
+-- required for contrib/Data/Matrix
 pkgs = contrib
 
 modules = fieldExpression
-        , fieldExpression
         , quaternion
         , testquaternion
 
-tests = testQuat.testExpressionSimplify1
+tests = testQuat.seperateTests1
+      , testQuat.testExpressionSimplify1
+      , testQuat.testExpressionSimplify2
+      , testQuat.testExpressionSimplify3
+      , testQuat.testExpressionSimplify4
+      , testQuat.testExpressionSimplify5
+      , testQuat.testExpressionSimplify6
+      , testQuat.testExpressionSimplify7
+      , testQuat.testExpressionSimplify8
+      , testQuat.testExpressionSimplify9
+      , testQuat.testExpressionSimplify10
+      , testQuat.testExpressionSimplify11
+      , testQuat.testExpressionSimplify12
+      , testQuat.seperateTests2
       , testQuat.testQuaternion1
       , testQuat.testQuaternion2
       , testQuat.testQuaternion3
@@ -28,6 +42,7 @@ tests = testQuat.testExpressionSimplify1
       , testQuat.testQuaternion17
       , testQuat.testQuaternion18
       , testQuat.testQuaternion19
+      , testQuat.seperateTests3
       , testQuat.testRotate00
       , testQuat.testRotate01
       , testQuat.testRotate02
@@ -52,6 +67,7 @@ tests = testQuat.testExpressionSimplify1
       , testQuat.testRotate51
       , testQuat.testRotate52
       , testQuat.testRotate53
+      , testQuat.seperateTests4
       , testQuat.testRotateM2Q00
       , testQuat.testRotateM2Q01
       , testQuat.testRotateM2Q02

@@ -88,7 +88,7 @@ Show ExpressionField where
 ||| Define the mathematical structures over a field.
 ||| Not just Float or Double but also variables (to implement
 ||| algebra).
-interface (Neg ty, Fractional ty, Ord ty, Show ty) => FieldIfce ty where
+interface (Neg ty, Fractional ty, Ord ty,Eq ty, Show ty) => FieldIfce ty where
   --(==) : ty -> ty -> Bool
   sqrt : ty -> ty
   Zro : ty
@@ -123,7 +123,6 @@ FieldIfce Double where
 ||| Implementation of FieldIfce over ExpressionField
 ||| which contains variables in addition to functions and numbers.
 FieldIfce ExpressionField where
-  --(==) a b = False
   sqrt x = Function "sqrt" [x]
   Zro = ExpFld 0.0
   One = ExpFld 1.0
@@ -140,23 +139,46 @@ FieldIfce ExpressionField where
   simplify (ExpFld a) = ExpFld a
   simplify (Var s) = Var s
   simplify ((+) (ExpFld a) (ExpFld b)) = ExpFld (Prelude.Interfaces.(+) a b)
-  simplify ((+) (ExpFld 0.0) b) = simplify b
-  simplify ((+) a (ExpFld 0.0)) = simplify a
+  -- following works fine in REPL but causes following error in
+  -- test framework: 
+  -- Type checking /tmp/idris1194953865894429689.idr
+  -- Can't match on (0.0)
+  -- Uncaught error: /tmp/idris21033187761597322404:
+  -- rawSystem: runInteractiveProcess: exec: permission denied
+  --(Permission denied)                                                         
+  --  simplify ((+) (ExpFld 0.0) b) = simplify b
+  --  simplify ((+) a (ExpFld 0.0)) = simplify a
+  simplify ((+) (ExpFld n) b) = if isZro(n) then simplify b
+                                else fieldexp.(+) (ExpFld n) (simplify b)
+  simplify ((+) a (ExpFld n)) = if isZro(n) then simplify a
+                                else fieldexp.(+) (simplify a) (ExpFld n)
   simplify ((+) a b) = if a == b then
               (*) (ExpFld 2.0) (simplify a) else fieldexp.(+) (simplify a) (simplify b)
   simplify ((-) (ExpFld a) (ExpFld b)) = ExpFld (Prelude.Interfaces.(-) a b)
-  simplify ((-) (ExpFld 0.0) b) = -(simplify b)
-  simplify ((-) a (ExpFld 0.0)) = simplify a
+--  simplify ((-) (ExpFld 0.0) b) = -(simplify b)
+--  simplify ((-) a (ExpFld 0.0)) = simplify a
+  simplify ((-) (ExpFld n) b) = if isZro(n) then -(simplify b)
+                                else fieldexp.(-) (ExpFld n) (simplify b)
+  simplify ((-) a (ExpFld n)) = if isZro(n) then simplify a
+                                else fieldexp.(-) (simplify a) (ExpFld n)
   simplify ((-) a b) = if a == b then
                ExpFld 0.0 else fieldexp.(-) (simplify a) (simplify b)
   simplify ((*) (ExpFld a) (ExpFld b)) = ExpFld (Prelude.Interfaces.(*) a b)
-  simplify ((*) (ExpFld 1.0) b) = simplify b
-  simplify ((*) a (ExpFld 1.0)) = simplify a
+  --simplify ((*) (ExpFld 1.0) b) = simplify b
+  --simplify ((*) a (ExpFld 1.0)) = simplify a
+  simplify ((*) (ExpFld n) b) = if isOne(n) then simplify b
+                                else fieldexp.(*) (ExpFld n) (simplify b)
+  simplify ((*) a (ExpFld n)) = if isOne(n) then simplify a
+                                else fieldexp.(*) (simplify a) (ExpFld n)
   simplify ((*) a b) = if a == b then
                Function "sqr" [simplify a] else fieldexp.(*) (simplify a) (simplify b)
   simplify ((/) (ExpFld a) (ExpFld b)) = ExpFld (Prelude.Interfaces.(/) a b)
-  simplify ((/) (ExpFld 1.0) b) = Function "inv" [simplify b]
-  simplify ((/) a (ExpFld 1.0)) = simplify a
+--  simplify ((/) (ExpFld 1.0) b) = Function "inv" [simplify b]
+--  simplify ((/) a (ExpFld 1.0)) = simplify a
+  simplify ((/) (ExpFld n) b) = if isOne(n) then Function "inv" [simplify b]
+                                else fieldexp.(/) (ExpFld n) (simplify b)
+  simplify ((/) a (ExpFld n)) = if isOne(n) then simplify a
+                                else fieldexp.(/) (simplify a) (ExpFld n)
   simplify ((/) a b) = if a == b then
                ExpFld 1.0 else fieldexp.(/) (simplify a) (simplify b)
   -- I want to do:
