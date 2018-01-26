@@ -17,9 +17,9 @@ module fieldexp
 
 ||| Expression over a field
 data ExpressionField = ||| literal value
-   ExpFld Double
+   LitFloat Double
   | ||| variable
-   Var String
+   VarFloat String
   | ||| add
    (+) ExpressionField ExpressionField
   | ||| subtract
@@ -45,14 +45,19 @@ data SpecialDouble : (ty:Type) -> (x:ty) -> Type where
 ||| Can't compare values, in general,  because we don't know value
 ||| of variable so we just check both sides have same structure.
 Eq ExpressionField where
-  (==) (ExpFld a) (ExpFld b) = a==b
-  (==) (Var a) (Var b) = a==b
+  (==) (LitFloat a) (LitFloat b) = a==b
+  (==) (VarFloat a) (VarFloat b) = a==b
   (==) ((+) a b) ((+) c d) = (a==c) && (b==d)
   (==) ((-) a b) ((-) c d) = (a==c) && (b==d)
   (==) ((*) a b) ((*) c d) = (a==c) && (b==d)
   (==) ((/) a b) ((/) c d) = (a==c) && (b==d)
-  --cant compare lists due to recursive nature
-  --(==) (Function a b) (Function c d) = (a==c) && (b==d)
+  (==) (Function a b) (Function c d) = (a==c) && (eqList b d) where
+    eqList : (List ExpressionField) -> (List ExpressionField) -> Bool
+    eqList [] [] = True
+    eqList [] (b::bs) = False
+    eqList (a::as) [] = False
+    eqList (a::as) (b::bs) = (a==b) && (eqList as bs)
+  (==) Undefined Undefined = True
   (==) _ _ = False
 
 ||| No way to do this because we don't know value of variable
@@ -72,24 +77,25 @@ Neg ExpressionField where
 
 Fractional ExpressionField where
   (/) a b = a / b
-  recip a = (ExpFld 1.0) / a
+  recip a = (LitFloat 1.0) / a
 
 Show ExpressionField where
-  show (ExpFld a) = prim__floatToStr a
-  show (Var a) = a
+  show (LitFloat a) = prim__floatToStr a
+  show (VarFloat a) = a
   show ((+) a b) = (show a) ++ "+" ++ (show b)
   show ((-) a b) = (show a) ++ "-" ++ (show b)
   show ((*) a b) = (show a) ++ "*" ++ (show b)
   show ((/) a b) = (show a) ++ "/" ++ (show b)
-  show (Function a b) = (show a) ++ "(" -- ++ (show b) ++ ")"
-  -- show b (which is a list) causes problems
+  show (Function a b) = (show a) ++ "("  ++ (showList b) ++ ")" where
+    showList : (List ExpressionField) -> String
+    showList [] = ""
+    showList (c::cs) = (show c) ++ "::" ++ (showList cs)
   show Undefined = " undefined "
 
 ||| Define the mathematical structures over a field.
 ||| Not just Float or Double but also variables (to implement
 ||| algebra).
 interface (Neg ty, Fractional ty, Ord ty,Eq ty, Show ty) => FieldIfce ty where
-  --(==) : ty -> ty -> Bool
   sqrt : ty -> ty
   Zro : ty
   One : ty
@@ -105,7 +111,6 @@ interface (Neg ty, Fractional ty, Ord ty,Eq ty, Show ty) => FieldIfce ty where
 ||| Use this when we just need a numerical result without
 ||| any variables.
 FieldIfce Double where
-  --(==) = boolOp prim__eqFloat
   sqrt x = prim__floatSqrt x
   Zro = 0.0
   One = 1.0
@@ -119,16 +124,33 @@ FieldIfce Double where
                     if isOne v then DOne Double v else
                       DOther Double v
 
+{- Notes about floating point equality and matching.
+ -
+ - Pattern matching on floating point and testing equality on floating
+ - point are both problematic.
+ -
+ - I would like to do this:
+ -  simplify ((+) a (LitFloat 0.0)) = simplify a
+ -
+ - This works fine in REPL but causes following error in
+ - test framework:
+ -
+ - Type checking /tmp/idris1194953865894429689.idr
+ - Can't match on (0.0)
+ - Uncaught error: /tmp/idris21033187761597322404:
+ - rawSystem: runInteractiveProcess: exec: permission denied
+ -(Permission denied)                                                         
+ -}
 
 ||| Implementation of FieldIfce over ExpressionField
 ||| which contains variables in addition to functions and numbers.
 FieldIfce ExpressionField where
   sqrt x = Function "sqrt" [x]
-  Zro = ExpFld 0.0
-  One = ExpFld 1.0
-  isZro (ExpFld 0.0) = True
+  Zro = LitFloat 0.0
+  One = LitFloat 1.0
+  isZro (LitFloat 0.0) = True
   isZro _ = False
-  isOne (ExpFld 1.0) = True
+  isOne (LitFloat 1.0) = True
   isOne _ = False
   --ifThenElse True  t e = Undefined
   --ifThenElse False t e = Undefined
@@ -136,54 +158,68 @@ FieldIfce ExpressionField where
   specialDouble v = if isZro v then DZero ExpressionField v else
                     if isOne v then DOne ExpressionField v else
                       DOther ExpressionField v
-  simplify (ExpFld a) = ExpFld a
-  simplify (Var s) = Var s
-  simplify ((+) (ExpFld a) (ExpFld b)) = ExpFld (Prelude.Interfaces.(+) a b)
-  -- following works fine in REPL but causes following error in
-  -- test framework: 
-  -- Type checking /tmp/idris1194953865894429689.idr
-  -- Can't match on (0.0)
-  -- Uncaught error: /tmp/idris21033187761597322404:
-  -- rawSystem: runInteractiveProcess: exec: permission denied
-  --(Permission denied)                                                         
-  --  simplify ((+) (ExpFld 0.0) b) = simplify b
-  --  simplify ((+) a (ExpFld 0.0)) = simplify a
-  simplify ((+) (ExpFld n) b) = if isZro(n) then simplify b
-                                else fieldexp.(+) (ExpFld n) (simplify b)
-  simplify ((+) a (ExpFld n)) = if isZro(n) then simplify a
-                                else fieldexp.(+) (simplify a) (ExpFld n)
-  simplify ((+) a b) = if a == b then
-              (*) (ExpFld 2.0) (simplify a) else fieldexp.(+) (simplify a) (simplify b)
-  simplify ((-) (ExpFld a) (ExpFld b)) = ExpFld (Prelude.Interfaces.(-) a b)
---  simplify ((-) (ExpFld 0.0) b) = -(simplify b)
---  simplify ((-) a (ExpFld 0.0)) = simplify a
-  simplify ((-) (ExpFld n) b) = if isZro(n) then -(simplify b)
-                                else fieldexp.(-) (ExpFld n) (simplify b)
-  simplify ((-) a (ExpFld n)) = if isZro(n) then simplify a
-                                else fieldexp.(-) (simplify a) (ExpFld n)
-  simplify ((-) a b) = if a == b then
-               ExpFld 0.0 else fieldexp.(-) (simplify a) (simplify b)
-  simplify ((*) (ExpFld a) (ExpFld b)) = ExpFld (Prelude.Interfaces.(*) a b)
-  --simplify ((*) (ExpFld 1.0) b) = simplify b
-  --simplify ((*) a (ExpFld 1.0)) = simplify a
-  simplify ((*) (ExpFld n) b) = if isOne(n) then simplify b
-                                else fieldexp.(*) (ExpFld n) (simplify b)
-  simplify ((*) a (ExpFld n)) = if isOne(n) then simplify a
-                                else fieldexp.(*) (simplify a) (ExpFld n)
-  simplify ((*) a b) = if a == b then
-               Function "sqr" [simplify a] else fieldexp.(*) (simplify a) (simplify b)
-  simplify ((/) (ExpFld a) (ExpFld b)) = ExpFld (Prelude.Interfaces.(/) a b)
---  simplify ((/) (ExpFld 1.0) b) = Function "inv" [simplify b]
---  simplify ((/) a (ExpFld 1.0)) = simplify a
-  simplify ((/) (ExpFld n) b) = if isOne(n) then Function "inv" [simplify b]
-                                else fieldexp.(/) (ExpFld n) (simplify b)
-  simplify ((/) a (ExpFld n)) = if isOne(n) then simplify a
-                                else fieldexp.(/) (simplify a) (ExpFld n)
-  simplify ((/) a b) = if a == b then
-               ExpFld 1.0 else fieldexp.(/) (simplify a) (simplify b)
-  -- I want to do:
-  --simplify (Function a b) = Function a (map simplify b)
-  -- but this is not proved to be total so, for now, don't
-  -- simpilfy inside function:
-  simplify (Function a b) = Function a b
-  simplify Undefined = Undefined
+  simplify a = simplifyn 0 a where
+   simplifyn : Nat -> ExpressionField -> ExpressionField
+   simplifyn n a =
+     let b=simplify1 a
+     in if n>4 
+        then b
+        else
+          if a==b then a else simplifyn (n+1) b
+            where
+    simplify1 : ExpressionField -> ExpressionField
+    simplify1 (LitFloat a) = LitFloat a
+    simplify1 (VarFloat s) = VarFloat s
+    simplify1 ((+) (LitFloat a) (LitFloat b)) = LitFloat (Prelude.Interfaces.(+) a b)
+    simplify1 ((+) Undefined b) = Undefined
+    simplify1 ((+) a Undefined) = Undefined
+    simplify1 ((+) (LitFloat n) b) = if isZro(n) then simplify1 b
+                                else fieldexp.(+) (LitFloat n) (simplify1 b)
+    simplify1 ((+) a (LitFloat n)) = if isZro(n) then simplify1 a
+                                else fieldexp.(+) (simplify1 a) (LitFloat n)
+    simplify1 ((+) a b) = if a == b then
+              (*) (LitFloat 2.0) (simplify1 a) else fieldexp.(+) (simplify1 a) (simplify1 b)
+    simplify1 ((-) (LitFloat a) (LitFloat b)) = LitFloat (Prelude.Interfaces.(-) a b)
+    simplify1 ((-) Undefined b) = Undefined
+    simplify1 ((-) a Undefined) = Undefined
+    simplify1 ((-) (LitFloat n) b) = if isZro(n) then -(simplify1 b)
+                                else fieldexp.(-) (LitFloat n) (simplify1 b)
+    simplify1 ((-) a (LitFloat n)) = if isZro(n) then simplify1 a
+                                else fieldexp.(-) (simplify1 a) (LitFloat n)
+    simplify1 ((-) a b) = if a == b then
+               LitFloat 0.0 else fieldexp.(-) (simplify1 a) (simplify1 b)
+    simplify1 ((*) (LitFloat a) (LitFloat b)) = LitFloat (Prelude.Interfaces.(*) a b)
+    simplify1 ((*) Undefined b) = Undefined
+    simplify1 ((*) a Undefined) = Undefined
+    simplify1 ((*) (LitFloat n) b) = if isOne(n)
+                                then simplify1 b
+                                else 
+                                  if isZro(n)
+                                  then LitFloat 0.0
+                                  else fieldexp.(*) (LitFloat n) (simplify1 b)
+    simplify1 ((*) a (LitFloat n)) = if isOne(n)
+                                then simplify1 a
+                                else 
+                                  if isZro(n)
+                                  then LitFloat 0.0
+                                  else fieldexp.(*) (simplify1 a) (LitFloat n)
+    simplify1 ((*) a b) = if a == b then
+               Function "sqr" [simplify1 a] else fieldexp.(*) (simplify1 a) (simplify1 b)
+    simplify1 ((/) (LitFloat a) (LitFloat b)) = LitFloat (Prelude.Interfaces.(/) a b)
+    simplify1 ((/) Undefined b) = Undefined
+    simplify1 ((/) a Undefined) = Undefined
+    simplify1 ((/) (LitFloat n) b) = if isOne(n) then Function "inv" [simplify1 b]
+                                else fieldexp.(/) (LitFloat n) (simplify1 b)
+    simplify1 ((/) a (LitFloat n)) = if isOne(n) then simplify1 a
+                                else fieldexp.(/) (simplify1 a) (LitFloat n)
+    simplify1 ((/) a b) = if a == b then
+               LitFloat 1.0 else fieldexp.(/) (simplify1 a) (simplify1 b)
+    -- I want to do:
+    --simplify1 (Function a b) = Function a (map simplify1 b)
+    -- but this is not proved to be total so, for now, impement
+    -- local simplifyList function:
+    simplify1 (Function a b) = Function a (simplifyList b) where
+      simplifyList : (List ExpressionField) -> (List ExpressionField)
+      simplifyList [] = []
+      simplifyList (c::cs) = (simplify1 c)::(simplifyList cs)
+    simplify1 Undefined = Undefined

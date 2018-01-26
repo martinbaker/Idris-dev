@@ -77,68 +77,68 @@ seperateTests5 = putStrLn "simplify expression tests:"
 ||| 1+2=3
 testExpressionSimplify1 : IO()
 testExpressionSimplify1 = 
-  let e1 = ExpFld 1.0
-      e2 = ExpFld 2.0
-      e3 = ExpFld 3.0   
+  let e1 = LitFloat 1.0
+      e2 = LitFloat 2.0
+      e3 = LitFloat 3.0   
   in assertEq e3 (simplify (fieldexp.(+) e1 e2))
 
 ||| test simplify expression
 ||| 1-2=-1
 testExpressionSimplify2 : IO()
 testExpressionSimplify2 = 
-  let e1 = ExpFld 1.0
-      e2 = ExpFld 2.0
-      e3 = ExpFld (-1.0)
+  let e1 = LitFloat 1.0
+      e2 = LitFloat 2.0
+      e3 = LitFloat (-1.0)
   in assertEq e3 (simplify (fieldexp.(-) e1 e2))
 
 ||| test simplify expression
 ||| 2*3=6
 testExpressionSimplify3 : IO()
 testExpressionSimplify3 = 
-  let e1 = ExpFld 2.0
-      e2 = ExpFld 3.0
-      e3 = ExpFld 6.0   
+  let e1 = LitFloat 2.0
+      e2 = LitFloat 3.0
+      e3 = LitFloat 6.0   
   in assertEq e3 (simplify (fieldexp.(*) e1 e2))
 
 ||| test simplify expression
 ||| 6/3=2
 testExpressionSimplify4 : IO()
 testExpressionSimplify4 = 
-  let e1 = ExpFld 6.0
-      e2 = ExpFld 3.0
-      e3 = ExpFld 2.0   
+  let e1 = LitFloat 6.0
+      e2 = LitFloat 3.0
+      e3 = LitFloat 2.0   
   in assertEq e3 (simplify (fieldexp.(/) e1 e2))
 
 ||| test simplify expression
 ||| 0+x=x
 testExpressionSimplify5 : IO()
 testExpressionSimplify5 = 
-  let e1 = ExpFld 0.0
-      e2 = Var "x"   
+  let e1 = LitFloat 0.0
+      e2 = VarFloat "x"   
   in assertEq e2 (simplify (fieldexp.(+) e1 e2))
 
 ||| test simplify expression
 ||| x+0=x
 testExpressionSimplify6 : IO()
 testExpressionSimplify6 = 
-  let e1 = Var "x"
-      e2 = ExpFld 0.0  
+  let e1 = VarFloat "x"
+      e2 = LitFloat 0.0  
   in assertEq e1 (simplify (fieldexp.(+) e1 e2))
 
 ||| test simplify expression
 ||| x-0=x
 testExpressionSimplify7 : IO()
 testExpressionSimplify7 = 
-  let e1 = Var "x"
-      e2 = ExpFld 0.0  
+  let e1 = VarFloat "x"
+      e2 = LitFloat 0.0  
   in assertEq e1 (simplify (fieldexp.(-) e1 e2))
 
 ||| test simplify expression
 ||| 0-x=-x
 testExpressionSimplify8 : IO()
 testExpressionSimplify8 = 
-  let e1 = ExpFld 0.0
-      e2 = Var "x"
+  let e1 = LitFloat 0.0
+      e2 = VarFloat "x"
       e3 = Function "negate" [e2]  
   in assertEq e3 (simplify (fieldexp.(-) e1 e2))
 
@@ -146,35 +146,67 @@ testExpressionSimplify8 =
 ||| x*1=x
 testExpressionSimplify9 : IO()
 testExpressionSimplify9 = 
-  let e1 = Var "x"
-      e2 = ExpFld 1.0  
+  let e1 = VarFloat "x"
+      e2 = LitFloat 1.0  
   in assertEq e1 (simplify (fieldexp.(*) e1 e2))
 
 ||| test simplify expression
 ||| 1*x=x
 testExpressionSimplify10 : IO()
 testExpressionSimplify10 = 
-  let e1 = ExpFld 1.0
-      e2 = Var "x"   
+  let e1 = LitFloat 1.0
+      e2 = VarFloat "x"   
   in assertEq e2 (simplify (fieldexp.(*) e1 e2))
 
 ||| test simplify expression
 ||| x/1=x
 testExpressionSimplify11 : IO()
 testExpressionSimplify11 = 
-  let e1 = Var "x"
-      e2 = ExpFld 1.0  
+  let e1 = VarFloat "x"
+      e2 = LitFloat 1.0  
   in assertEq e1 (simplify (fieldexp.(/) e1 e2))
 
 ||| test simplify expression
 ||| 1/x=inv x
 testExpressionSimplify12 : IO()
 testExpressionSimplify12 = 
-  let e1 = ExpFld 1.0
-      e2 = Var "x"
+  let e1 = LitFloat 1.0
+      e2 = VarFloat "x"
       e3 = Function "inv" [e2] 
   in assertEq e3 (simplify (fieldexp.(/) e1 e2))
 
+||| test simplify expression
+||| x*0=0
+testExpressionSimplify13 : IO()
+testExpressionSimplify13 = 
+  let e1 = VarFloat "x"
+      e2 = LitFloat 0.0  
+  in assertEq e2 (simplify (fieldexp.(*) e1 e2))
+
+||| test simplify expression
+||| 0*x=0
+testExpressionSimplify14 : IO()
+testExpressionSimplify14 = 
+  let e1 = LitFloat 0.0
+      e2 = VarFloat "x"   
+  in assertEq e1 (simplify (fieldexp.(*) e1 e2))
+
+||| test simplify expression - compound
+||| x*(x-x) = 0
+testExpressionSimplify15 : IO()
+testExpressionSimplify15 = 
+  let e1 = VarFloat "x"
+      e2 = LitFloat 0.0  
+  in assertEq e2 (simplify (fieldexp.(*) e1 (fieldexp.(-) e1 e1)))
+
+||| test simplify expression
+||| x + Undefined = Undefined
+testExpressionSimplify16 : IO()
+testExpressionSimplify16 = 
+  let e1 = Undefined
+      e2 = VarFloat "x" 
+  --in assertEq e1 (simplify (fieldexp.(+) e1 e1))
+  in assertEq e1 (simplify (fieldexp.(+) e1 e2))
 
 ||| test multipication - first axioms
 ||| i*i = j*j = k*k = i*j*k = -1

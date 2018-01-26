@@ -22,6 +22,10 @@ tests = testQuat.seperateTests1
       , testQuat.testExpressionSimplify10
       , testQuat.testExpressionSimplify11
       , testQuat.testExpressionSimplify12
+      , testQuat.testExpressionSimplify13
+      , testQuat.testExpressionSimplify14
+      , testQuat.testExpressionSimplify15
+      , testQuat.testExpressionSimplify16
       , testQuat.seperateTests2
       , testQuat.testQuaternion1
       , testQuat.testQuaternion2
