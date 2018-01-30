@@ -1,37 +1,87 @@
-{-
-  (c) 2018 Copyright Martin Baker
-  I would prefer GPL3 licence but if there were any interest in including
-  this with Idris library then a compatible licence would be acceptable.
-  
-  This code attempts to implement expressions using Idris.
-  This allows us to work with variables.
-  For an explanation with example session see this page:
-  http://www.euclideanspace.com/prog/idris/expressions/index.htm
-  for more general information about objectives see this page:
-  http://www.euclideanspace.com/prog/idris/
--}
+{- (c) 2018 Copyright Martin Baker
+ - I would prefer GPL3 licence but if there were any interest in including
+ - this with Idris library then a compatible licence would be acceptable.
+ - 
+ - This code attempts to implement expressions using Idris.
+ - This allows us to work with variables.
+ - For an explanation with example session see this page:
+ - http://www.euclideanspace.com/prog/idris/expressions/index.htm
+ - for more general information about objectives see this page:
+ - http://www.euclideanspace.com/prog/idris/
+ -}
 
 module fieldexp
 
 %access public export
 
-||| Expression over a field
-data ExpressionField = ||| literal value
-   LitFloat Double
+{- In order to implement an algebra our expressions and equations
+ - need to work with mathematical variables. Note these variables
+ - are different from variabes in a program, for instance,
+ - 'y = 2*x' does not mean 'take the current value of x, multiply
+ - it by 2 and assign this value to y' instead it means 'x and y
+ - can range over any values as long as y is always twice x'.
+ - 
+ - Idealy I would want to have an expression over mixed types.
+ - For instance I would like have Doubles and Integers in the
+ - same expression, also vectors and scalars in the same
+ - expression, in fact any mathematically valid combination
+ - of types.
+ -
+ - So I would like to generalise the current implementation
+ - from an 'Expression over a field' to 'Expression over a
+ - mathematical type'. However
+ - this means that, for instance,  the (/) is not valid for
+ - certain types so we want to bar that operator for types
+ - where it is not valid. Also these types would not implement
+ - the Fractional interface and so on.
+ -
+ - I don't know how to code this so the Idris type system could
+ - allow and disallow these things for each mathematical type
+ - in the expression.
+ -
+ - Another enhancement that I would like is to code variables
+ - using de Bruijn indexes as in 'The Well-Typed Interpreter'
+ - example here:
+ - http://docs.idris-lang.org/en/latest/tutorial/interp.html
+ -}
+||| Expression over a field.
+||| An expression can contain both literal values and variables
+||| and therefore the result of functions and binary operations
+||| cannot always be reduced down to a single number so the
+||| value of Expression fld can be a tree structure.
+data Expression fld = ||| literal float value
+   LitFloat fld
   | ||| variable
    VarFloat String
   | ||| add
-   (+) ExpressionField ExpressionField
+   (+) (Expression fld) (Expression fld)
   | ||| subtract
-   (-) ExpressionField ExpressionField
+   (-) (Expression fld) (Expression fld)
   | ||| multiply
-   (*) ExpressionField ExpressionField
+   (*) (Expression fld) (Expression fld)
   | ||| divide
-   (/) ExpressionField ExpressionField
+   (/) (Expression fld) (Expression fld)
   | ||| function
-   Function String (List ExpressionField)
+   Function String (List (Expression fld))
   | ||| unknown
    Undefined
+
+{- It is unfortunate that '=' is built into the Idris language.
+ - In the Idris language it is used much more like an assignment
+ - and a better symbol for that would be ':='. I would prefer
+ - '=' to be used for equations.
+ -
+ - (===) needs to bind more tightly than the expressions
+ - on either side of it.
+ -}
+||| An equation contains an equals sign and a left hand side
+||| expression and a right hand side expression.
+||| We have to use (===) for the equals sign because (=) and
+||| (==) are already used.
+record Equation fld where
+  constructor (===)
+  lhs:flt
+  rhs:flt
 
 ||| We need to treat 0.0 and 1.0 differently from other
 ||| floating point values. For instance we want to simplify
@@ -44,7 +94,7 @@ data SpecialDouble : (ty:Type) -> (x:ty) -> Type where
 
 ||| Can't compare values, in general,  because we don't know value
 ||| of variable so we just check both sides have same structure.
-Eq ExpressionField where
+Eq (Expression Double) where
   (==) (LitFloat a) (LitFloat b) = a==b
   (==) (VarFloat a) (VarFloat b) = a==b
   (==) ((+) a b) ((+) c d) = (a==c) && (b==d)
@@ -52,7 +102,7 @@ Eq ExpressionField where
   (==) ((*) a b) ((*) c d) = (a==c) && (b==d)
   (==) ((/) a b) ((/) c d) = (a==c) && (b==d)
   (==) (Function a b) (Function c d) = (a==c) && (eqList b d) where
-    eqList : (List ExpressionField) -> (List ExpressionField) -> Bool
+    eqList : (List (Expression Double)) -> (List (Expression Double)) -> Bool
     eqList [] [] = True
     eqList [] (b::bs) = False
     eqList (a::as) [] = False
@@ -61,25 +111,25 @@ Eq ExpressionField where
   (==) _ _ = False
 
 ||| No way to do this because we don't know value of variable
-Ord ExpressionField where
+Ord (Expression Double) where
   compare x y = EQ
 
-||| make ExpressionField implement Num
-Num ExpressionField where
+||| make (Expression Double) implement Num
+Num (Expression Double) where
   (+) a b = a + b
   (*) a b = a * b
-  fromInteger x = Function "fromint" [Undefined]
+  fromInteger a = Function "fromint" [LitFloat (fromInteger a)]
 
-||| make ExpressionField implement Neg
-Neg ExpressionField where
-  negate x = Function "negate" [x]
+||| make (Expression Double) implement Neg
+Neg (Expression Double) where
+  negate a = Function "negate" [a]
   (-) a b = a - b
 
-Fractional ExpressionField where
+Fractional (Expression Double) where
   (/) a b = a / b
   recip a = (LitFloat 1.0) / a
 
-Show ExpressionField where
+Show (Expression Double) where
   show (LitFloat a) = prim__floatToStr a
   show (VarFloat a) = a
   show ((+) a b) = (show a) ++ "+" ++ (show b)
@@ -87,7 +137,7 @@ Show ExpressionField where
   show ((*) a b) = (show a) ++ "*" ++ (show b)
   show ((/) a b) = (show a) ++ "/" ++ (show b)
   show (Function a b) = (show a) ++ "("  ++ (showList b) ++ ")" where
-    showList : (List ExpressionField) -> String
+    showList : (List (Expression Double)) -> String
     showList [] = ""
     showList (c::cs) = (show c) ++ "::" ++ (showList cs)
   show Undefined = " undefined "
@@ -142,9 +192,9 @@ FieldIfce Double where
  -(Permission denied)                                                         
  -}
 
-||| Implementation of FieldIfce over ExpressionField
+||| Implementation of FieldIfce over Expression Double
 ||| which contains variables in addition to functions and numbers.
-FieldIfce ExpressionField where
+FieldIfce (Expression Double) where
   sqrt x = Function "sqrt" [x]
   Zro = LitFloat 0.0
   One = LitFloat 1.0
@@ -155,11 +205,11 @@ FieldIfce ExpressionField where
   --ifThenElse True  t e = Undefined
   --ifThenElse False t e = Undefined
   evaluate a b = a
-  specialDouble v = if isZro v then DZero ExpressionField v else
-                    if isOne v then DOne ExpressionField v else
-                      DOther ExpressionField v
+  specialDouble v = if isZro v then DZero (Expression Double) v else
+                    if isOne v then DOne (Expression Double) v else
+                      DOther (Expression Double) v
   simplify a = simplifyn 0 a where
-   simplifyn : Nat -> ExpressionField -> ExpressionField
+   simplifyn : Nat -> (Expression Double) -> (Expression Double)
    simplifyn n a =
      let b=simplify1 a
      in if n>4 
@@ -167,7 +217,7 @@ FieldIfce ExpressionField where
         else
           if a==b then a else simplifyn (n+1) b
             where
-    simplify1 : ExpressionField -> ExpressionField
+    simplify1 : (Expression Double) -> (Expression Double)
     simplify1 (LitFloat a) = LitFloat a
     simplify1 (VarFloat s) = VarFloat s
     simplify1 ((+) (LitFloat a) (LitFloat b)) = LitFloat (Prelude.Interfaces.(+) a b)
@@ -219,7 +269,7 @@ FieldIfce ExpressionField where
     -- but this is not proved to be total so, for now, impement
     -- local simplifyList function:
     simplify1 (Function a b) = Function a (simplifyList b) where
-      simplifyList : (List ExpressionField) -> (List ExpressionField)
+      simplifyList : (List (Expression Double)) -> (List (Expression Double))
       simplifyList [] = []
       simplifyList (c::cs) = (simplify1 c)::(simplifyList cs)
     simplify1 Undefined = Undefined

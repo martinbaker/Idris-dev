@@ -7,7 +7,8 @@ pkgs = contrib
 
 modules = fieldExpression
         , quaternion
-        , testquaternion
+        , perm
+        , testAlgebra
 
 tests = testQuat.seperateTests1
       , testQuat.testExpressionSimplify1
