@@ -33,46 +33,79 @@ record Permutation set where
    preimage:(List set)
    image:(List set)
 
---smallerElement : Ord S => S -> S -> Bool
---smallerElement a b = a<b
-
-{-rotate : Nat -> (List a) -> (List a)
-rotate _ [] = []
-rotate n xs = zipWith 2 (List.drop n (cycle xs)) xs
-Idris> :let l=[1,2,3,4]
-Idris> l
-[1, 2, 3, 4] : List Integer
-Idris> :let l2=drop 2 l
-Idris> l2
-[3, 4] : List Integer
-Idris> :let l3=take 2 l
-Idris> l3
-[1, 2] : List Integer
-Idris> l2++l3
-[3, 4, 1, 2] : List Integer
-Idris> -}
-
-
-
---||| index of minimum value
---elemIndex  (minimum a) a
+||| find index of the smallest element of a list
+lowerBoundIndex : Ord s => List s -> Maybe Nat
+lowerBoundIndex [] = Nothing
+lowerBoundIndex lst =
+  let y:(Maybe s) = lowerBound lst Nothing
+  in case y of
+    Nothing => Nothing
+    Just z1 => elemIndex z1 lst
+  where
+      -- find the smallest element of a list
+      lowerBound : Ord s => List s -> Maybe s -> Maybe s
+      lowerBound [] w = w
+      lowerBound (x::xs) Nothing =
+        lowerBound xs (Just x)
+      lowerBound (x::xs) (Just n) =
+        let y:(Maybe s) = lowerBound xs (Just x)
+            z:s = case y of
+              Nothing => n
+              Just z1 => z1
+        in if n < z  then (Just n) else (Just z)
 
 ||| smallest element is put in first place
 ||| doesn't change cycle if underlying set
 ||| is not ordered or not finite.
-rotateCycle : (List s) -> (List s)
+rotateCycle : Ord s => (List s) -> (List s)
 rotateCycle [] = []
 rotateCycle cyc =
-  cyc
---  let minIndex:Int = elemIndex  (minimum cyc) cyc
---  in zipWith const (drop minIndex (cycle cyc)) cyc
-  
-{-      min : S := first cyc
-      minpos : I := 1           -- 1 = minIndex cyc
-      for i in 2..maxIndex cyc repeat
-        if smallerElement?(cyc.i, min) then
-          min  := cyc.i
-          minpos := i
-      (minpos = 1) => cyc
-      concat(last(cyc, ((#cyc-minpos+1)::NNI)), first(cyc, (minpos-1)::NNI))-}
+  let lbi:(Maybe Nat) = lowerBoundIndex cyc
+  in case lbi of
+    Nothing => cyc
+    Just z1 =>
+      let f=List.drop z1 cyc
+          l=take z1 cyc
+      in f++l
+
+||| eval returns the image of element (el) under the
+||| permutation p.
+||| @p permutation
+||| @el element
+eval  : Ord s => (p : (Permutation s)) -> (el : s) -> (Maybe s)
+eval p el =
+  let i:(Maybe Nat) = elemIndex el (preimage p)
+  in case i of
+    Nothing => Nothing
+    Just z1 => index' z1 (preimage p)
+
+||| movedPoints(p) returns the set of points moved by the permutation p.
+||| @p permutation
+movedPoints : (p : (Permutation s)) -> (List s)
+movedPoints p = preimage p
+
+||| degree(p) retuns the number of points moved by the
+||| permutation p.
+||| @p permutation
+degree : (p : (Permutation s)) ->  Nat
+degree p =  length (movedPoints p)
+
+||| orbit returns the orbit of element (el) under the
+||| permutation p, i.e. the set which is given by applications of
+||| the powers of p to el.
+||| @p permutation
+||| @el element
+orbit : Ord s => (p : (Permutation s)) -> (el : s) -> (List s)
+orbit p el = buildOrbit p el [el]
+  where
+    buildOrbit : Ord s => (p : (Permutation s)) -> (el : s) -> (List s) -> (List s)
+    buildOrbit p el orbBuild = 
+      let el2:(Maybe s) = eval p el
+      in case el2 of
+        Nothing => orbBuild
+        Just el2j => if el==el2j
+                     then orbBuild
+                     else buildOrbit p el2j orbBuild++[el2j]
+
+
 
