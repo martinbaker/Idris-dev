@@ -21,6 +21,11 @@
 
 module perm
 
+-- For now we need to have some runtime errors. I cant work out how
+-- to use Idris type system to make then impossible.
+import Effects
+import Effect.Exception
+
 %access public export
 
 ||| Implements permutations (subgroups of bijections of a set).
@@ -32,6 +37,48 @@ record Permutation set where
    constructor Perm
    preimage:(List set)
    image:(List set)
+
+||| auxilary constructor - unit
+||| This constructs the special permutation that does nothing.
+unit : Permutation s
+unit = Perm [] []
+
+||| Multiplcation of permutations represents composition.
+||| That is the result is the same a taking the first permutation
+||| and applying the second permutation to the result of the first.
+||| This is made more complicated because the code needs to insert
+||| any points which are fixpoints in one operand but not the other.
+(*) : (Permutation s) -> (Permutation s) -> (Permutation s)
+(*) q p =
+  q
+{-
+      preimOfp : V S := construct p.1
+      imOfp : V S := construct p.2
+      preimOfq := q.1
+      imOfq := q.2
+      preimOfqp   := []$(L S)
+      imOfqp   := []$(L S)
+      -- 1 = minIndex preimOfp
+      for i in 1..(maxIndex preimOfp) repeat
+        -- find index of image of p.i in q if it exists
+        j := position(imOfp.i, preimOfq)
+        if j = 0 then
+          -- it does not exist
+          preimOfqp := cons(preimOfp.i, preimOfqp)
+          imOfqp := cons(imOfp.i, imOfqp)
+        else
+          -- it exists
+          el := imOfq.j
+          -- if the composition fixes the element, we don't
+          -- have to do anything
+          if el ~= preimOfp.i then
+            preimOfqp := cons(preimOfp.i, preimOfqp)
+            imOfqp := cons(el, imOfqp)
+          -- we drop the parts of q which have to do with p
+          preimOfq := delete(preimOfq, j)
+          imOfq := delete(imOfq, j)
+      [append(preimOfqp, preimOfq), append(imOfqp, imOfq)]-}
+
 
 ||| find index of the smallest element of a list
 lowerBoundIndex : Ord s => List s -> Maybe Nat
@@ -68,11 +115,39 @@ rotateCycle cyc =
           l=take z1 cyc
       in f++l
 
+||| runtime error for the EXCEPTION effect declared in module Effect.Exception.
+data Error = CycleContainsDuplicates
+
+||| cycle coerces a cycle {\em ls}, i.e. a list without
+||| repetitions to a permutation, which maps {\em ls.i} to
+||| {\em ls.i+1}, indices modulo the length of the list.
+||| Error: if repetitions occur.
+cycle : List s -> Permutation s
+cycle [] = unit -- zero elements cant contain a cycle
+cycle (x::[]) = unit -- one element cant contain a cycle
+cycle (x::xs) =
+  --duplicates? ls => raise CycleContainsDuplicates
+  Perm (x::xs) (xs++[x])
+
+||| cycles coerces a list list of cycles {\em lls}
+||| to a permutation, each cycle being a list with not
+||| repetitions, is coerced to the permutation, which maps
+||| {\em ls.i} to {\em ls.i+1}, indices modulo the length of the list,
+||| then these permutations are mutiplied.
+||| Error: if repetitions occur in one cycle.
+cycles : List(List s)  -> Permutation s
+cycles lls =
+  unit
+{-  perm : % := 1
+  for lists in reverse lls repeat
+    perm := cycle lists * perm
+  perm-}
+
 ||| eval returns the image of element (el) under the
 ||| permutation p.
 ||| @p permutation
 ||| @el element
-eval  : Ord s => (p : (Permutation s)) -> (el : s) -> (Maybe s)
+eval  : Eq s => (p : (Permutation s)) -> (el : s) -> (Maybe s)
 eval p el =
   let i:(Maybe Nat) = elemIndex el (preimage p)
   in case i of
@@ -95,10 +170,10 @@ degree p =  length (movedPoints p)
 ||| the powers of p to el.
 ||| @p permutation
 ||| @el element
-orbit : Ord s => (p : (Permutation s)) -> (el : s) -> (List s)
+orbit : Eq s => (p : (Permutation s)) -> (el : s) -> (List s)
 orbit p el = buildOrbit p el [el]
   where
-    buildOrbit : Ord s => (p : (Permutation s)) -> (el : s) -> (List s) -> (List s)
+    buildOrbit : Eq s => (p : (Permutation s)) -> (el : s) -> (List s) -> (List s)
     buildOrbit p el orbBuild = 
       let el2:(Maybe s) = eval p el
       in case el2 of
@@ -106,6 +181,4 @@ orbit p el = buildOrbit p el [el]
         Just el2j => if el==el2j
                      then orbBuild
                      else buildOrbit p el2j orbBuild++[el2j]
-
-
 

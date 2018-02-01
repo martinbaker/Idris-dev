@@ -4,6 +4,7 @@ package algebra
 
 -- required for contrib/Data/Matrix
 pkgs = contrib
+       , effects
 
 modules = fieldExpression
         , quaternion
