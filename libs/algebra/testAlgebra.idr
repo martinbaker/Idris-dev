@@ -10,12 +10,13 @@
   http://www.euclideanspace.com/prog/idris/
 -}
 
-module testQuat
+module testAlgebra
 
 -- Local Variables:
 -- idris-load-packages: ("algebra")
 -- End:
 import public fieldExpression
+import public finiteSet
 import public quaternion
 --import public Data.Vect
 
@@ -58,6 +59,9 @@ assertEq g e = if g == e
     then putStrLn "Test Passed"
     else putStrLn "Test Failed"
 
+seperateTests0 : IO ()
+seperateTests0 = putStrLn "finite set tests:"
+
 seperateTests1 : IO ()
 seperateTests1 = putStrLn "simplify expression tests:"
 
@@ -70,8 +74,23 @@ seperateTests3 = putStrLn "rotation quaternion to matrix tests:"
 seperateTests4 : IO ()
 seperateTests4 = putStrLn "rotation matrix to quaternion tests:"
 
-seperateTests5 : IO ()
-seperateTests5 = putStrLn "simplify expression tests:"
+||| test FiniteSet
+||| union
+testFiniteSet1 : IO()
+testFiniteSet1 = 
+  let fs1:(FiniteSet 4 Integer)=fromList [1,2,3,4]
+      fs2:(FiniteSet 5 Integer)=fromList [3,4,5,6,7]
+      fs3:(FiniteSet 7 Integer)=fromList [2, 1, 3, 4, 5, 6, 7]
+  in assertEq fs3 (snd (union fs1 fs2))
+
+||| test FiniteSet
+||| intersection
+testFiniteSet2 : IO()
+testFiniteSet2 =
+  let fs1:(FiniteSet 4 Integer)=fromList [1,2,3,4]
+      fs2:(FiniteSet 5 Integer)=fromList [3,4,5,6,7]
+      fs3:(FiniteSet 2 Integer)=fromList [3, 4]
+  in assertEq fs3 (snd (intersection fs1 fs2))
 
 ||| test simplify expression
 ||| 1+2=3
