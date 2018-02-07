@@ -166,6 +166,17 @@ reverse xs = go [] xs
         go {n} {m=S m} acc (x :: xs) = rewrite sym $ plusSuccRightSucc n m
                                        in go (x::acc) xs
 
+{-
+||| wont compile as it cannot calculate length when removing duplicates
+fromList' : (lena ** FiniteSet lena elem) -> (l : List elem) -> FiniteSet lenb elem
+fromList' ys [] = snd ys
+fromList' ys (x::xs) =
+  rewrite (plusSuccRightSucc (length xs) (fst ys)) ==>
+          FiniteSet (plus (length xs) (S (fst ys))) elem in
+  fromList' (insert x ys) xs
+-}
+
+||| does not remove duplicates - need to use 'insert' like code above
 fromList' : FiniteSet len elem -> (l : List elem) -> FiniteSet (length l + len) elem
 fromList' ys [] = ys
 fromList' {len} ys (x::xs) =
@@ -174,12 +185,14 @@ fromList' {len} ys (x::xs) =
   fromList' (x::ys) xs
 
 ||| Convert a list to a finite set.
+||| If the list contains duplicates then only one element of each
+||| value will be added.
 |||
 ||| The length of the list should be statically known.
-fromList : (l : List elem) -> FiniteSet (length l) elem
-fromList l =
+fromList : {elem:Type} -> (l : List elem) -> FiniteSet (length l) elem
+fromList {elem} l =
   rewrite (sym $ plusZeroRightNeutral (length l)) in
-  reverse $ fromList' [] l
+  reverse $ fromList' (empty elem) l
 
 ||| order is not significant when comparing sets so equality returns true
 ||| if both sets contain the same elements regardless of order.

@@ -81,7 +81,8 @@ testFiniteSet1 =
   let fs1:(FiniteSet 4 Integer)=fromList [1,2,3,4]
       fs2:(FiniteSet 5 Integer)=fromList [3,4,5,6,7]
       fs3:(FiniteSet 7 Integer)=fromList [2, 1, 3, 4, 5, 6, 7]
-  in assertEq fs3 (snd (union fs1 fs2))
+      fs4:(FiniteSet 7 Integer)=(snd (union fs1 fs2))
+  in assertEq fs3 fs4
 
 ||| test FiniteSet
 ||| intersection
@@ -90,7 +91,8 @@ testFiniteSet2 =
   let fs1:(FiniteSet 4 Integer)=fromList [1,2,3,4]
       fs2:(FiniteSet 5 Integer)=fromList [3,4,5,6,7]
       fs3:(FiniteSet 2 Integer)=fromList [3, 4]
-  in assertEq fs3 (snd (intersection fs1 fs2))
+      fs4:(FiniteSet 2 Integer)=(snd (intersection fs1 fs2))
+  in assertEq fs3 fs4
 
 ||| test simplify expression
 ||| 1+2=3
