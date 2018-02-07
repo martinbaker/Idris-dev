@@ -20,11 +20,29 @@
  - 'Ord' interface is not required.
  - Although a finite set does not need a concept of order, in general,
  - this implementation is gauranteed to maintain the order that the
- - elements wer added. This is not part of the mathematical requirements
+ - elements were added. This is not part of the mathematical requirements
  - but it is useful for computation.
  -
- - Before writing this code I did a quick search to 
+ - Should FiniteSet have its size as part of its type? That is, should
+ - it be implemented like 'List' or like 'Vect'? If we take the example
+ - of vector spaces then making vectors of different number of dimensions,
+ - different types, is very useful because vector addition is only valid
+ - if the dimensions are the same. So it helps to have these errors 
+ - detected at compile time. However, the situation is different for
+ - FiniteSet because functions like 'union' and 'intersection' do not
+ - produce a result of a predicatable size, we have to use complicated
+ - dependant pairs to get this to work. But there are some functions where
+ - having the size availible at compile time is useful. Also if finite sets
+ - have the same size they are isomorphic and it might be an interesting
+ - idea to have such isomorphisms availible at compile time. So, for now,
+ - I will continue to include the size in the type.
+ -
+ - I therefore based this code on 'Vect'.
+ - Before writing this code I did a quick search to check if there was
+ - any other existing code that I could use but I did not find any.
+ - 'fin' only seems to apply to numbers. The code here:
  - https://github.com/jfdm/idris-containers/blob/master/Data/AVL/Set.idr
+ - is based on ballanced trees and so only works on ordered sets.
  -}
 
 module FiniteSet
@@ -57,24 +75,30 @@ contains : (Eq elem) => elem -> FiniteSet len elem -> Bool
 contains a [] = False
 contains a (x::xs) = if a==x then True else contains a xs
 
-||| I don't yet trust the static type level value for length
-||| so, for now, calculate at runtime.
-size : FiniteSet len elem -> Nat
-size [] = 0
-size (x::xs) = 1 + size xs
-
-insert : (Eq elem) => elem -> {len:Nat} -> FiniteSet len elem ->
+||| insert an element into a set only if the set does not
+||| already contain the element.
+||| @e element to be added.
+||| @x set to be added too.
+insert : (Eq elem) => (e:elem) -> {len:Nat} -> (x:FiniteSet len elem) ->
                       (len2:Nat ** FiniteSet len2 elem)
 insert e {len} x = 
            if contains e x
            then (len ** x)
            else ((S len) ** (e :: x))
 
+||| I don't yet trust the static type level value for length
+||| so, for now, calculate at runtime.
+size : FiniteSet len elem -> Nat
+size [] = 0
+size (x::xs) = 1 + size xs
+
 ||| Construct a set that contains all elements in both of the input sets.
-union : (Eq elem) => {lena:Nat} -> FiniteSet lena elem ->
-                     {lenb:Nat} -> FiniteSet lenb elem ->
+||| @x first input set
+||| @y second input set
+union : (Eq elem) => {lena:Nat} -> (x:FiniteSet lena elem) ->
+                     {lenb:Nat} -> (y:FiniteSet lenb elem) ->
                      (len2 ** FiniteSet len2 elem)
-union [] {lenb} x = (lenb ** x)
+union [] {lenb} y = (lenb ** y)
 union {lena} x [] = (lena ** x)
 union {lena} x {lenb} y = case x of
         [] => (lenb ** y)
@@ -97,34 +121,44 @@ dropElem e {lena = (S lena)} (x::xs) =
   in((S (fst rst)) ** x::(snd rst))
 
 ||| Construct a set that contains the elements from the first input
-||| set but not the second.
-difference : (Eq elem) => {lena:Nat} -> FiniteSet lena elem ->
-                          {lenb:Nat} -> FiniteSet lenb elem ->
+||| set but not the second. This is a variant of the difference
+||| function which takes a dependant pair as its first parameter.
+||| @set1 first input set is dependant pair.
+||| @set2 second input set.
+difference' : (Eq elem) => (set1:(lena ** FiniteSet lena elem)) ->
+                          {lenb:Nat} -> (set2:FiniteSet lenb elem) ->
                           (len2 ** FiniteSet len2 elem)
-difference [] {lenb} x = (Z ** [])
+difference' (Z ** []) {lenb} _ = (Z ** [])
+difference' x [] = x
+difference' x {lenb = S lenb} (ya::yas) = difference' (dropElem ya (snd x)) yas
+
+||| Construct a set that contains the elements from the first input
+||| set but not the second.
+||| @set1 first input set.
+||| @set2 second input set.
+difference : (Eq elem) => {lena:Nat} -> (set1:FiniteSet lena elem) ->
+                          {lenb:Nat} -> (set2:FiniteSet lenb elem) ->
+                          (len2 ** FiniteSet len2 elem)
+difference [] {lenb} _ = (Z ** [])
 difference {lena} x [] = (lena ** x)
-difference {lena} x {lenb} y = case y of
-    [] => (Z ** [])
-    (ya::yas) => if contains ya x
-                 then 
-                   difference yas (snd (dropElem ya x))
-                 else
-                   let rst:(q2 ** FiniteSet q2 elem) = difference yas x
-                   --in ((fst rst) ** (snd rst))
-                   in ((S (fst rst)) ** ya::(snd rst))
+difference {lena = S lena} x {lenb =S lenb} (ya::yas) = difference' (dropElem ya x) yas
 
 ||| Construct a set that contains common elements of the input sets.
-intersection : (Eq elem) => FiniteSet len elem ->
-                            FiniteSet len elem ->
+intersection : (Eq elem) => FiniteSet lena elem ->
+                            FiniteSet lenb elem ->
                             (len2 ** FiniteSet len2 elem)
 intersection s1 s2 = difference s1 (snd (difference s1 s2))
 
 ||| Construct a list using the given set.
-toList : FiniteSet len elem -> List elem
+||| @set set to be converted to list.
+toList : (set:FiniteSet len elem) -> List elem
 toList [] = List.Nil
 toList (x::xs) = List.(::) x (toList xs)
 
-||| Reverse the order of the elements of a FiniteSet
+||| Reverse the order of the elements of a FiniteSet.
+||| Since order is irrelavent this does not really change the set
+||| but 'reverse' is used by 'fromList' to keep the set looking
+||| the same as the list.
 reverse : FiniteSet len elem -> FiniteSet len elem
 reverse xs = go [] xs
   where go : FiniteSet n elem -> FiniteSet m elem -> FiniteSet (n+m) elem
@@ -147,15 +181,11 @@ fromList l =
   rewrite (sym $ plusZeroRightNeutral (length l)) in
   reverse $ fromList' [] l
 
+||| order is not significant when comparing sets so equality returns true
+||| if both sets contain the same elements regardless of order.
 implementation (Eq elem) => Eq (FiniteSet len elem) where
   (==) []      []      = True
-  (==) (x::xs) (y::ys) = x == y && xs == ys
-
+  (==) x y = (fst (difference x y) == Z ) && (fst (difference y x) == Z )
 
 implementation Show elem => Show (FiniteSet len elem) where
     show = show . toList
-
---
--- Local Variables:
--- idris-load-packages: ("algebra.ipkg")
--- End:
