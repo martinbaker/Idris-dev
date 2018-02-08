@@ -14,6 +14,10 @@ modules = finiteSet
 tests = testAlgebra.seperateTests0
       , testAlgebra.testFiniteSet1
       , testAlgebra.testFiniteSet2
+      , testAlgebra.testFiniteSet3
+      , testAlgebra.testFiniteSet4
+      , testAlgebra.testFiniteSet5
+      , testAlgebra.testFiniteSet6
       , testAlgebra.seperateTests1
       , testAlgebra.testExpressionSimplify1
       , testAlgebra.testExpressionSimplify2

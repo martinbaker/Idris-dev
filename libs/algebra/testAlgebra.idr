@@ -75,23 +75,59 @@ seperateTests4 : IO ()
 seperateTests4 = putStrLn "rotation matrix to quaternion tests:"
 
 ||| test FiniteSet
-||| union
+||| order is not important
 testFiniteSet1 : IO()
 testFiniteSet1 = 
-  let fs1:(FiniteSet 4 Integer)=fromList [1,2,3,4]
-      fs2:(FiniteSet 5 Integer)=fromList [3,4,5,6,7]
-      fs3:(FiniteSet 7 Integer)=fromList [2, 1, 3, 4, 5, 6, 7]
-      fs4:(FiniteSet 7 Integer)=(snd (union fs1 fs2))
+  let fs1:(FiniteSet Integer)=fromList [1,2,3]
+      fs2:(FiniteSet Integer)=fromList [3,2,1]
+  in assertEq fs1 fs2
+
+||| test FiniteSet
+||| duplicates are removed
+testFiniteSet2 : IO()
+testFiniteSet2 = 
+  let fs1:(FiniteSet Integer)=fromList [1,2,2,1,3]
+      fs2:(FiniteSet Integer)=fromList [3,2,1]
+  in assertEq fs1 fs2
+
+||| test FiniteSet
+||| no change union with empty set 
+testFiniteSet3 : IO()
+testFiniteSet3 = 
+  let fs1:(FiniteSet Integer)=fromList []
+      fs2:(FiniteSet Integer)=fromList [3,4,5,6,7]
+      fs3:(FiniteSet Integer)=fromList [3,4,5,6,7]
+      fs4:(FiniteSet Integer)=(union fs1 fs2)
+  in assertEq fs3 fs4
+
+||| test FiniteSet
+||| union
+testFiniteSet4 : IO()
+testFiniteSet4 = 
+  let fs1:(FiniteSet Integer)=fromList [1,2,3,4]
+      fs2:(FiniteSet Integer)=fromList [3,4,5,6,7]
+      fs3:(FiniteSet Integer)=fromList [2, 1, 3, 4, 5, 6, 7]
+      fs4:(FiniteSet Integer)=(union fs1 fs2)
+  in assertEq fs3 fs4
+
+||| test FiniteSet
+||| intersection with empty set is empty set 
+testFiniteSet5 : IO()
+testFiniteSet5 = 
+  let fs1:(FiniteSet Integer)=fromList []
+      fs2:(FiniteSet Integer)=fromList [3,4,5,6,7]
+      fs3:(FiniteSet Integer)=fromList []
+      fs4:(FiniteSet Integer)=(intersection fs1 fs2)
   in assertEq fs3 fs4
 
 ||| test FiniteSet
 ||| intersection
-testFiniteSet2 : IO()
-testFiniteSet2 =
-  let fs1:(FiniteSet 4 Integer)=fromList [1,2,3,4]
-      fs2:(FiniteSet 5 Integer)=fromList [3,4,5,6,7]
-      fs3:(FiniteSet 2 Integer)=fromList [3, 4]
-      fs4:(FiniteSet 2 Integer)=(snd (intersection fs1 fs2))
+testFiniteSet6 : IO()
+testFiniteSet6 =
+  let fs1:(FiniteSet Integer)=fromList [1,2,3,4]
+      fs2:(FiniteSet Integer)=fromList [3,4,5,6,7]
+      fs3:(FiniteSet Integer)=fromList [3, 4]
+      fs4:(FiniteSet Integer)=(intersection fs1 fs2)
   in assertEq fs3 fs4
 
 ||| test simplify expression
