@@ -144,6 +144,32 @@ intersection : (Eq elem) => FiniteSet elem ->
                             FiniteSet elem
 intersection s1 s2 = difference s1 (difference s1 s2)
 
+||| This is used in permutation set but its less messy
+||| to put this function in FiniteSet namespace
+lookup : (Eq elem) => (input : elem) ->
+                      (preIm : (FiniteSet elem)) ->
+                      (im : (FiniteSet elem)) ->
+                      elem
+lookup inp [] _ = inp
+lookup inp _ [] = inp
+lookup inp (a :: as) (b :: bs) =
+  if inp == a then b else lookup inp as bs
+
+||| This is used in permutation set but its less messy
+||| to put this function in FiniteSet namespace
+multiLookup : Eq s =>  (FiniteSet s) -> (FiniteSet  s) -> (FiniteSet  s) -> (FiniteSet s)
+multiLookup [] _ _ = empty
+multiLookup (a::as) q p = insert (lookup a q p) (multiLookup as q p)
+
+||| This is used in permutation set but its less messy
+||| to put this function in FiniteSet namespace
+dropFixpoint : Eq s => (FiniteSet s) -> (FiniteSet  s) -> ((FiniteSet  s),(FiniteSet s))
+dropFixpoint [] [] = ([],[])
+dropFixpoint (a::as) (b::bs) =
+  if a==b
+  then (as,bs)
+  else ((a::as),(b::bs))
+
 ||| Construct a list using the given set.
 ||| @set set to be converted to list.
 toList : (set:FiniteSet elem) -> List elem
