@@ -53,6 +53,14 @@ permSet preim im =
   let m = dropFixpoint preim im
   in Perm (fst m) (snd m)
 
+||| An auxilary constructor where the preImage and Image are
+||| provided in the form of lists.
+permSetFromList : Eq set => (preim:List set) ->
+                  (im:List set) ->
+                  Permutation set
+permSetFromList preim im =
+  permSet (fromList preim) (fromList im)
+
 ||| eval returns the image of element (el) under the
 ||| permutation p.
 ||| @p permutation
@@ -74,7 +82,7 @@ eval p el = lookup el (preimage p) (image p)
     pSet2:(FiniteSet s) = image p
     fullSet:(FiniteSet s) = union qSet pSet
     image1Set:(FiniteSet s) = multiLookup fullSet qSet qSet2
-    image2Set:(FiniteSet s) = multiLookup image1Set qSet qSet2
+    image2Set:(FiniteSet s) = multiLookup image1Set pSet pSet2
   in permSet fullSet image2Set
 
 ||| find index of the smallest element of a list
@@ -170,3 +178,18 @@ orbit p el = buildOrbit p el empty
          then orbBuild
          else buildOrbit p el2 (insert el2 orbBuild)
 
+||| Return True if both the preimage and image are the same but they can
+||| be reordered and still be True provided preimage and image are
+||| reordered in the same way.
+implementation (Eq s) => Eq (Permutation s) where
+  (==) a b = 
+    if (preimage a) == (preimage b)
+    then
+      let
+        m:(FiniteSet s) = multiLookup (preimage a) (preimage b) (image b)
+      in
+        identical m (image a)
+    else False
+
+implementation Show s => Show (Permutation s) where
+    show a = "permutation" ++(show (preimage a)) ++ (show (image a))

@@ -17,6 +17,7 @@ module testAlgebra
 -- End:
 import public fieldExpression
 import public finiteSet
+import public perm
 import public quaternion
 --import public Data.Vect
 
@@ -61,6 +62,9 @@ assertEq g e = if g == e
 
 seperateTests0 : IO ()
 seperateTests0 = putStrLn "finite set tests:"
+
+seperateTestsPerm : IO ()
+seperateTestsPerm = putStrLn "permutation tests:"
 
 seperateTests1 : IO ()
 seperateTests1 = putStrLn "simplify expression tests:"
@@ -129,6 +133,23 @@ testFiniteSet6 =
       fs3:(FiniteSet Integer)=fromList [3, 4]
       fs4:(FiniteSet Integer)=(intersection fs1 fs2)
   in assertEq fs3 fs4
+
+||| test Permutations
+||| remove fixpoints
+testPermutation1 : IO()
+testPermutation1 = 
+  let p=permSetFromList [1,2,3,4] [3,2,1,4]
+      p2=permSetFromList [1,3] [3,1]
+  in assertEq p p2
+
+||| test Permutations
+||| multiply (compose)
+testPermutation2 : IO()
+testPermutation2 = 
+  let p=permSetFromList [1,3] [3,1]
+      p2=permSetFromList [1,2] [2,1]
+      p3=permSetFromList [1, 2, 3] [3, 1,2]
+  in assertEq p3 (p*p2)
 
 ||| test simplify expression
 ||| 1+2=3

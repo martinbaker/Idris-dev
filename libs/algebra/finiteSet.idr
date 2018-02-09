@@ -167,8 +167,14 @@ dropFixpoint : Eq s => (FiniteSet s) -> (FiniteSet  s) -> ((FiniteSet  s),(Finit
 dropFixpoint [] [] = ([],[])
 dropFixpoint (a::as) (b::bs) =
   if a==b
-  then (as,bs)
-  else ((a::as),(b::bs))
+  then dropFixpoint as bs
+  else 
+    let 
+      r:((FiniteSet s),(FiniteSet s)) = dropFixpoint as bs
+      ras:(FiniteSet s) = fst r
+      rbs:(FiniteSet s) = snd r
+    in
+      ((a::ras),(b::rbs))
 
 ||| Construct a list using the given set.
 ||| @set set to be converted to list.
@@ -206,6 +212,15 @@ implementation (Eq elem) => Eq (FiniteSet elem) where
   (==) [] _ = False
   (==) _ [] = False
   (==) a b = (order (difference a b) == 0 ) && (order (difference b a) == 0 )
+
+||| This is a stricter version of equality test which requires both
+||| parameters to have their elements in the same order. Although presevation
+||| of order is not a general requirement of a finite set this type does
+||| gaurantee not to change the order of the set.
+identical : (Eq elem) => (FiniteSet elem) -> (FiniteSet elem) -> Bool
+identical [] [] = True
+identical (a::as) (b::bs) = a == b && (identical as bs)
+identical _ _ = False
 
 implementation Show elem => Show (FiniteSet elem) where
     show = show . toList
