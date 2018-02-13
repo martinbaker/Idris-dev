@@ -37,14 +37,35 @@
  - \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/}
  -}
 
-module permgrp
+{-
+to run:
+
+    /  _/___/ /____(_)____                                     
+    / // __  / ___/ / ___/     Version 1.2.0
+  _/ // /_/ / /  / (__  )      http://www.idris-lang.org/      
+ /___/\__,_/_/  /_/____/       Type :? for help               
+
+Idris is free software with ABSOLUTELY NO WARRANTY.            
+For details type :warranty.
+Idris> :module permgrps
+*permgrps> :exec
+[68, 79, 6]
+*permgrps> :exec
+[93, 4, 3]
+*permgrps> 
+
+-}
+--module permgrp
+module Main
 
 -- For now we need to have some runtime errors. I cant work out how
 -- to use Idris type system to make then impossible.
 --import Effects
 import public finiteSet
 import public perm
---import Effect.Exception
+import public Effects
+import public Effect.Random
+import public Effect.System
 
 %access public export
 
@@ -102,6 +123,21 @@ record PermutationGroup set where
    ||| random methods.
    information:(Rec2 set)
 
+||| REC3 holds an element and a word
+record Rec3 where
+   constructor Record3
+   ||| element
+   elt : List Nat
+   ||| word
+   lst : List Nat
+
+show : Rec3 -> String
+show a =
+  let
+    s1:String = Prelude.Show.show (elt a)
+    s2:String = Prelude.Show.show (lst a)
+  in "Rec3:" ++ s1 ++ ":" ++ s2
+
 ||| internal multiplication of permutations
 ||| (multiply means compose permutations)
 times : ( p : List Nat) ->( q : List Nat ) -> (List Nat)
@@ -112,3 +148,82 @@ times p q =
         times!(res, p, q)
         res
 -}
+
+rndList : Eff (List Integer) [RND, SYSTEM]
+rndList = do
+    srand !time
+    mapE (\x => rndInt 0 x) $ List.replicate 3 100
+
+rndNum : Nat -> Eff Integer [RND, SYSTEM]
+rndNum last = do
+    srand !time
+    rndInt 0 (cast last)
+
+||| Local function used by bsgs1 to generate a "random" element.
+ranelt : (group : List (List Nat)) ->
+         (word : List (List Nat)) ->
+         (maxLoops : Nat) ->
+         Eff Rec3 [RND,SYSTEM]
+ranelt group word maxLoops =
+  let
+    numberOfGenerators:Nat = length group
+    randomInteger:Nat = cast ! (rndNum numberOfGenerators)
+    randomElementM : Maybe (List Nat) = index' randomInteger group
+    randomElement : List Nat = case randomElementM of
+      Nothing => Nil
+      Just x => x
+    --t:Eff Integer [SYSTEM] = time
+    --t' <- t
+    --seed:Eff () [RND] = srand 1
+    --rnd:Eff Integer [RND] = rndInt 0 100
+    --  do 
+    --    -- t <- time
+    --    -- srand t
+    --    pure (rndInt 0 100)
+  in 
+    pure (Record3 randomElement randomElement)
+    
+
+{-        -- generate a "random" element
+        numberOfGenerators    := # group
+        randomInteger : I     := 1 + random(numberOfGenerators)$Integer
+        randomElement : V NNI := group.randomInteger
+        words                 := []$(L NNI)
+        do_words : Boolean := not(empty?(word))
+        if do_words then words := word.(randomInteger::NNI)
+        if maxLoops > 0 then
+            numberOfLoops : I  := 1 + random(maxLoops)$Integer
+        else
+            numberOfLoops : I := maxLoops
+        while numberOfLoops > 0 repeat
+            randomInteger : I := 1 + random(numberOfGenerators)$Integer
+            randomElement := times(group.randomInteger, randomElement)
+            if do_words then words := append(word.(randomInteger::NNI), words)
+            numberOfLoops := numberOfLoops - 1
+        [randomElement, words]
+-}
+{-
+    random(group, maximalNumberOfFactors) ==
+        maximalNumberOfFactors < 1 => 1$(PERM S)
+        gp : L PERM S := group.gens
+        numberOfGenerators := # gp
+        randomInteger : I  := 1 + random(numberOfGenerators)$Integer
+        randomElement      := gp.randomInteger
+        numberOfLoops : I  := 1 + random(maximalNumberOfFactors)$Integer
+        while numberOfLoops > 0 repeat
+            randomInteger : I  := 1 + random(numberOfGenerators)$Integer
+            randomElement := gp.randomInteger * randomElement
+            numberOfLoops := numberOfLoops - 1
+        randomElement
+
+    random(group) == random(group, 20)
+
+-}
+
+main : IO ()
+main = do
+  --v <- run rndList
+  v <- run (ranelt [[1,2,3],[4,5,6],[3,4,5]] [[1,2,3],[4,5,6],[3,4,5]] 6)
+  putStrLn (show v)
+
+

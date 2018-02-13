@@ -5,6 +5,12 @@
  - 
  - This code implements Permutations (subgroups of bijections
  - of a set) using Idris.
+ -
+ - A given permutation can represent an element of a group.
+ - Composition of permutations will then represent the groups
+ - multiplication operetion. Which is why concatination is
+ - implemented here as (*) operator.
+ -
  - For an explanation with example session see this page:
  - http://www.euclideanspace.com/prog/idris/quaternion/
  - for more general information about objectives see this page:

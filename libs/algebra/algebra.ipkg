@@ -2,11 +2,13 @@ package algebra
 
 --opts = "--partial-eval --total"
 
-pkgs = contrib -- required for contrib/Data/Matrix
-       , effects
+-- required for contrib/Data/Matrix
+pkgs = effects
+     , contrib
 
 modules = finiteSet
         , perm
+        , permgrps
         , fieldExpression
         , quaternion
         , testAlgebra
