@@ -130,59 +130,91 @@ record Rec3 where
    elt : List Nat
    ||| word
    lst : List Nat
+   |||
+   val : Nat
 
 show : Rec3 -> String
 show a =
   let
     s1:String = Prelude.Show.show (elt a)
     s2:String = Prelude.Show.show (lst a)
-  in "Rec3:" ++ s1 ++ ":" ++ s2
+  in "Rec3:" ++ s1 ++ ":" ++ s2 ++ ":" ++ show (val a)
 
 ||| internal multiplication of permutations
 ||| (multiply means compose permutations)
 times : ( p : List Nat) ->( q : List Nat ) -> (List Nat)
 times p q =
-  p
-{-        degree := #p
-        res : V NNI := new(degree, 0)
-        times!(res, p, q)
-        res
--}
+  let
+    pIn : List Nat = [1..(length p)]
+  in reverse (compose pIn p q Nil)
+    where
+      compose : (List Nat) -> (List Nat) -> (List Nat) -> (List Nat) -> (List Nat)
+      compose Nil bs cs ds = ds
+      compose (Z::as) bs cs ds = (Z::ds)
+      compose ((S a)::as) bs cs ds =
+        let
+          bm : Maybe Nat = index' a bs
+          b : Nat = case bm of
+            Nothing => 0
+            Just Z => 0
+            Just (S x) => x
+          cm : Maybe Nat = index' b cs
+          c : Nat = case cm of
+            Nothing => 0
+            Just x => x
+        in
+          compose as bs cs (c::ds)
 
-rndList : Eff (List Integer) [RND, SYSTEM]
-rndList = do
-    srand !time
-    mapE (\x => rndInt 0 x) $ List.replicate 3 100
-
-rndNum : Nat -> Eff Integer [RND, SYSTEM]
-rndNum last = do
+||| At start of program Initialise random number generator
+||| by setting seed to system time.
+rndNumInit : Nat -> Eff Integer [RND, SYSTEM]
+rndNumInit last = do
     srand !time
     rndInt 0 (cast last)
+
+||| get a random number between 0 and last
+rndNum : Nat -> Eff Integer [RND, SYSTEM]
+rndNum last = rndInt 0 (cast last)
 
 ||| Local function used by bsgs1 to generate a "random" element.
 ranelt : (group : List (List Nat)) ->
          (word : List (List Nat)) ->
-         (maxLoops : Nat) ->
+         (maxLoops : Integer) ->
          Eff Rec3 [RND,SYSTEM]
 ranelt group word maxLoops =
   let
     numberOfGenerators:Nat = length group
-    randomInteger:Nat = cast ! (rndNum numberOfGenerators)
-    randomElementM : Maybe (List Nat) = index' randomInteger group
-    randomElement : List Nat = case randomElementM of
+    randomInteger:Nat = cast(! (rndNum numberOfGenerators) )
+    -- randomInteger is a number between 0 and number of gens -1
+    randomElement : List Nat = case index' randomInteger group of
       Nothing => Nil
       Just x => x
-    --t:Eff Integer [SYSTEM] = time
-    --t' <- t
-    --seed:Eff () [RND] = srand 1
-    --rnd:Eff Integer [RND] = rndInt 0 100
-    --  do 
-    --    -- t <- time
-    --    -- srand t
-    --    pure (rndInt 0 100)
+    doWords : Bool = case word of
+      Nil => False
+      _ => True
+    words : List Nat = case index' randomInteger word of
+      Nothing => Nil
+      Just x => x
+    numberOfLoops : Nat =
+      if maxLoops < 0
+      then cast (- maxLoops)
+      else cast ! (rndNum (cast maxLoops))
   in 
-    pure (Record3 randomElement randomElement)
-    
+    mix (Record3 randomElement words randomInteger) numberOfLoops numberOfGenerators
+      where
+        mix : Rec3 -> Nat -> Nat -> Eff Rec3 [RND,SYSTEM]
+        mix r Z n = pure r
+        mix r (S a) n =
+         let
+           randomInteger2:Nat = cast ! (rndNum n) 
+           -- randomInteger2 is a number between 0 and number of gens -1
+           randomElement2 : List Nat = case index' randomInteger2 group of
+             Nothing => Nil
+             Just b => b
+           randomElement3 : List Nat = times (elt r) randomElement2
+           --w3 : List Nat = (lst r)
+           w3 : List Nat = elt r
+         in mix (Record3 randomElement3 w3 randomInteger2) a n
 
 {-        -- generate a "random" element
         numberOfGenerators    := # group
@@ -220,10 +252,116 @@ ranelt group word maxLoops =
 
 -}
 
+{-main : IO ()
+main = 
+  let
+    a:List Nat = [2,1,3]
+    b:List Nat = [1,3,2]
+    sa:String = show a
+    sb:String = show b
+  in do
+   putStrLn (sa ++ "*" ++ sa ++ "=" ++ (show (times a a)))
+   putStrLn (sa ++ "*" ++ sb ++ "=" ++ (show (times a b)))
+   putStrLn (sb ++ "*" ++ sa ++ "=" ++ (show (times b a)))
+   putStrLn (sb ++ "*" ++ sb ++ "=" ++ (show (times b b)))
+-}
+
+randEle : Nat -> List (List Nat) -> Eff (List Nat) [RND, SYSTEM]
+randEle randomInteger group = case index' randomInteger group of
+     Nothing => pure Nil
+     Just x => pure x
+
+numOfLoops : Integer ->  Eff Nat [RND, SYSTEM]
+numOfLoops maxLoops =
+    if maxLoops < 0
+    then pure (cast (- maxLoops))
+    else pure (cast ! (rndNum (cast maxLoops)))
+
+main : IO ()
+main = 
+  let
+    group:List (List Nat) = [[2,1,3],[1,3,2]]
+    word : List (List Nat) = Nil
+    maxLoops : Integer = (6)
+    numberOfGenerators:Nat = length group
+    doWords : Bool = case word of
+      Nil => False
+      _ => True
+  in do
+    (randomInteger, randomInteger2) <- run $ do
+      -- initialise random number seed from time
+      randomInteger' <- rndNumInit 100
+      randomInteger2' <- rndNum 100
+      pure (randomInteger', randomInteger2')
+    {-(randomInteger, randomInteger2, randomElement,words,numberOfLoops,v,v2) <- run $ do
+      -- initialise random number seed from time
+      rndNumInit 1
+      randomInteger' <- rndNum numberOfGenerators
+      randomInteger2' <- rndNum numberOfGenerators
+      randomElement' <- randEle (cast randomInteger') group
+      let words' : List Nat = case index' (cast randomInteger') word of
+        Nothing => Nil
+        Just x => x
+      numberOfLoops' <- numOfLoops maxLoops
+      v' <- (ranelt [[2,1,3],[1,3,2]] [[]] 6)
+      v2' <- (ranelt [[2,1,3],[1,3,2]] [[]] (- 6))
+      pure (randomInteger', randomInteger2', randomElement',words',numberOfLoops',v',v2') -}
+    putStrLn ("numberOfGenerators=" ++ (show numberOfGenerators))
+    putStrLn ("randomInteger=" ++ (show randomInteger))
+    putStrLn ("randomInteger2=" ++ (show randomInteger2))
+    {-putStrLn ("randomElement=" ++ (show randomElement))
+    putStrLn ("doWords=" ++ (show doWords))
+    putStrLn ("words=" ++ (show words))
+    putStrLn ("numberOfLoops=" ++ (show numberOfLoops))
+    putStrLn (show v)
+    putStrLn (show v2)-}
+
+{-
+mainEffect2 : Eff (List String) [RND, SYSTEM]
+mainEffect2 =
+  let
+    v : Rec3 = ! (ranelt [[2,1,3],[1,3,2]] [[]] (- 6))
+    v2 : Rec3 = ! (ranelt [[2,1,3],[1,3,2]] [[]] (- 6))
+  in
+    pure [show v,show v2]
+
+mainEffect : Eff String [RND, SYSTEM]
+mainEffect = subMain (! mainEffect2) where
+  subMain : (List String) -> Eff String [RND, SYSTEM]
+  subMain Nil = pure ""
+  subMain (a::as) = pure (a ++ "\n" ++ (! (subMain as)))
+
+main : IO ()
+main =
+  do
+    v <- run (mainEffect)
+    putStr v
+-}
+
+{-
+myRandom1 : Eff Integer [RND, SYSTEM]
+myRandom1 = do
+    srand !time
+    rndInt 0 100
+
+myRandom2 : Eff Integer [RND, SYSTEM]
+myRandom2 =
+    rndInt 0 100
+
+myRandom3 : Eff (List Integer) [RND, SYSTEM]
+myRandom3 =
+   pure [!myRandom2,!myRandom2]
+
 main : IO ()
 main = do
-  --v <- run rndList
-  v <- run (ranelt [[1,2,3],[4,5,6],[3,4,5]] [[1,2,3],[4,5,6],[3,4,5]] 6)
-  putStrLn (show v)
-
-
+  (v1, v2, v3) <- run $ do
+    v1' <- myRandom1
+    v2' <- myRandom2
+    v3' <- myRandom3
+    pure (v1', v2', v3')
+  putStr (show v1)
+  putStr ","
+  putStr (show v2)
+  putStr ","
+  putStrLn (show v3)
+-}
