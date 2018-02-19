@@ -3,7 +3,7 @@ module Data.Buffer
 %include C "idris_buffer.h"
 
 ||| A buffer is a pointer to a sized, unstructured, mutable chunk of memory.
-||| There are primitive operations for gettng and setting bytes, ints (32 bit) 
+||| There are primitive operations for getting and setting bytes, ints (32 bit) 
 ||| and strings at a location in the buffer. These operations silently fail 
 ||| if the location is out of bounds, so bounds checking should be done in 
 ||| advance.
@@ -60,6 +60,15 @@ setInt b loc val
     = foreign FFI_C "idris_setBufferInt" (ManagedPtr -> Int -> Int -> IO ())
               (rawdata b) loc val
 
+||| Set the double at position 'loc' to 'val'.
+||| Uses 8 bytes (assumes 64 bit double).
+||| Does nothing if the location is outside the bounds of the buffer
+export
+setDouble : Buffer -> (loc : Int) -> (val : Double) -> IO ()
+setDouble b loc val
+    = foreign FFI_C "idris_setBufferDouble" (ManagedPtr -> Int -> Double -> IO ())
+              (rawdata b) loc val
+
 ||| Set the byte at position 'loc' to 'val'.
 ||| Does nothing if the location is out of bounds of the buffer, or the string
 ||| is too long for the location
@@ -96,6 +105,15 @@ getInt b loc
     = foreign FFI_C "idris_getBufferInt" (ManagedPtr -> Int -> IO Int)
               (rawdata b) loc 
 
+||| Return the value at the given location in the buffer, assuming 8
+||| bytes to store the Double.
+||| Returns 0 if out of bounds.
+export
+getDouble : Buffer -> (loc : Int) -> IO Double
+getDouble b loc
+    = foreign FFI_C "idris_getBufferDouble" (ManagedPtr -> Int -> IO Double)
+              (rawdata b) loc 
+
 ||| Return the string at the given location in the buffer, with the given
 ||| length. Returns "" if out of bounds.
 export
@@ -115,7 +133,7 @@ readBufferFromFile (FHandle h) buf max
          pure (record { location $= (+numread) } buf)
 
 ||| Write 'maxbytes' from the buffer from a file, returning a new
-||| buffer with the 'locaton' pointer moved along
+||| buffer with the 'location' pointer moved along
 export
 writeBufferToFile : File -> Buffer -> (maxbytes : Int) -> IO Buffer
 writeBufferToFile (FHandle h) buf max
