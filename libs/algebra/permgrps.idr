@@ -200,11 +200,11 @@ ranelt group word maxLoops =
       then cast (- maxLoops)
       else cast ! (rndNum (cast maxLoops))
   in 
-    mix (Record3 randomElement words randomInteger) numberOfLoops numberOfGenerators
+    mix (Record3 randomElement words randomInteger) numberOfLoops numberOfGenerators doWords
       where
-        mix : Rec3 -> Nat -> Nat -> Eff Rec3 [RND,SYSTEM]
-        mix r Z n = pure r
-        mix r (S a) n =
+        mix : Rec3 -> Nat -> Nat -> Bool -> Eff Rec3 [RND,SYSTEM]
+        mix r Z n w = pure r
+        mix r (S a) n w =
          let
            randomInteger2:Nat = cast ! (rndNum n) 
            -- randomInteger2 is a number between 0 and number of gens -1
@@ -212,9 +212,16 @@ ranelt group word maxLoops =
              Nothing => Nil
              Just b => b
            randomElement3 : List Nat = times (elt r) randomElement2
-           --w3 : List Nat = (lst r)
-           w3 : List Nat = elt r
-         in mix (Record3 randomElement3 w3 randomInteger2) a n
+           w3 : List Nat =
+             if w
+             then 
+               let
+                 randomWord: List Nat = case index' randomInteger2 word of 
+                   Nothing => Nil
+                   Just b => b
+               in (lst r) ++ randomWord
+             else (lst r)
+         in mix (Record3 randomElement3 w3 randomInteger2) a n w
 
 {-        -- generate a "random" element
         numberOfGenerators    := # group
@@ -277,6 +284,7 @@ numOfLoops maxLoops =
     then pure (cast (- maxLoops))
     else pure (cast ! (rndNum (cast maxLoops)))
 
+{-
 main : IO ()
 main = 
   let
@@ -288,12 +296,7 @@ main =
       Nil => False
       _ => True
   in do
-    (randomInteger, randomInteger2) <- run $ do
-      -- initialise random number seed from time
-      randomInteger' <- rndNumInit 100
-      randomInteger2' <- rndNum 100
-      pure (randomInteger', randomInteger2')
-    {-(randomInteger, randomInteger2, randomElement,words,numberOfLoops,v,v2) <- run $ do
+    (randomInteger, randomInteger2, randomElement,words,numberOfLoops,v,v2) <- run $ do
       -- initialise random number seed from time
       rndNumInit 1
       randomInteger' <- rndNum numberOfGenerators
@@ -305,16 +308,17 @@ main =
       numberOfLoops' <- numOfLoops maxLoops
       v' <- (ranelt [[2,1,3],[1,3,2]] [[]] 6)
       v2' <- (ranelt [[2,1,3],[1,3,2]] [[]] (- 6))
-      pure (randomInteger', randomInteger2', randomElement',words',numberOfLoops',v',v2') -}
+      pure (randomInteger', randomInteger2', randomElement',words',numberOfLoops',v',v2')
     putStrLn ("numberOfGenerators=" ++ (show numberOfGenerators))
     putStrLn ("randomInteger=" ++ (show randomInteger))
     putStrLn ("randomInteger2=" ++ (show randomInteger2))
-    {-putStrLn ("randomElement=" ++ (show randomElement))
+    putStrLn ("randomElement=" ++ (show randomElement))
     putStrLn ("doWords=" ++ (show doWords))
     putStrLn ("words=" ++ (show words))
     putStrLn ("numberOfLoops=" ++ (show numberOfLoops))
     putStrLn (show v)
-    putStrLn (show v2)-}
+    putStrLn (show v2)
+-}
 
 {-
 mainEffect2 : Eff (List String) [RND, SYSTEM]
@@ -338,23 +342,25 @@ main =
     putStr v
 -}
 
-{-
+
 myRandom1 : Eff Integer [RND, SYSTEM]
 myRandom1 = do
     srand !time
     rndInt 0 100
 
-myRandom2 : Eff Integer [RND, SYSTEM]
+{-myRandom2 : Eff Integer [RND, SYSTEM]
 myRandom2 =
     rndInt 0 100
 
 myRandom3 : Eff (List Integer) [RND, SYSTEM]
 myRandom3 =
    pure [!myRandom2,!myRandom2]
+-}
 
+{-
 main : IO ()
 main = do
-  (v1, v2, v3) <- run $ do
+  (v1,v2.v3)  <- run $ do
     v1' <- myRandom1
     v2' <- myRandom2
     v3' <- myRandom3
