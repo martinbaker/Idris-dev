@@ -60,7 +60,6 @@ module Main
 
 -- For now we need to have some runtime errors. I cant work out how
 -- to use Idris type system to make then impossible.
---import Effects
 import public finiteSet
 import public perm
 import public Effects
@@ -216,62 +215,82 @@ ranelt group word maxLoops =
              if w
              then 
                let
-                 randomWord: List Nat = case index' randomInteger2 word of 
+                 words2: List Nat = case index' randomInteger2 word of 
                    Nothing => Nil
                    Just b => b
-               in (lst r) ++ randomWord
+               in (lst r) ++ words2
              else (lst r)
          in mix (Record3 randomElement3 w3 randomInteger2) a n w
 
-{-        -- generate a "random" element
-        numberOfGenerators    := # group
-        randomInteger : I     := 1 + random(numberOfGenerators)$Integer
-        randomElement : V NNI := group.randomInteger
-        words                 := []$(L NNI)
-        do_words : Boolean := not(empty?(word))
-        if do_words then words := word.(randomInteger::NNI)
-        if maxLoops > 0 then
-            numberOfLoops : I  := 1 + random(maxLoops)$Integer
-        else
-            numberOfLoops : I := maxLoops
-        while numberOfLoops > 0 repeat
-            randomInteger : I := 1 + random(numberOfGenerators)$Integer
-            randomElement := times(group.randomInteger, randomElement)
-            if do_words then words := append(word.(randomInteger::NNI), words)
-            numberOfLoops := numberOfLoops - 1
-        [randomElement, words]
--}
-{-
-    random(group, maximalNumberOfFactors) ==
-        maximalNumberOfFactors < 1 => 1$(PERM S)
-        gp : L PERM S := group.gens
-        numberOfGenerators := # gp
-        randomInteger : I  := 1 + random(numberOfGenerators)$Integer
-        randomElement      := gp.randomInteger
-        numberOfLoops : I  := 1 + random(maximalNumberOfFactors)$Integer
-        while numberOfLoops > 0 repeat
-            randomInteger : I  := 1 + random(numberOfGenerators)$Integer
-            randomElement := gp.randomInteger * randomElement
-            numberOfLoops := numberOfLoops - 1
-        randomElement
-
-    random(group) == random(group, 20)
-
--}
-
-{-main : IO ()
-main = 
+||| Local function used by orbitWithSvc which is used by bsgs1
+||| Given a set of generators and a point this calculates the
+||| orbit and schreierVector.
+||| That is the points that can reach given point and the index
+||| of the generators used.
+||| For Schreier vector (denoted svc),
+|||    "-2" means not in the orbit,
+|||    "-1" means starting point,
+|||    PI correspond to generators
+orbitWithSvc1 : (group : List (List Nat)) ->
+                (grpinv : List (List Nat)) ->
+                (point : Nat) -> Rec
+orbitWithSvc1 group grpinv point =
   let
-    a:List Nat = [2,1,3]
-    b:List Nat = [1,3,2]
-    sa:String = show a
-    sb:String = show b
-  in do
-   putStrLn (sa ++ "*" ++ sa ++ "=" ++ (show (times a a)))
-   putStrLn (sa ++ "*" ++ sb ++ "=" ++ (show (times a b)))
-   putStrLn (sb ++ "*" ++ sa ++ "=" ++ (show (times b a)))
-   putStrLn (sb ++ "*" ++ sb ++ "=" ++ (show (times b b)))
--}
+    fst : List Nat = case head' group of
+      Nothing => Nil
+      Just b => b
+    degree : Nat = length fst
+    orbit : List Nat = [ point ]
+    orbitv : List Nat = replicate degree 0
+    --orbitv(1) : Nat = point
+    orbit_size : Nat = 1
+    schreierVector : List Integer = replicate degree (-2)
+    {-
+        schreierVector.point   := -1
+        position : I := 1
+        while not zero? position repeat
+            for i in 1..#grpinv for grv in grpinv repeat
+                newPoint := qelt(orbitv, orbit_size - position + 1)
+                newPoint := qelt(grv, newPoint)
+                if qelt(schreierVector, newPoint) = -2 then
+                    orbit                   := cons ( newPoint, orbit )
+                    orbit_size := orbit_size + 1
+                    orbitv(orbit_size) := newPoint
+                    position                := position + 1
+                    schreierVector.newPoint := i
+            position := position - 1
+        [reverse!(orbit), schreierVector ]
+    -}
+  in Record1 orbit schreierVector
+
+||| return a random element (permutation) from a PermutationGroup
+random : Eq set => (group : (PermutationGroup set)) -> (maximalNumberOfFactors : Nat) ->
+         Eff (Permutation set) [RND,SYSTEM]
+random group maximalNumberOfFactors =
+  let
+    gp : (List (Permutation set)) = gens group
+    numberOfGenerators : Nat = length gp
+    randomInteger:Nat = cast(! (rndNum numberOfGenerators) )
+    -- randomInteger is a number between 0 and number of gens -1
+    randomElement : Permutation set = case index' randomInteger gp of
+      Nothing => unit
+      Just x => x
+    numberOfLoops:Nat = cast(! (rndNum maximalNumberOfFactors) )
+  in 
+    mix2 numberOfLoops numberOfGenerators gp randomElement
+      where
+        mix2 : Nat -> Nat ->
+               (List (Permutation set)) ->
+               (Permutation set) -> Eff (Permutation set) [RND,SYSTEM]
+        mix2 Z _ _ randomElement = pure randomElement
+        mix2 (S a) numberOfGenerators gp randomElement =
+          let
+            randomInteger2:Nat = cast(! (rndNum numberOfGenerators) )
+            -- randomInteger2 is a number between 0 and number of gens -1
+            randomElement2 : Permutation set = case index' randomInteger2 gp of
+              Nothing => unit
+              Just x => x
+          in mix2 a numberOfGenerators gp (randomElement * randomElement2)
 
 randEle : Nat -> List (List Nat) -> Eff (List Nat) [RND, SYSTEM]
 randEle randomInteger group = case index' randomInteger group of
@@ -284,7 +303,7 @@ numOfLoops maxLoops =
     then pure (cast (- maxLoops))
     else pure (cast ! (rndNum (cast maxLoops)))
 
-{-
+
 main : IO ()
 main = 
   let
@@ -307,7 +326,7 @@ main =
         Just x => x
       numberOfLoops' <- numOfLoops maxLoops
       v' <- (ranelt [[2,1,3],[1,3,2]] [[]] 6)
-      v2' <- (ranelt [[2,1,3],[1,3,2]] [[]] (- 6))
+      v2' <- (ranelt [[2,1,3],[1,3,2]] [[2,1,3],[1,3,2]] (- 6))
       pure (randomInteger', randomInteger2', randomElement',words',numberOfLoops',v',v2')
     putStrLn ("numberOfGenerators=" ++ (show numberOfGenerators))
     putStrLn ("randomInteger=" ++ (show randomInteger))
@@ -318,56 +337,4 @@ main =
     putStrLn ("numberOfLoops=" ++ (show numberOfLoops))
     putStrLn (show v)
     putStrLn (show v2)
--}
 
-{-
-mainEffect2 : Eff (List String) [RND, SYSTEM]
-mainEffect2 =
-  let
-    v : Rec3 = ! (ranelt [[2,1,3],[1,3,2]] [[]] (- 6))
-    v2 : Rec3 = ! (ranelt [[2,1,3],[1,3,2]] [[]] (- 6))
-  in
-    pure [show v,show v2]
-
-mainEffect : Eff String [RND, SYSTEM]
-mainEffect = subMain (! mainEffect2) where
-  subMain : (List String) -> Eff String [RND, SYSTEM]
-  subMain Nil = pure ""
-  subMain (a::as) = pure (a ++ "\n" ++ (! (subMain as)))
-
-main : IO ()
-main =
-  do
-    v <- run (mainEffect)
-    putStr v
--}
-
-
-myRandom1 : Eff Integer [RND, SYSTEM]
-myRandom1 = do
-    srand !time
-    rndInt 0 100
-
-{-myRandom2 : Eff Integer [RND, SYSTEM]
-myRandom2 =
-    rndInt 0 100
-
-myRandom3 : Eff (List Integer) [RND, SYSTEM]
-myRandom3 =
-   pure [!myRandom2,!myRandom2]
--}
-
-{-
-main : IO ()
-main = do
-  (v1,v2.v3)  <- run $ do
-    v1' <- myRandom1
-    v2' <- myRandom2
-    v3' <- myRandom3
-    pure (v1', v2', v3')
-  putStr (show v1)
-  putStr ","
-  putStr (show v2)
-  putStr ","
-  putStrLn (show v3)
--}
