@@ -222,6 +222,13 @@ ranelt group word maxLoops =
              else (lst r)
          in mix (Record3 randomElement3 w3 randomInteger2) a n w
 
+replaceNth : Nat -> v -> List v -> List v
+replaceNth n newVal Nil = Nil
+replaceNth n newVal (x::xs) =
+  case n of
+    Z => newVal::xs
+    (S a) => x::(replaceNth a newVal xs)
+
 ||| Local function used by orbitWithSvc which is used by bsgs1
 ||| Given a set of generators and a point this calculates the
 ||| orbit and schreierVector.
@@ -241,13 +248,41 @@ orbitWithSvc1 group grpinv point =
       Just b => b
     degree : Nat = length fst
     orbit : List Nat = [ point ]
-    orbitv : List Nat = replicate degree 0
-    --orbitv(1) : Nat = point
+    orbitv : List Nat = case degree of
+      Z => Nil
+      (S a) => point::(replicate a 0)
     orbit_size : Nat = 1
-    schreierVector : List Integer = replicate degree (-2)
+    schreierVector : List Integer = replaceNth point (-1) (replicate degree (-2))
+    position : Nat = 1
+  in 
+    mix3 orbit orbitv orbit_size schreierVector position
+      where
+        mix4 : (List Nat) -> (List Nat) -> Nat -> (List Integer) -> Nat -> Nat -> (List (List Nat)) ->
+          ((List Nat),(List Nat),Nat,(List Integer),Nat)
+        mix4 orbit orbitv orbit_size schreierVector position i Nil=
+          (orbit,orbitv,orbit_size,schreierVector,position)
+        mix4 orbit orbitv orbit_size schreierVector position i (grv::gs)=
+          let
+            ptr : Nat = minus orbit_size position
+            newPoint : Nat = case index' ptr orbitv of
+              Nothing => 0
+              Just b => b
+            newPoint2 : Nat = case index' newPoint grv of
+              Nothing => 0
+              Just b => b
+          in (orbit,orbitv,orbit_size,schreierVector,position)
+      
+        mix3 : (List Nat) -> (List Nat) -> Nat -> (List Integer) -> Nat -> Rec
+        mix3 orbit orbitv orbit_size schreierVector Z =
+          Record1 orbit schreierVector
+        mix3 orbit orbitv orbit_size schreierVector (S a) =
+          let
+            (orbit,orbitv,orbit_size,schreierVector,position) =
+              mix4 orbit orbitv orbit_size schreierVector (S a) 0 grpinv
+            m3:Rec = mix3 orbit orbitv orbit_size schreierVector position
+          in m3
     {-
-        schreierVector.point   := -1
-        position : I := 1
+        
         while not zero? position repeat
             for i in 1..#grpinv for grv in grpinv repeat
                 newPoint := qelt(orbitv, orbit_size - position + 1)
@@ -261,7 +296,6 @@ orbitWithSvc1 group grpinv point =
             position := position - 1
         [reverse!(orbit), schreierVector ]
     -}
-  in Record1 orbit schreierVector
 
 ||| return a random element (permutation) from a PermutationGroup
 random : Eq set => (group : (PermutationGroup set)) -> (maximalNumberOfFactors : Nat) ->
