@@ -160,13 +160,14 @@ cycles lls =
 
 ||| movedPoints(p) returns the set of points moved by the permutation p.
 ||| @p permutation
-movedPoints : (p : (Permutation s)) -> (FiniteSet s)
-movedPoints p = preimage p
+movedPoints : Eq s => (p : (Permutation s)) -> (FiniteSet s)
+movedPoints p =
+  FiniteSet.mPoints (preimage p) (image p) FiniteSet.empty
 
 ||| degree(p) retuns the number of points moved by the
 ||| permutation p.
 ||| @p permutation
-degree : (p : (Permutation s)) ->  Nat
+degree : Eq s => (p : (Permutation s)) ->  Nat
 degree p = order (movedPoints p)
 
 ||| orbit returns the orbit of element (el) under the

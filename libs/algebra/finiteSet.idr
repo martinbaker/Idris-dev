@@ -59,9 +59,11 @@ module FiniteSet
 
 infixr 7 ::
 
-||| FiniteSet: Similar to Vect, that is, generic lists with explicit
-||| length in the type. The difference is FiniteSet cannot contain
-||| duplicates.
+||| FiniteSet: A container which cannot contain duplicates.
+||| In general order is not significant in finite sets, however
+||| this type does gaurantee that elements will be returned in
+||| the same order as they were constructed in. This allows
+||| versions where order is significant.
 ||| @ elem the type of elements
 data FiniteSet : (elem : Type) -> Type where
   ||| Empty set
@@ -221,6 +223,17 @@ identical : (Eq elem) => (FiniteSet elem) -> (FiniteSet elem) -> Bool
 identical [] [] = True
 identical (a::as) (b::bs) = a == b && (identical as bs)
 identical _ _ = False
+
+||| used by movedPoints in Permutation. returns the set of points moved
+mPoints : Eq set => (FiniteSet set) -> (FiniteSet set) -> (FiniteSet set) -> (FiniteSet set)
+mPoints FiniteSet.Nil FiniteSet.Nil c = c
+
+mPoints (a :: as) (b :: bs) c =
+  if a==b
+  then mPoints as bs c
+  else mPoints as bs (a::c)
+
+mPoints _ _ c = c
 
 implementation Show elem => Show (FiniteSet elem) where
     show = show . toList

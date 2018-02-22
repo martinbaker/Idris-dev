@@ -85,6 +85,11 @@ record Rec where
    ||| then the final orbit may not stabilise any points.
    svc : List Integer -- was V I
 
+implementation Show Rec where
+    show a = 
+      "orbit&SchreiergroupInfo orb=" ++ (show (orb a)) ++
+      " svc=" ++ (show (svc a))
+
 ||| REC2 holds extra information about group in representation
 ||| to improve efficiency of some functions.
 record Rec2 set where
@@ -98,13 +103,25 @@ record Rec2 set where
    gpbase : List Nat
    ||| orbs   - Describes orbits of base point.
    orbs : List Rec -- V Rec
-   ||| mp - List of elements of S moved by some permutation
+   ||| mp - moved points
+   ||| Set of elements of S moved by some permutation.
+   ||| That is, all points in generators, but don't
+   ||| include if all generators map the points to themselves.
    ||| (needed for mapping between permutations on S and
    |||  internal representation)
-   mp : List set
+   mp : FiniteSet set
    ||| wd - Gives representation of strong generators in terms
    ||| of original generators
    wd : List (List Nat)
+
+implementation Show set => Show (Rec2 set) where
+    show a = 
+      "groupInfo order=" ++ (show (order a)) ++
+      " sgset=" ++ (show (sgset a)) ++
+      " gpbase=" ++ (show (gpbase a)) ++
+      " orbs=" ++ (show (orbs a)) ++
+      " mp=" ++ (show (mp a)) ++
+      " wd=" ++ (show (wd a))
 
 ||| This type represents the whole group, not an element of the group.
 ||| The 'gens' component completely defines the group as a list
@@ -270,32 +287,31 @@ orbitWithSvc1 group grpinv point =
             newPoint2 : Nat = case index' newPoint grv of
               Nothing => 0
               Just b => b
-          in (orbit,orbitv,orbit_size,schreierVector,position)
+            newPoint3 : Integer = case index' newPoint2 schreierVector of
+              Nothing => 0
+              Just b => b
+            orbit2:(List Nat) = if newPoint3 == (-2) then newPoint2::orbit else orbit
+            orbit_size2:Nat = if newPoint3 == (-2) then S orbit_size else orbit_size
+            orbitv2:(List Nat) =
+              if newPoint3 == (-2)
+              then replaceNth orbit_size newPoint2 orbitv
+              else orbitv
+            position2:Nat = if newPoint3 == (-2) then S position else position
+            schreierVector2:(List Integer) =
+              if newPoint3 == (-2)
+              then replaceNth newPoint2 (cast i) schreierVector
+              else schreierVector
+          in (mix4 orbit2 orbitv2 orbit_size2 schreierVector2 position2 (S i) gs)
       
         mix3 : (List Nat) -> (List Nat) -> Nat -> (List Integer) -> Nat -> Rec
         mix3 orbit orbitv orbit_size schreierVector Z =
-          Record1 orbit schreierVector
+          Record1 (reverse orbit) schreierVector
         mix3 orbit orbitv orbit_size schreierVector (S a) =
           let
             (orbit,orbitv,orbit_size,schreierVector,position) =
               mix4 orbit orbitv orbit_size schreierVector (S a) 0 grpinv
             m3:Rec = mix3 orbit orbitv orbit_size schreierVector position
           in m3
-    {-
-        
-        while not zero? position repeat
-            for i in 1..#grpinv for grv in grpinv repeat
-                newPoint := qelt(orbitv, orbit_size - position + 1)
-                newPoint := qelt(grv, newPoint)
-                if qelt(schreierVector, newPoint) = -2 then
-                    orbit                   := cons ( newPoint, orbit )
-                    orbit_size := orbit_size + 1
-                    orbitv(orbit_size) := newPoint
-                    position                := position + 1
-                    schreierVector.newPoint := i
-            position := position - 1
-        [reverse!(orbit), schreierVector ]
-    -}
 
 ||| return a random element (permutation) from a PermutationGroup
 random : Eq set => (group : (PermutationGroup set)) -> (maximalNumberOfFactors : Nat) ->
@@ -326,6 +342,38 @@ random group maximalNumberOfFactors =
               Just x => x
           in mix2 a numberOfGenerators gp (randomElement * randomElement2)
 
+{-
+    if S has OrderedSet then
+        -- return list of points and also put into information.mp
+        pointList(group : %) : L S ==
+            not(empty?(group.information.mp)) => group.information.mp
+            support : L S := []
+            for perm in group.gens repeat
+                support := merge(sort((listRepresentation perm).preimage),
+                                 support)
+            res :  L S := []
+            empty?(support) => res
+            p0 := first(support)
+            res := [p0]
+            for p in rest(support) repeat
+                p = p0 => "iterate"
+                p0 := p
+                res := cons(p, res)
+            group.information.mp := reverse!(res)
+    else
+-}
+
+||| return list of points that are moved to put into information.mp
+pointList : (Eq set) => (group : (List (Permutation set))) ->
+            FiniteSet set ->
+            FiniteSet set
+pointList Nil a = a
+pointList (g::gs) a =
+  let
+    newMoved : (FiniteSet set) = movedPoints g
+    totalMoved : (FiniteSet set) = union newMoved a
+  in pointList gs totalMoved
+
 randEle : Nat -> List (List Nat) -> Eff (List Nat) [RND, SYSTEM]
 randEle randomInteger group = case index' randomInteger group of
      Nothing => pure Nil
@@ -337,7 +385,223 @@ numOfLoops maxLoops =
     then pure (cast (- maxLoops))
     else pure (cast ! (rndNum (cast maxLoops)))
 
+||| This is a local function to initialise base and strong
+||| generators and other values in group:%.
+||| Functions such as initializeGroupForWordProblem or
+||| knownGroup? are called to make sure 'information' has been
+||| initialised in group:%. If initialisation is required then bsgs
+||| is called to do the work.
+||| Note: this function calls bsgs1 which uses Monte Carlo methods
+||| (random sampling) and so may not give the same result for given
+||| parameters.
+||| returns sizeOfGroup but real purpose is side effects of
+||| setting 'information' in group:%.
+||| parameters are:
+|||   group       is this instance.
+|||   wordProblem is true if we want to initialise for wordProblem.
+|||   maxLoops    if zero then calculate from the (approximate)
+|||               base length
+|||   diff        if word problem then subtract this from maxLoops.
+||| It is hard to describe these functions without diagrams so
+||| I have put a better explanation here:
+||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#bsgs
+bsgs : (Eq set) => (group : (List (Permutation set))) ->
+       (wordProblem : Bool) ->
+       (maxLoops : Nat) ->
+       (diff : Integer) ->
+       (Rec2 set)
+bsgs group wordProblem maxLoops diff =
+  let
+    basePoint : Nat = 0
+    newBasePoint : Bool = False
+    baseOfGroup : List Nat = Nil
+    out : List (List (List Nat)) = Nil
+    -- out will hold stabiliser chain
+    outword : List (List (List Nat)) = Nil
+    --outr : Reference(L L V NNI) := ref([])
+    -- outr is reference to stabiliser chain (out above)
+    outwordr : List (List (List Nat)) = Nil
+    -- put list of points into supp and also put into
+    -- information.mp
+    -- mp was supp
+    mp : FiniteSet set = pointList group FiniteSet.empty
+    degree : Nat = order mp
+  in
+    if degree == 0
+    then Record2 1 Nil Nil Nil mp Nil
+    else
+      let
+        newGroup : List (List Nat) = Nil
+        -- 'newGroup' holds permutations as vectors as they are
+        -- easier to work with.
+        tmpv : List Nat = replicate degree 0
+        gp : (List (Permutation set)) = group
+        words : List (List Nat) = Nil
+      in
+        Record2 1 Nil Nil Nil mp Nil
 
+{-        for ggg in 1..#gp for ggp in gp repeat
+            q := perm_to_vec(supp, ggp, degree)
+            newGroup := cons(q, newGroup )
+            if wordProblem then words := cons(list ggg, words)
+        -- If bsgs1 has not yet been called first call it with base
+        -- length of 20 then call it again with more accurate base
+        -- length.
+        if maxLoops < 1 then
+            -- try to get the (approximate) base length by pre-calling
+            -- bsgs1 with maxloops=20
+            if zero? (# ((group.information).gpbase)) then
+                k := bsgs1(newGroup, 1, []$(L L NNI), 20, group, 0,
+                                 outr, outwordr)
+            maxLoops := #((group.information).gpbase) - 1
+        k := bsgs1(newGroup, 1, words, maxLoops, group, diff, outr, outwordr)
+        -- bsgs1 tries to get a good approximation for the base
+        -- points which are put in (group.information).gpbase and
+        -- stabiliser chain which is returned in 'out' parameter
+        -- reference.
+        -- These values can be used here to compute the strong
+        -- generators but this output may contain duplicates and so
+        -- we must remove these.
+        out := deref(outr)
+        outword := deref(outwordr)
+        kkk : I := 1
+        newGroup := reverse newGroup
+        noAnswer : B := true
+        z : V NNI
+        add_cnt : I := 0
+        wordlist : L L NNI
+        dummy_rec : REC := [[], empty()]
+        baseOfGroup := (group.information).gpbase
+        gp_info.gpbase := baseOfGroup
+        orbv : V REC := new(# baseOfGroup, dummy_rec)$(V REC)
+        while noAnswer repeat
+            gp_info.gpbase := baseOfGroup
+            gp_info.orbs := orbv
+            -- test whether we have a base and a strong generating set
+            sgs : L V NNI := []
+            wordlist := []
+            for i in 1..(kkk-1) repeat
+                sgs := append(sgs, out.i)
+                if wordProblem then wordlist := append (wordlist, outword.i)
+            noresult : B := true
+            z := new(degree, 0)
+            for i in kkk..#baseOfGroup while noresult repeat
+                rejects := reduceGenerators(i, wordProblem, gp_info,
+                                            out, outword)
+                sgs := append(sgs, out.i)
+                sgsv := vector(sgs)$V(V NNI)
+                wordv : V L NNI := empty()
+                if wordProblem then
+                    wordlist := append(wordlist, outword.i)
+                    wordv := vector(wordlist)
+                gporbi := orbv(i)
+                for z0 in rejects while noresult repeat
+                    z := copy(z0)
+                    ppp := strip(z, i, false, orbv, sgsv, wordv)
+                    noresult := testIdentity ppp.elt
+                    if not(noresult) then
+                        if wordProblem then
+                            z := copy(z0)
+                            ppp := strip(z, i, true, orbv, sgsv, wordv)
+                        z := ppp.elt
+                        word := ppp.lst
+                for pt in gporbi.orb while noresult repeat
+                    ppp   := cosetRep1(pt, wordProblem, gporbi, sgsv, wordv)
+                    y1    := inv ppp.elt
+                    word3 := ppp.lst
+                    for jjj in 1..#sgs while noresult repeat
+                        word         := []$(L NNI)
+                        times!(z, qelt(sgsv, jjj), y1)
+                        if wordProblem then word := qelt(wordv, jjj)
+                        ppp := strip(z, i, false, orbv, sgsv, wordv)
+                        z := ppp.elt
+                        noresult := testIdentity z
+                        if not(noresult) and wordProblem then
+                            z := times (qelt(sgsv, jjj), y1)
+                            ppp := strip(z, i, true, orbv, sgsv, wordv)
+                            z := ppp.elt
+                            word := append(ppp.lst, word)
+                if not(noresult) then
+                    for p in baseOfGroup for ii in 1.. repeat
+                        basePoint    := 1
+                        newBasePoint := true
+                        if qelt(z, p) ~= p then
+                            newBasePoint := false
+                            basePoint    := (#baseOfGroup - ii + 1)::NNI
+                            break
+            noAnswer := not (testIdentity z)
+            if noAnswer then
+                add_cnt := add_cnt + 1
+                -- we have missed something
+                word2 := []$(L NNI)
+                if wordProblem then
+                    for wdi in word3 repeat
+                        ttt := newGroup.wdi
+                        while not (testIdentity ttt) repeat
+                            word2 := cons(wdi, word2)
+                            ttt   := times(ttt, newGroup.wdi)
+                    word := append(word, word2)
+                    word := shortenWord(word, group)
+                if newBasePoint then
+                    for i in 1..degree repeat
+                        if z.i ~= i then
+                            baseOfGroup := append(baseOfGroup, [ i ])
+                            break
+                    orbv := new(# baseOfGroup, dummy_rec)$(V REC)
+                    out := cons(list  z, out)
+                    if wordProblem then outword := cons(list word, outword)
+                else
+                    out.basePoint := cons(z, out.basePoint)
+                    if wordProblem then
+                        outword.basePoint := cons(word, outword.basePoint)
+                kkk := basePoint
+        sizeOfGroup : NNI := 1
+        for j in 1..#baseOfGroup repeat
+            sizeOfGroup := sizeOfGroup * # orbv(j).orb
+        group.information := [sizeOfGroup, sgs, baseOfGroup, orbv, supp,
+                              wordlist]$REC2
+        sizeOfGroup
+-}
+
+||| With a small integer you get shorter words, but the
+||| routine takes longer than the standard routine for longer words.
+||| default value is:
+||| initializeGroupForWordProblem gp 0 1
+initializeGroupForWordProblem : (Eq set) => (gp : (List (Permutation set))) ->
+                                (maxLoops:Nat) ->
+                                (diff:Integer) -> (Rec2 set)
+initializeGroupForWordProblem gp maxLoops diff =
+  bsgs gp True maxLoops diff
+
+--initializeGroupForWordProblem(gp) ==
+--        initializeGroupForWordProblem(gp, 0, 1)
+
+||| Constructor to initialise a permutation group.
+||| Users are advised to use this contructor so that the strong
+||| generators are initialsed properly.
+||| @gp generators of the group
+permutationGroup : (Eq set) => (gp : (List (Permutation set))) -> PermutationGroup set
+permutationGroup gp =
+  let
+    information : Rec2 set = initializeGroupForWordProblem gp 0 1
+  in
+    PermGrp gp information
+
+implementation Show set => Show (PermutationGroup set) where
+    show a = "permutationGroup" ++(show (gens a)) ++
+             "\n" ++ (show (information a))
+
+main : IO ()
+main = 
+  let
+    p1:(Permutation Nat) = permSetFromList [1,2,3] [2,1,3]
+    p2:(Permutation Nat) = permSetFromList [1,2,3] [1,3,2]
+    group:List (Permutation Nat) = [p1,p2]
+    pgroup:PermutationGroup Nat = permutationGroup group
+  in
+    putStrLn ("permutation group=" ++ (show pgroup))
+
+{-
 main : IO ()
 main = 
   let
@@ -371,4 +635,4 @@ main =
     putStrLn ("numberOfLoops=" ++ (show numberOfLoops))
     putStrLn (show v)
     putStrLn (show v2)
-
+-}
