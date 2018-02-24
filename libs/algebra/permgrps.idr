@@ -169,12 +169,12 @@ times p q =
       compose (Z::as) bs cs ds = (Z::ds)
       compose ((S a)::as) bs cs ds =
         let
-          bm : Maybe Nat = index' a bs
+          bm : Maybe Nat = List.index' a bs
           b : Nat = case bm of
             Nothing => 0
             Just Z => 0
             Just (S x) => x
-          cm : Maybe Nat = index' b cs
+          cm : Maybe Nat = List.index' b cs
           c : Nat = case cm of
             Nothing => 0
             Just x => x
@@ -202,13 +202,13 @@ ranelt group word maxLoops =
     numberOfGenerators:Nat = length group
     randomInteger:Nat = cast(! (rndNum numberOfGenerators) )
     -- randomInteger is a number between 0 and number of gens -1
-    randomElement : List Nat = case index' randomInteger group of
+    randomElement : List Nat = case List.index' randomInteger group of
       Nothing => Nil
       Just x => x
     doWords : Bool = case word of
       Nil => False
       _ => True
-    words : List Nat = case index' randomInteger word of
+    words : List Nat = case List.index' randomInteger word of
       Nothing => Nil
       Just x => x
     numberOfLoops : Nat =
@@ -385,6 +385,56 @@ numOfLoops maxLoops =
     then pure (cast (- maxLoops))
     else pure (cast ! (rndNum (cast maxLoops)))
 
+||| Function used locally by bsgs as first stage in
+||| constructing strong generators.
+||| Encodes a permutation as a 'vector', a list of indexes
+||| where the first entry gives the index that point 1
+||| translates to,  the second entry gives the index that
+||| point 2 translates to, and so on.
+||| There are 2 versions of this function. If S has
+||| OrderedSet then the points are sorted so that index 1
+||| is the lowest and so on.
+||| Parameter definitions:
+||| @i index to element (1..degree)
+||| @q result so far
+||| @mp   - moved points is list of elements of set
+|||          which are moved by p.
+||| @p      - permutation being converted.
+||| @degree - number of points being permuted.
+perm_to_vec : Eq set => (i : Nat) ->
+              (q : (List Nat)) ->
+              (mp : FiniteSet set) ->
+              (p : (Permutation set)) ->
+              (degree : Nat) ->
+              (List Nat)
+perm_to_vec i q mp p degree =
+  let
+    pre : FiniteSet set = preimage p
+    ima : FiniteSet set = image p
+  in [FiniteSet.lookupIndexed 0 pre ima]
+
+||| convert the definition of the group in terms of a mapping between
+||| abitary sets to a definition using Nat which is easier to work with.
+convertToVect: Eq set => (newGroup : List (List Nat)) ->
+              (words : List (List Nat)) ->
+              (mp : FiniteSet set) ->
+              (degree : Nat) ->
+              (ggg : Nat) ->
+              (ggp: List (Permutation set)) ->
+              (List (List Nat) , List (List Nat) , Nat , List (Permutation set))
+convertToVect newGroup words mp degree ggg Nil =
+  (newGroup,words,S ggg,Nil)
+convertToVect newGroup words mp degree ggg (ggp::ggps) =
+  let
+    q : List Nat = perm_to_vec Z (replicate degree 0) mp ggp degree
+  in (newGroup,words,S ggg,ggps)
+
+{-        for ggg in 1..#gp for ggp in gp repeat
+            q := perm_to_vec(supp, ggp, degree)
+            newGroup := cons(q, newGroup )
+            if wordProblem then words := cons(list ggg, words)
+-}
+
 ||| This is a local function to initialise base and strong
 ||| generators and other values in group:%.
 ||| Functions such as initializeGroupForWordProblem or
@@ -431,20 +481,22 @@ bsgs group wordProblem maxLoops diff =
     then Record2 1 Nil Nil Nil mp Nil
     else
       let
-        newGroup : List (List Nat) = Nil
+        --tmpv : List Nat = replicate degree 0
+        --gp : (List (Permutation set)) = group
+        --
+        sgset : List (List Nat) = Nil
+        gpbase : List Nat = Nil
+        orbs : List Rec = Nil
+        wd : List (List Nat) = Nil
         -- 'newGroup' holds permutations as vectors as they are
         -- easier to work with.
-        tmpv : List Nat = replicate degree 0
-        gp : (List (Permutation set)) = group
-        words : List (List Nat) = Nil
+        (newGroup,words,_,_) : (List (List Nat),List (List Nat),Nat,(List (Permutation set))) =
+          -- params are: newGroup words mp degree ggg ggp
+          convertToVect Nil Nil mp degree 0 group
       in
-        Record2 1 Nil Nil Nil mp Nil
+        Record2 degree sgset gpbase orbs mp wd
 
-{-        for ggg in 1..#gp for ggp in gp repeat
-            q := perm_to_vec(supp, ggp, degree)
-            newGroup := cons(q, newGroup )
-            if wordProblem then words := cons(list ggg, words)
-        -- If bsgs1 has not yet been called first call it with base
+{-        -- If bsgs1 has not yet been called first call it with base
         -- length of 20 then call it again with more accurate base
         -- length.
         if maxLoops < 1 then

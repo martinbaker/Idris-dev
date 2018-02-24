@@ -147,7 +147,10 @@ intersection : (Eq elem) => FiniteSet elem ->
 intersection s1 s2 = difference s1 (difference s1 s2)
 
 ||| This is used in permutation set but its less messy
-||| to put this function in FiniteSet namespace
+||| to put this function in FiniteSet namespace.
+||| @input element to lookup
+||| @preIm match element to this set
+||| @im return corresponding element from this set
 lookup : (Eq elem) => (input : elem) ->
                       (preIm : (FiniteSet elem)) ->
                       (im : (FiniteSet elem)) ->
@@ -163,6 +166,25 @@ multiLookup : Eq s =>  (FiniteSet s) -> (FiniteSet  s) -> (FiniteSet  s) -> (Fin
 multiLookup [] _ _ = empty
 multiLookup (a::as) q p = insert (lookup a q p) (multiLookup as q p)
 
+indexOf : Eq s => (FiniteSet s) -> s -> Nat -> Nat
+indexOf Nil b n = n
+indexOf (a::as) b n =
+  if a==b
+  then n
+  else indexOf as b (S n)
+
+||| Lookup Index in first set and return the index of the corresponding element
+||| in the second set.
+||| Only valid for cases of set where order is significant
+||| This is used in permutation set but its less messy
+||| to put this function in FiniteSet namespace
+lookupIndexed : Eq s => (n : Nat) ->
+                (preIm : FiniteSet s) ->
+                (im : FiniteSet s) -> Nat
+lookupIndexed Z (x::xs) y= indexOf y x 0
+lookupIndexed (S n) (x::xs) y= lookupIndexed n xs y
+lookupIndexed _ [] _ = 0
+
 ||| This is used in permutation set but its less messy
 ||| to put this function in FiniteSet namespace
 dropFixpoint : Eq s => (FiniteSet s) -> (FiniteSet  s) -> ((FiniteSet  s),(FiniteSet s))
@@ -170,8 +192,8 @@ dropFixpoint [] [] = ([],[])
 dropFixpoint (a::as) (b::bs) =
   if a==b
   then dropFixpoint as bs
-  else 
-    let 
+  else
+    let
       r:((FiniteSet s),(FiniteSet s)) = dropFixpoint as bs
       ras:(FiniteSet s) = fst r
       rbs:(FiniteSet s) = snd r
@@ -234,6 +256,14 @@ mPoints (a :: as) (b :: bs) c =
   else mPoints as bs (a::c)
 
 mPoints _ _ c = c
+
+{-||| Attempt to find the nth element of a set.
+||| If the provided index is out of bounds, return Nothing.
+||| Only valid for cases of set where order is significant
+index' : (n : Nat) -> (l : FiniteSet a) -> Maybe a
+index' Z     (x::xs) = Just x
+index' (S n) (x::xs) = FiniteSet.index' n xs
+index' _     []      = Nothing-}
 
 implementation Show elem => Show (FiniteSet elem) where
     show = show . toList
