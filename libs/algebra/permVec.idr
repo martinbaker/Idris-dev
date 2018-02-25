@@ -52,8 +52,8 @@ unitv = PermVec empty empty
 ||| permutation p.
 ||| @p permutation
 ||| @el element index
-eval : Eq s => (p : (PermutationVec s)) -> (el : Nat) -> Nat
-eval p el =
+evalv : Eq s => (p : (PermutationVec s)) -> (el : Nat) -> Nat
+evalv p el =
   case List.index' el (map p) of
     Nothing => el
     Just x => x
@@ -68,12 +68,11 @@ eval p el =
   let
     qMp :(FiniteSet s) = mp q
     qMap:(List Nat) = map q
-    pMap:(List Nat) = map p
-  in PermVec qMp (compose qMap pMap)
+  in PermVec qMp (compose qMap p)
     where
-      compose : (List Nat) -> (List Nat) -> (List Nat)
-      compose a b = a
-
+      compose : (List Nat) -> (PermutationVec s) -> (List Nat)
+      compose Nil _ = Nil
+      compose (q::qs) p = (evalv p q)::(compose qs p)
 
 ||| movedPoints(p) returns the set of points moved by the permutation p.
 ||| @p permutation
@@ -85,6 +84,24 @@ movedPoints p = mp p
 ||| @p permutation
 degree : Eq s => (p : (PermutationVec s)) ->  Nat
 degree p = order (movedPoints p)
+
+||| covert a preimage-image instance of permutation to a vector type
+||| @p preimage-image instance of permutation to be converted
+permToVect : Eq s => (p : (Permutation s)) -> (PermutationVec s)
+permToVect p =
+  let
+    pPreIm :(FiniteSet s) = preimage p
+    pPreImList :(List s) = toList pPreIm
+    pIm:(FiniteSet s) = image p
+  in PermVec pPreIm (mapIndex Z pPreImList p)  
+    where
+      mapIndex : Nat -> (List s) -> (Permutation s) -> (List Nat)
+      mapIndex _ Nil _ = Nil
+      mapIndex n (q::qs) p =
+        let
+          pPreIm :(FiniteSet s) = preimage p
+          pIm:(FiniteSet s) = image p
+        in (lookupIndexed n pPreIm pIm)::(mapIndex (S n) qs p)
 
 {-||| orbit returns the orbit of element (el) under the
 ||| permutation p, i.e. the set which is given by applications of

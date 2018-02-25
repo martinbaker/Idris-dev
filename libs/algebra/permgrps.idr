@@ -62,6 +62,7 @@ module Main
 -- to use Idris type system to make then impossible.
 import public finiteSet
 import public perm
+import public permVec
 import public Effects
 import public Effect.Random
 import public Effect.System
@@ -666,8 +667,33 @@ main =
     p2:(Permutation Nat) = permSetFromList [1,2,3] [1,3,2]
     group:List (Permutation Nat) = [p1,p2]
     pgroup:PermutationGroup Nat = permutationGroup group
+    --a1:PermutationVec String = PermVec (fromList ["a","b","c"]) [1,0,2]
+    --a2:PermutationVec String = PermVec (fromList ["a","b","c"]) [1,0,2]
+    --a3:PermutationVec String = a1 * a2
+    --b1:Nat = 0
+    --b2:Nat = 1
+    --b3:Nat = 2
+    --b11:Nat = evalv a1 b1
+    --b12:Nat = evalv a1 b2
+    --b13:Nat = evalv a1 b3
+    pv1: PermutationVec Nat = permToVect p1
+    pv2: PermutationVec Nat = permToVect p2
   in
-    putStrLn ("permutation group=" ++ (show pgroup))
+    do
+      putStrLn ("permutation group=" ++ (show pgroup))
+      --putStrLn ("permVec a1:" ++ (show a1) ++
+      --       " * a2:" ++ (show a2) ++
+      --       " = a3:" ++ (show a3)
+      --       )
+      --putStrLn ("eval a1:" ++ (show a1) ++
+      --       " = " ++ (show [b11,b12,b13])
+      --       )
+      putStrLn ("from:" ++ (show p1) ++
+             " tp" ++ (show pv1)
+             )
+      putStrLn ("from:" ++ (show p2) ++
+             " tp" ++ (show pv2)
+             )
 
 {-
 main : IO ()
@@ -704,3 +730,4 @@ main =
     putStrLn (show v)
     putStrLn (show v2)
 -}
+ 

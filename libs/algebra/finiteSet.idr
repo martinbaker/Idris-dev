@@ -224,8 +224,6 @@ fromList' ys (x::xs) = fromList' (insert x ys) xs
 ||| Convert a list to a finite set.
 ||| If the list contains duplicates then only one element of each
 ||| value will be added.
-|||
-||| The length of the list should be statically known.
 fromList : (Eq elem) => (l : List elem) -> FiniteSet elem
 fromList l = reverse $ fromList' empty l
 
