@@ -113,6 +113,10 @@ record Rec2 set where
    ||| wd - Gives representation of strong generators in terms
    ||| of original generators
    wd : List (List Nat)
+   ||| temporary value for debugging only
+   ||| newGroup holds permutations as vectors as they are
+   ||| easier to work with.
+   newGroup : List (List Nat)
 
 implementation Show set => Show (Rec2 set) where
     show a = 
@@ -121,7 +125,8 @@ implementation Show set => Show (Rec2 set) where
       " gpbase=" ++ (show (gpbase a)) ++
       " orbs=" ++ (show (orbs a)) ++
       " mp=" ++ (show (mp a)) ++
-      " wd=" ++ (show (wd a))
+      " wd=" ++ (show (wd a)) ++ "\n" ++
+      " newGroup=" ++ (show (newGroup a))
 
 ||| This type represents the whole group, not an element of the group.
 ||| The 'gens' component completely defines the group as a list
@@ -411,10 +416,20 @@ perm_to_vec i q mp p degree =
   let
     pre : FiniteSet set = preimage p
     ima : FiniteSet set = image p
-  in [FiniteSet.lookupIndexed 0 pre ima]
+    qe : Nat = FiniteSet.lookupIndexed i pre ima
+  in 
+    if (S i) < degree
+    then perm_to_vec (S i) (qe::q) mp p degree
+    else qe::q
 
 ||| convert the definition of the group in terms of a mapping between
 ||| abitary sets to a definition using Nat which is easier to work with.
+||| @newGroup generators (permutations) calculated so far
+||| @words for word problem
+||| @mp   - moved points is list of elements of set which are moved.
+||| @degree - number of points being permuted.
+||| @ggg index
+||| @ggp group input
 convertToVect: Eq set => (newGroup : List (List Nat)) ->
               (words : List (List Nat)) ->
               (mp : FiniteSet set) ->
@@ -426,8 +441,9 @@ convertToVect newGroup words mp degree ggg Nil =
   (newGroup,words,S ggg,Nil)
 convertToVect newGroup words mp degree ggg (ggp::ggps) =
   let
+    -- q is current generator
     q : List Nat = perm_to_vec Z (replicate degree 0) mp ggp degree
-  in (newGroup,words,S ggg,ggps)
+  in (q::newGroup,words,S ggg,ggps)
 
 {-        for ggg in 1..#gp for ggp in gp repeat
             q := perm_to_vec(supp, ggp, degree)
@@ -478,7 +494,7 @@ bsgs group wordProblem maxLoops diff =
     degree : Nat = order mp
   in
     if degree == 0
-    then Record2 1 Nil Nil Nil mp Nil
+    then Record2 1 Nil Nil Nil mp Nil Nil
     else
       let
         --tmpv : List Nat = replicate degree 0
@@ -494,7 +510,7 @@ bsgs group wordProblem maxLoops diff =
           -- params are: newGroup words mp degree ggg ggp
           convertToVect Nil Nil mp degree 0 group
       in
-        Record2 degree sgset gpbase orbs mp wd
+        Record2 degree sgset gpbase orbs mp wd newGroup
 
 {-        -- If bsgs1 has not yet been called first call it with base
         -- length of 20 then call it again with more accurate base

@@ -11,8 +11,15 @@
  - multiplication operetion. Which is why concatination is
  - implemented here as (*) operator.
  -
+ - Here we consider alternative ways to represent a permutation type such as:
+ - * 'preimage-image' coding.
+ - * 'vector' coding.
+ - * 'cycle' notation.
+ - Since they all have pros and cons we need to consider the
+ - coding for both and how to convert between them.
+ -
  - For an explanation with example session see this page:
- - http://www.euclideanspace.com/prog/idris/quaternion/
+ - http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/perm/
  - for more general information about objectives see this page:
  - http://www.euclideanspace.com/prog/idris/
  - 
@@ -111,7 +118,6 @@ lowerBoundIndex lst =
               Nothing => n
               Just z1 => z1
         in if n < z  then (Just n) else (Just z)
-
 
 ||| smallest element is put in first place
 ||| doesn't change cycle if underlying set
