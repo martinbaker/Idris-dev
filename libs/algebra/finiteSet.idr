@@ -166,12 +166,24 @@ multiLookup : Eq s =>  (FiniteSet s) -> (FiniteSet  s) -> (FiniteSet  s) -> (Fin
 multiLookup [] _ _ = empty
 multiLookup (a::as) q p = insert (lookup a q p) (multiLookup as q p)
 
-indexOf : Eq s => (FiniteSet s) -> s -> Nat -> Nat
+||| Return the index of a given point in mp.
+||| @mp movable points - a master list of all the points being permuted.
+||| @inp point to be indexed.
+||| @n current index being tested. Should start at 0 this is incremented by recursion
+indexOf : Eq s => (mp : (FiniteSet s)) -> (inp : s) -> (n :Nat) -> Nat
 indexOf Nil b n = n
 indexOf (a::as) b n =
   if a==b
   then n
   else indexOf as b (S n)
+
+||| convert a finite set to an array of indexes into mp
+||| @mp movable points - a master list of all the points being permuted.
+||| @arrayIn array of points to be indexed into mp.
+finiteSetToIndex : Eq s => (mp : (FiniteSet s)) -> (arrayIn : (FiniteSet s)) -> List Nat
+finiteSetToIndex mp Nil = Nil
+finiteSetToIndex mp (a::as) =
+  (indexOf mp a Z)::(finiteSetToIndex mp as)
 
 ||| Lookup Index in first set and return the index of the corresponding element
 ||| in the second set.

@@ -667,6 +667,20 @@ main =
     p2:(Permutation Nat) = permSetFromList [1,2,3] [1,3,2]
     group:List (Permutation Nat) = [p1,p2]
     pgroup:PermutationGroup Nat = permutationGroup group
+    mp: FiniteSet String = fromList ["a","b","c"]
+    a1: FiniteSet String = fromList ["a","b"]
+    a2: FiniteSet String = fromList ["b","c"]
+    b1: List Nat = finiteSetToIndex mp a1
+    b2: List Nat = finiteSetToIndex mp a2
+    cp1:(Permutation String) = permSetFromList ["a","b","c"] ["b","a","c"]
+    cp2:(Permutation String) = permSetFromList ["a","b","c"] ["a","c","b"]
+    c1: List Nat = permToVectSingle cp1 mp
+    c2: List Nat = permToVectSingle cp2 mp
+    allMoved: FiniteSet String = fromList ["a","b","c"]
+    preIm :(FiniteSet String) = preimage cp2
+    preImIndex : List Nat = finiteSetToIndex allMoved preIm
+    im:(FiniteSet String) = image cp2
+    imIndex : List Nat = finiteSetToIndex allMoved im
     --a1:PermutationVec String = PermVec (fromList ["a","b","c"]) [1,0,2]
     --a2:PermutationVec String = PermVec (fromList ["a","b","c"]) [1,0,2]
     --a3:PermutationVec String = a1 * a2
@@ -676,8 +690,8 @@ main =
     --b11:Nat = evalv a1 b1
     --b12:Nat = evalv a1 b2
     --b13:Nat = evalv a1 b3
-    pv1: PermutationVec Nat = permToVect p1
-    pv2: PermutationVec Nat = permToVect p2
+    pv1: PermutationVec Nat = permToVect [p1]
+    pv2: PermutationVec Nat = permToVect [p1,p2]
   in
     do
       putStrLn ("permutation group=" ++ (show pgroup))
@@ -688,16 +702,33 @@ main =
       --putStrLn ("eval a1:" ++ (show a1) ++
       --       " = " ++ (show [b11,b12,b13])
       --       )
+      putStrLn ("permToVect a1:" ++ (show a1) ++
+             " -> b1:" ++ (show b1)
+             )
+      putStrLn ("permToVect a2:" ++ (show a2) ++
+             " -> b2:" ++ (show b2)
+             )
+      putStrLn ("permToVect cp1:" ++ (show cp1) ++
+             " -> c1:" ++ (show c1)
+             )
+      putStrLn ("permToVect cp2:" ++ (show cp2) ++
+             " -> c2:" ++ (show c2)
+             )
+      putStrLn ("preIm:" ++ (show preIm) ++
+             " -> preImIndex:" ++ (show preImIndex) ++
+             " -> im:" ++ (show im) ++
+             " -> imIndex:" ++ (show imIndex)
+             )
       putStrLn ("from:" ++ (show p1) ++
-             " tp" ++ (show pv1)
+             " to:" ++ (show pv1)
              )
       putStrLn ("from:" ++ (show p2) ++
-             " tp" ++ (show pv2)
+             " to:" ++ (show pv2)
              )
 
 {-
 main : IO ()
-main = 
+main =
   let
     group:List (List Nat) = [[2,1,3],[1,3,2]]
     word : List (List Nat) = Nil
@@ -730,4 +761,4 @@ main =
     putStrLn (show v)
     putStrLn (show v2)
 -}
- 
+
