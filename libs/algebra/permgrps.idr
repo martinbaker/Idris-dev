@@ -676,6 +676,7 @@ main =
     cp2:(Permutation String) = permSetFromList ["a","b","c"] ["a","c","b"]
     c1: List Nat = permToVectSingle cp1 mp
     c2: List Nat = permToVectSingle cp2 mp
+    d: List (List Nat) = permToVect1 [cp1,cp2] mp
     allMoved: FiniteSet String = fromList ["a","b","c"]
     preIm :(FiniteSet String) = preimage cp2
     preImIndex : List Nat = finiteSetToIndex allMoved preIm
@@ -708,11 +709,14 @@ main =
       putStrLn ("permToVect a2:" ++ (show a2) ++
              " -> b2:" ++ (show b2)
              )
-      putStrLn ("permToVect cp1:" ++ (show cp1) ++
+      putStrLn ("permToVectSingle cp1:" ++ (show cp1) ++ " mp:" ++ (show mp) ++
              " -> c1:" ++ (show c1)
              )
-      putStrLn ("permToVect cp2:" ++ (show cp2) ++
+      putStrLn ("permToVectSingle cp2:" ++ (show cp2) ++ " mp:" ++ (show mp) ++
              " -> c2:" ++ (show c2)
+             )
+      putStrLn ("permToVect1 cp:[" ++ show cp1 ++ show cp2 ++ " mp:" ++ (show mp) ++
+             "] -> d:" ++ (show d)
              )
       putStrLn ("preIm:" ++ (show preIm) ++
              " -> preImIndex:" ++ (show preImIndex) ++

@@ -91,7 +91,8 @@ elementAt (S n) (x::xs) = elementAt n xs
 elementAt _     []      = 0 --Nothing
 
 ||| covert a preimage-image instance of permutation to a vector type
-||| @p preimage-image instance of permutation to be converted
+||| @p preimage-image instance of permutation to be converted.
+||| @allMoved FiniteSet containing all points that are moved by permutations.
 permToVectSingle : Eq s => (p : (Permutation s)) ->
                            (allMoved : (FiniteSet s)) ->
                            (List Nat)
@@ -110,7 +111,7 @@ permToVectSingle p allMoved =
                  (List Nat)
       mapIndex n preImIndex imIndex siz =
         let
-          a : Nat = case (index' n preImIndex) of
+          a : Nat = case (elemIndex n preImIndex) of
             Nothing => n
             Just b => elementAt b imIndex
         in 
