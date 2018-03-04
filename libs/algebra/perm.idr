@@ -35,9 +35,10 @@
 module perm
 
 -- For now we need to have some runtime errors. I cant work out how
--- to use Idris type system to make then impossible.
+-- to use Idris type system to make them impossible.
 --import Effects
 import public finiteSet
+import public cycle
 --import Effect.Exception
 
 %access public export
@@ -98,72 +99,6 @@ eval p el = lookup el (preimage p) (image p)
     image2Set:(FiniteSet s) = multiLookup image1Set pSet pSet2
   in permSet fullSet image2Set
 
-||| find index of the smallest element of a list
-lowerBoundIndex : Ord s => List s -> Maybe Nat
-lowerBoundIndex [] = Nothing
-lowerBoundIndex lst =
-  let y:(Maybe s) = lowerBound lst Nothing
-  in case y of
-    Nothing => Nothing
-    Just z1 => elemIndex z1 lst
-  where
-      -- find the smallest element of a list
-      lowerBound : Ord s => List s -> Maybe s -> Maybe s
-      lowerBound [] w = w
-      lowerBound (x::xs) Nothing =
-        lowerBound xs (Just x)
-      lowerBound (x::xs) (Just n) =
-        let y:(Maybe s) = lowerBound xs (Just x)
-            z:s = case y of
-              Nothing => n
-              Just z1 => z1
-        in if n < z  then (Just n) else (Just z)
-
-||| smallest element is put in first place
-||| doesn't change cycle if underlying set
-||| is not ordered or not finite.
-rotateCycle : Ord s => (List s) -> (List s)
-rotateCycle [] = []
-rotateCycle cyc =
-  let lbi:(Maybe Nat) = lowerBoundIndex cyc
-  in case lbi of
-    Nothing => cyc
-    Just z1 =>
-      let f=List.drop z1 cyc
-          l=take z1 cyc
-      in f++l
-
-{-
-||| runtime error for the EXCEPTION effect declared in module Effect.Exception.
-data Error = CycleContainsDuplicates
--}
-
-||| cycle coerces a cycle {\em ls}, i.e. a list without
-||| repetitions to a permutation, which maps {\em ls.i} to
-||| {\em ls.i+1}, indices modulo the length of the list.
-||| Error: if repetitions occur.
-cycle : Ord s => List s -> Permutation s
-cycle [] = unit -- zero elements cant contain a cycle
-cycle (x::[]) = unit -- one element cant contain a cycle
-cycle (x::xs) =
-  --duplicates? ls => raise CycleContainsDuplicates
-  Perm (fromList (x::xs)) (fromList (xs++[x]))
-
-||| cycles coerces a list list of cycles lls
-||| to a permutation, each cycle being a list with not
-||| repetitions, is coerced to the permutation, which maps
-||| ls.i to ls.i+1, indices modulo the length of the list,
-||| then these permutations are mutiplied.
-||| Error: if repetitions occur in one cycle.
-cycles : Ord s => List(List s)  -> Permutation s
-cycles lls =
-  unit
-
-{-  perm : % := 1
-  for lists in reverse lls repeat
-    perm := cycle lists * perm
-  perm-}
-
 ||| movedPoints(p) returns the set of points moved by the permutation p.
 ||| @p permutation
 movedPoints : Eq s => (p : (Permutation s)) -> (FiniteSet s)
@@ -191,9 +126,16 @@ orbit p el = buildOrbit p el empty
          then orbBuild
          else buildOrbit p el2 (insert el2 orbBuild)
 
-||| Return True if both the preimage and image are the same but they can
+{-
+||| A list of cycles can represent a permutation.
+||| In fact a list of cycles is a very compact notation.
+cyclesToPermutation : List (Cycle elem) -> (Permutation s)
+cyclesToPermutation l =
+-}
+
+||| Return True if both the preimage and image are the same (but they can
 ||| be reordered and still be True provided preimage and image are
-||| reordered in the same way.
+||| reordered in the same way).
 implementation (Eq s) => Eq (Permutation s) where
   (==) a b = 
     if (preimage a) == (preimage b)
