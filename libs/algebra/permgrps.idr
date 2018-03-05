@@ -667,7 +667,7 @@ main =
     p2:(Permutation Nat) = permSetFromList [1,2,3] [1,3,2]
     group:List (Permutation Nat) = [p1,p2]
     pgroup:PermutationGroup Nat = permutationGroup group
-    mp: FiniteSet String = fromList ["a","b","c"]
+    {- mp: FiniteSet String = fromList ["a","b","c"]
     a1: FiniteSet String = fromList ["a","b"]
     a2: FiniteSet String = fromList ["b","c"]
     b1: List Nat = finiteSetToIndex mp a1
@@ -682,6 +682,7 @@ main =
     preImIndex : List Nat = finiteSetToIndex allMoved preIm
     im:(FiniteSet String) = image cp2
     imIndex : List Nat = finiteSetToIndex allMoved im
+    -}
     --a1:PermutationVec String = PermVec (fromList ["a","b","c"]) [1,0,2]
     --a2:PermutationVec String = PermVec (fromList ["a","b","c"]) [1,0,2]
     --a3:PermutationVec String = a1 * a2
@@ -691,6 +692,9 @@ main =
     --b11:Nat = evalv a1 b1
     --b12:Nat = evalv a1 b2
     --b13:Nat = evalv a1 b3
+    cyl : List (Cycle Nat) = [fromList [1,2],fromList [3,4,5]]
+    prm : Permutation Nat = cyclesToPermutation cyl
+    cy2 : List (Cycle Nat) = cyclesFromPermutation prm
     pv1: PermutationVec Nat = permToVect [p1]
     pv2: PermutationVec Nat = permToVect [p1,p2]
   in
@@ -703,7 +707,7 @@ main =
       --putStrLn ("eval a1:" ++ (show a1) ++
       --       " = " ++ (show [b11,b12,b13])
       --       )
-      putStrLn ("permToVect a1:" ++ (show a1) ++
+      {-putStrLn ("permToVect a1:" ++ (show a1) ++
              " -> b1:" ++ (show b1)
              )
       putStrLn ("permToVect a2:" ++ (show a2) ++
@@ -723,6 +727,10 @@ main =
              " -> im:" ++ (show im) ++
              " -> imIndex:" ++ (show imIndex)
              )
+      -}
+      putStrLn ("cycles:" ++ (show cyl))
+      putStrLn ("perms:" ++ (show prm))
+      putStrLn ("cycles2:" ++ (show cy2))
       putStrLn ("from:" ++ (show p1) ++
              " to:" ++ (show pv1)
              )

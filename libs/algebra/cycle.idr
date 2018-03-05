@@ -84,10 +84,13 @@ cyclesAllElements : List (Cycle elem) -> List elem
 cyclesAllElements [] = List.Nil
 cyclesAllElements (x::xs) = (toList x) ++ (cyclesAllElements xs)
 
-||| Construct a PreImage-Image from a cycle.
-cycleToPreImImage' : Cycle elem -> elem -> ((List elem),(List elem))
-cycleToPreImImage' [] first = (first::[],first::[])
-cycleToPreImImage' (x::[]) first = (x::[],first::[])
+||| local function used by cycleToPreImImage to track the first
+||| element so that we can loop back to it at the end.
+||| @c cycle to be converted
+||| @first first element
+cycleToPreImImage' : (c : Cycle elem) -> (first : elem) -> ((List elem),(List elem))
+cycleToPreImImage' [] first = (first::[],first::[]) -- fixpoint
+cycleToPreImImage' (x::[]) first = (x::[],first::[]) -- loop back to first
 cycleToPreImImage' (x::(y::ys)) first =
   let
     (preim,im) = cycleToPreImImage' (y::ys) first
@@ -97,7 +100,10 @@ cycleToPreImImage' (x::(y::ys)) first =
 cycleToPreImImage : Cycle elem -> ((List elem),(List elem))
 cycleToPreImImage [] = (List.Nil,List.Nil)
 cycleToPreImImage (x::[]) = (x::[],x::[]) -- fixpoint
-cycleToPreImImage (x::(y::ys)) = cycleToPreImImage' (y::ys) x
+cycleToPreImImage (x::(y::ys)) =
+  let
+    (preim,im) = cycleToPreImImage' (y::ys) x
+  in (x::preim,y::im)
 
 ||| Construct a PreImage-Image from a List of cycles.
 ||| used to change representation of a permutation.
