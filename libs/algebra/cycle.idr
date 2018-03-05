@@ -78,6 +78,12 @@ cyclesToLL : List (Cycle elem) -> List (List elem)
 cyclesToLL [] = List.Nil
 cyclesToLL (x::xs) = List.(::) (toList x) (cyclesToLL xs)
 
+||| Return all elements in a set of cycles.
+||| Similar to cyclesToLL but flatten into one list.
+cyclesAllElements : List (Cycle elem) -> List elem
+cyclesAllElements [] = List.Nil
+cyclesAllElements (x::xs) = (toList x) ++ (cyclesAllElements xs)
+
 ||| Construct a PreImage-Image from a cycle.
 cycleToPreImImage' : Cycle elem -> elem -> ((List elem),(List elem))
 cycleToPreImImage' [] first = (first::[],first::[])

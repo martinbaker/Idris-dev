@@ -37,9 +37,9 @@ module perm
 -- For now we need to have some runtime errors. I cant work out how
 -- to use Idris type system to make them impossible.
 --import Effects
+--import Effect.Exception
 import public finiteSet
 import public cycle
---import Effect.Exception
 
 %access public export
 
@@ -126,12 +126,57 @@ orbit p el = buildOrbit p el empty
          then orbBuild
          else buildOrbit p el2 (insert el2 orbBuild)
 
-{-
+
 ||| A list of cycles can represent a permutation.
 ||| In fact a list of cycles is a very compact notation.
-cyclesToPermutation : List (Cycle elem) -> (Permutation s)
+cyclesToPermutation : (Eq s) => List (Cycle s) -> (Permutation s)
 cyclesToPermutation l =
--}
+  let
+    (preim,im) : ((List s),(List s)) = cyclesToPreImImage l
+  in
+    permSetFromList preim im
+
+||| This is a local function which is used by cyclesFromPermutation
+||| to find an element that is not yet in a cycle.
+unusedElement : (Eq s) => (Permutation s) ->
+                          (List (Cycle s)) ->
+                          Maybe s
+unusedElement p lc =
+  let
+    preSet: FiniteSet s = preimage p
+    usedSoFar : FiniteSet s = fromList (cyclesAllElements lc)
+    diff: FiniteSet s = difference preSet usedSoFar
+  in first diff
+
+||| generate remaining cycles from permutation
+generateCycles : (Eq s) => (p : (Permutation s)) ->
+                           (FiniteSet s) ->
+                           s ->
+                           List (Cycle s) ->
+                           List (Cycle s)
+generateCycles p im firstEle cys =
+  let
+    orb : FiniteSet s = orbit p firstEle
+    orbList : List s = toList orb
+    cy : Cycle s = fromList orbList
+    c : List (Cycle s) = cy::cys
+    u : Maybe s = unusedElement p c
+  in
+    case u of
+      Nothing => c
+      Just a => generateCycles p im a c
+  
+
+||| Convert a list of cycles to a permutation.
+cyclesFromPermutation : (Eq s) => (Permutation s) ->
+                                   List (Cycle s)
+cyclesFromPermutation p =
+  let
+    preSet:(FiniteSet s) = preimage p
+    firstEle : Maybe s = first preSet
+  in case firstEle of
+    Nothing => Nil
+    Just a => generateCycles p preSet a Nil
 
 ||| Return True if both the preimage and image are the same (but they can
 ||| be reordered and still be True provided preimage and image are

@@ -177,6 +177,11 @@ indexOf (a::as) b n =
   then n
   else indexOf as b (S n)
 
+||| return an element of the set if not empty
+first : (FiniteSet s) -> Maybe s
+first [] = Nothing
+first (x::xs) = Just x
+
 ||| convert a finite set to an array of indexes into mp
 ||| @mp movable points - a master list of all the points being permuted.
 ||| @arrayIn array of points to be indexed into mp.
