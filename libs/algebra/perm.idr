@@ -114,21 +114,28 @@ degree p = order (movedPoints p)
 ||| orbit returns the orbit of element (el) under the
 ||| permutation p, i.e. the set which is given by applications of
 ||| the powers of p to el.
-||| @p permutation
-||| @el element
+||| @p permutation under consideration
+||| @el element to start orbit
 orbit : Eq s => (p : (Permutation s)) -> (el : s) -> (FiniteSet s)
-orbit p el = buildOrbit p el empty Z
+orbit p el = reverse (buildOrbit p el el (fromList [el]) Z)
   where
+    ||| build an orbit recursivly
+    ||| @p permutation under consideration
+    ||| @el current element in orbit
+    ||| @fstEl first element in orbit
+    ||| @orbBuild orbit under construction
+    ||| @loopBreaker counter to prevent infinite loops
     buildOrbit : Eq s => (p : (Permutation s)) ->
                          (el : s) ->
-                         (FiniteSet s) ->
-                         Nat ->
+                         (fstEl : s) ->
+                         (orbBuild : (FiniteSet s)) ->
+                         (loopBreaker : Nat) ->
                          (FiniteSet s)
-    buildOrbit p el orbBuild loopBreaker = 
+    buildOrbit p el fstEl orbBuild loopBreaker = 
       let el2:s = eval p el
-      in if el==el2 || loopBreaker>100
+      in if fstEl==el2 || loopBreaker>100
          then orbBuild
-         else buildOrbit p el2 (insert el2 orbBuild) (S loopBreaker)
+         else buildOrbit p el2 fstEl (insert el2 orbBuild) (S loopBreaker)
 
 
 ||| A list of cycles can represent a permutation.
@@ -168,15 +175,16 @@ generateCycles : (Eq s) => (p : (Permutation s)) ->
                            List (Cycle s)
 generateCycles p notYetConv f1 cyclesSoFar loopBreaker =
   let
-    orb : FiniteSet s = orbit p f1
+    orb : FiniteSet s = orbit p f1 -- orbit gives new cycle
     orbList : List s = toList orb
-    cy : Cycle s = fromList orbList
+    cy : Cycle s = fromList orbList -- convert orbit to cycle
     c : List (Cycle s) = cy::cyclesSoFar
-    usedSoFar : FiniteSet s = fromList (cyclesAllElements cyclesSoFar)
+    usedSoFar : FiniteSet s = fromList (cyclesAllElements c)
     diff: FiniteSet s = difference notYetConv usedSoFar
+    -- diff contains elements not yet in cycles
     f:Maybe s = first diff
   in
-    if loopBreaker>100
+    if loopBreaker>1000
     then c
     else case f of
       Nothing => c
@@ -191,7 +199,7 @@ cyclesFromPermutation p =
     firstEle : Maybe s = first preSet
   in case firstEle of
     Nothing => Nil
-    Just a => generateCycles p preSet a Nil Z
+    Just a => reverse (generateCycles p preSet a Nil Z)
 
 ||| Return True if both the preimage and image are the same (but they can
 ||| be reordered and still be True provided preimage and image are
