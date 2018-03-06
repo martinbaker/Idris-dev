@@ -63,6 +63,9 @@ assertEq g e = if g == e
 seperateTests0 : IO ()
 seperateTests0 = putStrLn "finite set tests:"
 
+seperateTestsCycle : IO ()
+seperateTestsCycle = putStrLn "cycle tests:"
+
 seperateTestsPerm : IO ()
 seperateTestsPerm = putStrLn "permutation tests:"
 
@@ -133,6 +136,40 @@ testFiniteSet6 =
       fs3:(FiniteSet Integer)=fromList [3, 4]
       fs4:(FiniteSet Integer)=(intersection fs1 fs2)
   in assertEq fs3 fs4
+
+||| test cycles
+||| cycle -> permutation -> cycle
+||| We should get back to same place when we convert cycle to
+||| permutation and back.
+testCycle1 : IO()
+testCycle1 =
+  let cyl : List (Cycle Nat) = [fromList [1,2],fromList [3,4,5]]
+      prm : Permutation Nat = cyclesToPermutation cyl
+      cy2 : List (Cycle Nat) = cyclesFromPermutation prm
+  in assertEq cyl cy2
+
+||| test cycles
+||| cycle -> permutation -> cycle
+||| A fixpoint should be removed.
+testCycle2 : IO()
+testCycle2 =
+  let cyl : List (Cycle Nat) = [fromList [1]]
+      prm : Permutation Nat = cyclesToPermutation cyl
+      cy2 : List (Cycle Nat) = cyclesFromPermutation prm
+  in assertEq cy2 Nil
+
+||| test cycles
+||| cycle -> permutation -> cycle
+||| Error condition - in a permutation an element should not
+||| occur more than once, if it does dont include cycle with
+||| duplicate element
+testCycle3 : IO()
+testCycle3 =
+  let cyl : List (Cycle Nat) = [fromList [1,2],fromList [2,3,4]]
+      prm : Permutation Nat = cyclesToPermutation cyl
+      cy2 : List (Cycle Nat) = cyclesFromPermutation prm
+      cy3 : List (Cycle Nat) = [fromList [1,2]]
+  in assertEq cy2 cy3
 
 ||| test Permutations
 ||| remove fixpoints

@@ -176,8 +176,8 @@ generateCycles : (Eq s) => (p : (Permutation s)) ->
 generateCycles p notYetConv f1 cyclesSoFar loopBreaker =
   let
     orb : FiniteSet s = orbit p f1 -- orbit gives new cycle
-    orbList : List s = toList orb
-    cy : Cycle s = fromList orbList -- convert orbit to cycle
+    --orbList : List s = toList orb
+    cy : Cycle s = fromFiniteSet orb -- convert orbit to cycle
     c : List (Cycle s) = cy::cyclesSoFar
     usedSoFar : FiniteSet s = fromList (cyclesAllElements c)
     diff: FiniteSet s = difference notYetConv usedSoFar

@@ -660,6 +660,7 @@ implementation Show set => Show (PermutationGroup set) where
     show a = "permutationGroup" ++(show (gens a)) ++
              "\n" ++ (show (information a))
 
+{-
 main : IO ()
 main = 
   let
@@ -692,7 +693,7 @@ main =
     --b11:Nat = evalv a1 b1
     --b12:Nat = evalv a1 b2
     --b13:Nat = evalv a1 b3
-    cyl : List (Cycle Nat) = [fromList [1,2],fromList [3,4,5]]
+    cyl : List (Cycle Nat) = [fromList [1,2],fromList [2,3,4]]
     prm : Permutation Nat = cyclesToPermutation cyl
     cy2 : List (Cycle Nat) = cyclesFromPermutation prm
     pv1: PermutationVec Nat = permToVect [p1]
@@ -737,7 +738,7 @@ main =
       putStrLn ("from:" ++ (show p2) ++
              " to:" ++ (show pv2)
              )
-
+-}
 {-
 main : IO ()
 main =

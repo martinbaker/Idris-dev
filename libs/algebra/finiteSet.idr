@@ -55,7 +55,7 @@
 
 module FiniteSet
 
-%access export
+%access  public export
 
 infixr 7 ::
 
@@ -220,8 +220,8 @@ dropFixpoint (a::as) (b::bs) =
 ||| Construct a list using the given set.
 ||| @set set to be converted to list.
 toList : (set:FiniteSet elem) -> List elem
-toList [] = List.Nil
-toList (x::xs) = List.(::) x (toList xs)
+toList [] = Nil
+toList (x::xs) = (::) x (toList xs)
 
 ||| Reverse the order of the elements of a FiniteSet.
 ||| Since order is irrelevant this does not really change the set

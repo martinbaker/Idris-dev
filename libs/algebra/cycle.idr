@@ -24,6 +24,8 @@
 
 module cycle
 
+import public finiteSet
+
 %access public export
 
 infixr 7 ::
@@ -73,10 +75,16 @@ toList : (set:Cycle elem) -> List elem
 toList [] = List.Nil
 toList (x::xs) = List.(::) x (toList xs)
 
+||| Construct a finite set using the given cycle.
+||| @set cycle to be converted to finite set.
+toFiniteSet : (Eq elem) => (set:Cycle elem) -> FiniteSet elem
+toFiniteSet [] = FiniteSet.empty --FiniteSet.Nil
+toFiniteSet (x::xs) = FiniteSet.insert x (toFiniteSet xs)
+
 ||| Construct a list of lists from a list of cycles.
 cyclesToLL : List (Cycle elem) -> List (List elem)
-cyclesToLL [] = List.Nil
-cyclesToLL (x::xs) = List.(::) (toList x) (cyclesToLL xs)
+cyclesToLL [] = Nil
+cyclesToLL (x::xs) = (::) (toList x) (cyclesToLL xs)
 
 ||| Return all elements in a set of cycles.
 ||| Similar to cyclesToLL but flatten into one list.
@@ -135,6 +143,17 @@ fromList' ys (x::xs) = fromList' (insert x ys) xs
 ||| value will be added.
 fromList : (Eq elem) => (l : List elem) -> Cycle elem
 fromList l = reverse $ fromList' empty l
+
+||| does not yet remove duplicates
+fromFiniteSet' : (Eq elem) => Cycle elem -> (l : FiniteSet elem) -> Cycle elem
+fromFiniteSet' ys FiniteSet.Nil = ys
+fromFiniteSet' ys (FiniteSet.(::) x xs) = fromFiniteSet' (insert x ys) xs
+
+||| Convert a list to a cycle.
+||| If the list contains duplicates then only one element of each
+||| value will be added.
+fromFiniteSet : (Eq elem) => (l : FiniteSet elem) -> Cycle elem
+fromFiniteSet l = reverse $ fromFiniteSet' empty l
 
 ||| Convert a list of lists to a list of cycles.
 cyclesFromLL : (Eq elem) => (l : List (List elem)) -> List (Cycle elem)

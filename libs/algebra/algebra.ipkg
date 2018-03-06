@@ -22,6 +22,10 @@ tests = testAlgebra.seperateTests0
       , testAlgebra.testFiniteSet4
       , testAlgebra.testFiniteSet5
       , testAlgebra.testFiniteSet6
+      , testAlgebra.seperateTestsCycle
+      , testAlgebra.testCycle1
+      , testAlgebra.testCycle2
+      , testAlgebra.testCycle3
       , testAlgebra.seperateTestsPerm
       , testAlgebra.testPermutation1
       , testAlgebra.testPermutation2
