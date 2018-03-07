@@ -138,11 +138,52 @@ testFiniteSet6 =
   in assertEq fs3 fs4
 
 ||| test cycles
+||| equality test - identical so equality is true
+testCycle1 : IO()
+testCycle1 =
+  let cy1 : Cycle Nat = fromList [1,2,3,4]
+      cy2 : Cycle Nat = fromList [1,2,3,4]
+  in assertEq (cy1 ==cy2) True
+
+||| test cycles
+||| equality test - rotate 1 right so equality is true
+testCycle2 : IO()
+testCycle2 =
+  let cy1 : Cycle Nat = fromList [1,2,3,4]
+      cy2 : Cycle Nat = fromList [4,1,2,3]
+  in assertEq (cy1==cy2) True
+
+||| test cycles
+||| equality test - rotate 2 right so equality is true
+testCycle3 : IO()
+testCycle3 =
+  let cy1 : Cycle Nat = fromList [1,2,3,4]
+      cy2 : Cycle Nat = fromList [3,4,1,2]
+  in assertEq (cy1==cy2) True
+
+||| test cycles
+||| equality test - rotate 3 right so equality is true
+testCycle4 : IO()
+testCycle4 =
+  let cy1 : Cycle Nat = fromList [1,2,3,4]
+      cy2 : Cycle Nat = fromList [2,3,4,1]
+  in assertEq (cy1==cy2) True
+
+||| test cycles
+||| equality test - this equality fails because we can't get
+||| from one to the other by rotating
+testCycle5 : IO()
+testCycle5 =
+  let cy1 : Cycle Nat = fromList [1,2,3,4]
+      cy2 : Cycle Nat = fromList [1,3,2,4]
+  in assertEq (cy1==cy2) False
+
+||| test cycles
 ||| cycle -> permutation -> cycle
 ||| We should get back to same place when we convert cycle to
 ||| permutation and back.
-testCycle1 : IO()
-testCycle1 =
+testCycle6 : IO()
+testCycle6 =
   let cyl : List (Cycle Nat) = [fromList [1,2],fromList [3,4,5]]
       prm : Permutation Nat = cyclesToPermutation cyl
       cy2 : List (Cycle Nat) = cyclesFromPermutation prm
@@ -151,8 +192,8 @@ testCycle1 =
 ||| test cycles
 ||| cycle -> permutation -> cycle
 ||| A fixpoint should be removed.
-testCycle2 : IO()
-testCycle2 =
+testCycle7 : IO()
+testCycle7 =
   let cyl : List (Cycle Nat) = [fromList [1]]
       prm : Permutation Nat = cyclesToPermutation cyl
       cy2 : List (Cycle Nat) = cyclesFromPermutation prm
@@ -163,8 +204,8 @@ testCycle2 =
 ||| Error condition - in a permutation an element should not
 ||| occur more than once, if it does dont include cycle with
 ||| duplicate element
-testCycle3 : IO()
-testCycle3 =
+testCycle8 : IO()
+testCycle8 =
   let cyl : List (Cycle Nat) = [fromList [1,2],fromList [2,3,4]]
       prm : Permutation Nat = cyclesToPermutation cyl
       cy2 : List (Cycle Nat) = cyclesFromPermutation prm

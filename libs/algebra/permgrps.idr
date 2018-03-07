@@ -693,9 +693,13 @@ main =
     --b11:Nat = evalv a1 b1
     --b12:Nat = evalv a1 b2
     --b13:Nat = evalv a1 b3
-    cyl : List (Cycle Nat) = [fromList [1,2],fromList [2,3,4]]
-    prm : Permutation Nat = cyclesToPermutation cyl
-    cy2 : List (Cycle Nat) = cyclesFromPermutation prm
+    cy1 : Cycle Nat = fromList [1,2,3]
+    cy2 : Cycle Nat = rotateRight cy1
+    cy3 : Cycle Nat = rotateRight cy2
+    cy4 : Cycle Nat = rotateRight cy3
+   
+    --prm : Permutation Nat = cyclesToPermutation cyl
+    --cy2 : List (Cycle Nat) = cyclesFromPermutation prm
     pv1: PermutationVec Nat = permToVect [p1]
     pv2: PermutationVec Nat = permToVect [p1,p2]
   in
@@ -729,9 +733,10 @@ main =
              " -> imIndex:" ++ (show imIndex)
              )
       -}
-      putStrLn ("cycles:" ++ (show cyl))
-      putStrLn ("perms:" ++ (show prm))
-      putStrLn ("cycles2:" ++ (show cy2))
+      putStrLn ("cy1:" ++ (show cy1))
+      putStrLn ("cy2:" ++ (show cy2))
+      putStrLn ("cy3:" ++ (show cy3))
+      putStrLn ("cy4:" ++ (show cy4))
       putStrLn ("from:" ++ (show p1) ++
              " to:" ++ (show pv1)
              )

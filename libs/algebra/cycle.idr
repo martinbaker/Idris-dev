@@ -30,7 +30,11 @@ import public finiteSet
 
 infixr 7 ::
 
-||| Cycle, like a list but no repations and loops back.
+||| Cycle, like a list but no repations.
+||| There is an implied loop back from the last element to the first.
+||| Rotating a cycle should not change its meaning.
+||| (==) will be true when comparing 'c' and a rotated
+||| version of 'c'.
 ||| A set of cycles is an efficient way to notate a permutation.
 ||| @ elem the type of elements
 data Cycle : (elem : Type) -> Type where
@@ -239,6 +243,88 @@ cycles lls =
   unit
 -}
 
+{-||| Attempt to Return all but the last element of a cycle.
+|||
+||| not total - must not be called if the list is empty.
+splitLast : Cycle elem -> (elem,Cycle elem)
+splitLast (x::xs) =
+  case xs of
+    [] => (x,[])
+    y::ys =>
+      let
+        (last,rest) = splitLast (y::ys)
+      in 
+        (last,(x::rest))-}
+        
+||| Satisfiable if `xs` is non-empty (e.g., if `xs` is a cons).
+data NonEmpty : (xs : Cycle a) -> Type where
+    ||| The proof that a cons cell is non-empty
+    IsNonEmpty : cycle.NonEmpty (x :: xs)
+
+Uninhabited (cycle.NonEmpty []) where
+  uninhabited IsNonEmpty impossible
+
+||| Decide whether a cycle is non-empty
+nonEmpty : (xs : Cycle a) -> Dec (NonEmpty xs)
+nonEmpty [] = No absurd
+nonEmpty (x :: xs) = Yes IsNonEmpty
+
+||| Rotate a cycle right by taking the last element from
+||| the end and putting it on the beginning.
+||| Rotating a cycle should not change its meaning.
+||| (==) will be true when comparing 'c' and a rotated
+||| version of 'c'.
+total rotateRight : (Eq elem) => Cycle elem -> Cycle elem
+rotateRight [] = []
+rotateRight (c::cs) =
+  let
+    (last,rest) = splitLast (c::cs)
+  in
+    (last::rest)
+  where
+      ||| Attempt to Return all but the last element of a cycle.
+      |||
+      ||| not total - must not be called if the list is empty.
+      splitLast : (c :Cycle elem) -> {auto ok : NonEmpty c} -> (elem,Cycle elem)
+      splitLast [] {ok=IsNonEmpty} impossible
+      splitLast (x::[]) = (x,[])
+      splitLast (x::(y::ys)) =
+        let
+          (last,rest) = splitLast (y::ys)
+        in 
+          (last,(x::rest))
+
+||| Two cycles are equal if each corresponding element is equal, the
+||| elements can be rotated round and the cycles are still considered
+||| equal.
+total identical : (Eq elem) => (Cycle elem) -> (Cycle elem) -> Bool
+identical [] [] = True
+identical [] _ = False
+identical _ [] = False
+identical (a::as) (b::bs) = a == b && (identical as bs)
+
+||| keep rotating until identical or f == first element of b
+||| which means we have rotated back to original position
+total equ : (Eq elem) => elem -> (Cycle elem) -> (Cycle elem) -> Bool
+equ f [] [] = True
+equ f [] _ = False
+equ f _ [] = False
+equ f (a::as) (b::bs) =
+  let
+    x : (Cycle elem) = rotateRight (b::bs)
+    y : (elem,(Cycle elem)) = case x of
+      [] => (f,[])
+      (c1 :: cs1) => (c1,cs1)
+    c:elem = fst y
+    cs : (Cycle elem) = snd y
+  in
+    if c==f
+    then False
+    else
+      if cycle.identical (a::as) (c::cs)
+      then True
+      else assert_total (equ f (a::as) (c::cs))
+
 ||| Two cycles are equal if each corresponding element is equal, the
 ||| elements can be rotated round and the cycles are still considered
 ||| equal.
@@ -246,7 +332,10 @@ implementation (Eq elem) => Eq (Cycle elem) where
   (==) [] [] = True
   (==) [] _ = False
   (==) _ [] = False
-  (==) (a::as) (b::bs) = a == b && (as == bs)
+  (==) (a::as) (b::bs) = 
+     if cycle.identical (a::as) (b::bs)
+     then True
+     else equ b (a::as) (b::bs)
 
 implementation Show elem => Show (Cycle elem) where
     show = show . toList

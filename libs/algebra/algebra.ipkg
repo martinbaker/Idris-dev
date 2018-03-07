@@ -26,6 +26,11 @@ tests = testAlgebra.seperateTests0
       , testAlgebra.testCycle1
       , testAlgebra.testCycle2
       , testAlgebra.testCycle3
+      , testAlgebra.testCycle4
+      , testAlgebra.testCycle5
+      , testAlgebra.testCycle6
+      , testAlgebra.testCycle7
+      , testAlgebra.testCycle8
       , testAlgebra.seperateTestsPerm
       , testAlgebra.testPermutation1
       , testAlgebra.testPermutation2
