@@ -37,24 +37,6 @@
  - \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/}
  -}
 
-{-
-to run:
-
-    /  _/___/ /____(_)____
-    / // __  / ___/ / ___/     Version 1.2.0
-  _/ // /_/ / /  / (__  )      http://www.idris-lang.org/
- /___/\__,_/_/  /_/____/       Type :? for help
-
-Idris is free software with ABSOLUTELY NO WARRANTY.
-For details type :warranty.
-Idris> :module permgrps
-*permgrps> :exec
-[68, 79, 6]
-*permgrps> :exec
-[93, 4, 3]
-*permgrps>
-
--}
 --module permgrp
 module Main
 
@@ -244,6 +226,9 @@ ranelt group word maxLoops =
              else (lst r)
          in mix (Record3 randomElement3 w3 randomInteger2) a n w
 
+||| replace the n th term in a list with given value
+||| If nth term does not exist then don't do anything so no
+||| need for error checking.
 replaceNth : Nat -> v -> List v -> List v
 replaceNth n newVal Nil = Nil
 replaceNth n newVal (x::xs) =
@@ -451,6 +436,120 @@ convertToVect newGroup words mp degree ggg (ggp::ggps) =
             if wordProblem then words := cons(list ggg, words)
 -}
 
+||| Local function used by bsgs
+||| Tries to get a good approximation for the base points which
+||| are put in gp_info.gpbase and stabiliser chain which is
+||| returned in 'out' parameter reference.
+||| These values can be used by bsgs to compute the strong
+||| generators but this output may contain duplicates and so
+||| bsgs must remove these.
+||| This function is recursive, it calls itself for every subgroup.
+||| Note: this function uses Monte Carlo methods (random sampling)
+||| and so may not give the same result for given parameters.
+||| returns sizeOfGroup and sets reference values 'out' (stabiliser
+||| chain) and 'outword' and also sets gp_info.gpbase (sequence
+||| of points stabilised by the group).
+||| It is hard to describe these functions without diagrams so
+||| I have put a better explanation here:
+||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#bsgs1
+||| @group    holds permutations as vectors as they are easier to
+|||           work with.
+||| @number1  initial index for calculating orbits.
+|||           bsgs1 is first called with number1 set to '1' but
+|||           when called recursively it will be incremented so
+|||           that earlier stabilisers will not be checked again.
+||| @words
+||| @maxLoops if zero then calculate from the (approximate)
+|||           base length
+||| @gp       is this instance.
+||| @diff     if word problem then subtract this from maxLoops.
+||| @out      Reference to stabiliser chain which can be appended
+|||           by this function. The first value stabilises most
+|||           points, next value less points and so on.
+||| @outword  Reference to words (if used) for stabiliser chain.
+bsgs1 : (group :(PermutationVec set)) ->
+        (number1 : Nat) ->
+        (words: List (List Nat)) ->
+        (maxLoops:  Int) ->
+        (gp: (List (Permutation set))) ->
+        (diff : Int) ->
+        (out : List (PermutationVec set)) ->
+        (outword : List (List (List Nat))) ->
+        (Nat,List (PermutationVec set),List (List (List Nat)),List Nat)
+bsgs1 group number1 words maxLoops gp diff out outword =
+  (number1,out,outword,Nil)
+{-        -- try to get a good approximation for the strong generators and base
+        degree := #(first(group))
+        gp_info := gp.information
+        wordProblem : Boolean := not(empty?(words))
+        -- find moved point i, that is first point with orbit > 1
+        for i in number1..degree repeat
+            -- Given a group and a point in the group this calculates
+            -- the orbit and schreierVector.
+            ort := orbitWithSvc(group, i)
+            k   := ort.orb
+            k1  := # k
+            -- if size of orbit not 1 then break
+            if k1 ~= 1 then break
+        -- ort is set to first orbit with more than 1 element
+        -- 'i' will be the fist element in this orbit
+        gpsgs := []$(PermutationVec set)
+        words2 := []$(List (List Nat))
+        gplength : Nat := #group
+        -- set jj to be nontrivial element
+        for jj in 1..gplength repeat if (group.jj).i ~= i then break
+        for k in 1..gplength repeat
+            el2 := group.k
+            -- if stab(i) then multiply by first non-trivial generator
+            if el2.i ~= i then
+                gpsgs := cons(el2, gpsgs)
+                if wordProblem then words2 := cons(words.k, words2)
+            else
+                gpsgs := cons(times(group.jj, el2), gpsgs)
+                if wordProblem then
+                      words2 := cons(append(words.jj, words.k), words2)
+        -- gpsgs now contains a list of the permutations in vector
+        -- form.
+        group2 := []$(PermutationVec set)
+        -- group2 will hold the representative elements (one per coset)
+        words3 := []$(List (List Nat))
+        j : I  := 15
+        while j > 0 repeat
+            -- find generators for the stabilizer
+            -- ranelt generates a "random" element as an element
+            --   and word: Record(elt : V Nat, lst : List Nat)
+            ran := ranelt(group, words, maxLoops)
+            str := strip1(ran.elt, ort, group, words)
+            el2 := str.elt
+            if not testIdentity el2 then
+                if not member?(el2, group2) then
+                    group2 := cons ( el2, group2 )
+                    if wordProblem then
+                        help : List Nat := append(reverse str.lst, ran.lst)
+                        help         := shortenWord(help, gp)
+                        words3       := cons(help, words3)
+                    j := j - 2
+            j := j - 1
+        -- group2 now holds the representative elements (one per coset)
+        -- this is for word length control
+        if wordProblem then maxLoops    := maxLoops - diff
+        -- If no subgroups then return size=k1
+        if empty?(group2) or (maxLoops < 0) then
+            gp_info.gpbase := [i]
+            setref(out, [gpsgs])
+            setref(outword, [words2])
+            return k1
+        -- If we get here there are subgroups so call recursively
+        -- and multiply together to get total size.
+        k2 := bsgs1(group2, i + 1, words3, maxLoops, gp, diff,
+                    out, outword)
+        sizeOfGroup : Nat := k1 * k2
+        setref(out, append(deref(out), [gpsgs]))
+        setref(outword, append(deref(outword), [words2]))
+        gp_info.gpbase := cons(i, gp_info.gpbase)
+        sizeOfGroup
+-}
+
 ||| This is a local function to initialise base and strong
 ||| generators and other values in group:%.
 ||| Functions such as initializeGroupForWordProblem or
@@ -484,7 +583,7 @@ bsgs group wordProblem maxLoops diff =
     out : List (List (List Nat)) = Nil
     -- out will hold stabiliser chain
     outword : List (List (List Nat)) = Nil
-    --outr : Reference(L L V NNI) := ref([])
+    --outr : Reference(L PermutationVec set) := ref([])
     -- outr is reference to stabiliser chain (out above)
     outwordr : List (List (List Nat)) = Nil
     -- put list of points into supp and also put into
@@ -501,7 +600,6 @@ bsgs group wordProblem maxLoops diff =
         --gp : (List (Permutation set)) = group
         --
         sgset : List (List Nat) = Nil
-        gpbase : List Nat = Nil
         orbs : List Rec = Nil
         wd : List (List Nat) = Nil
         -- 'newGroup' holds permutations as vectors as they are
@@ -510,8 +608,18 @@ bsgs group wordProblem maxLoops diff =
         -- params are: newGroup words mp degree ggg ggp
         --  convertToVect Nil Nil mp degree 0 group
         newGroup : PermutationVec set = permToVect group
+        (k1,out1,outword1,gpbase1) = 
+          -- try to get the (approximate) base length by pre-calling
+          -- bsgs1 with maxloops=20
+          if maxLoops < 1
+          then bsgs1 newGroup 1 Nil 20 group 0 Nil Nil
+          else (maxLoops,Nil,Nil,Nil)
+        maxLoops2:Int = cast (length gpbase1)
+        --(Nat,List (PermutationVec set)),(outword : List (List (List Nat)))) 
+        --(k:Nat,out : List (PermutationVec set),outword : List (List (List Nat)))) =
+        (k2,out2,outword2,gpbase2) = bsgs1 newGroup 1 Nil maxLoops2 group 0 out1 outword1
       in
-        Record2 degree sgset gpbase orbs wd newGroup
+        Record2 degree sgset gpbase2 orbs wd newGroup
 
 {-        -- If bsgs1 has not yet been called first call it with base
         -- length of 20 then call it again with more accurate base
@@ -520,7 +628,7 @@ bsgs group wordProblem maxLoops diff =
             -- try to get the (approximate) base length by pre-calling
             -- bsgs1 with maxloops=20
             if zero? (# ((group.information).gpbase)) then
-                k := bsgs1(newGroup, 1, []$(L L NNI), 20, group, 0,
+                k := bsgs1(newGroup, 1, []$(List (List Nat)), 20, group, 0,
                                  outr, outwordr)
             maxLoops := #((group.information).gpbase) - 1
         k := bsgs1(newGroup, 1, words, maxLoops, group, diff, outr, outwordr)
@@ -536,9 +644,9 @@ bsgs group wordProblem maxLoops diff =
         kkk : I := 1
         newGroup := reverse newGroup
         noAnswer : B := true
-        z : V NNI
+        z : V Nat
         add_cnt : I := 0
-        wordlist : L L NNI
+        wordlist : List (List Nat)
         dummy_rec : REC := [[], empty()]
         baseOfGroup := (group.information).gpbase
         gp_info.gpbase := baseOfGroup
@@ -547,7 +655,7 @@ bsgs group wordProblem maxLoops diff =
             gp_info.gpbase := baseOfGroup
             gp_info.orbs := orbv
             -- test whether we have a base and a strong generating set
-            sgs : L V NNI := []
+            sgs : PermutationVec set := []
             wordlist := []
             for i in 1..(kkk-1) repeat
                 sgs := append(sgs, out.i)
@@ -558,8 +666,8 @@ bsgs group wordProblem maxLoops diff =
                 rejects := reduceGenerators(i, wordProblem, gp_info,
                                             out, outword)
                 sgs := append(sgs, out.i)
-                sgsv := vector(sgs)$V(V NNI)
-                wordv : V L NNI := empty()
+                sgsv := vector(sgs)$V(V Nat)
+                wordv : V List Nat := empty()
                 if wordProblem then
                     wordlist := append(wordlist, outword.i)
                     wordv := vector(wordlist)
@@ -579,7 +687,7 @@ bsgs group wordProblem maxLoops diff =
                     y1    := inv ppp.elt
                     word3 := ppp.lst
                     for jjj in 1..#sgs while noresult repeat
-                        word         := []$(L NNI)
+                        word         := []$(List Nat)
                         times!(z, qelt(sgsv, jjj), y1)
                         if wordProblem then word := qelt(wordv, jjj)
                         ppp := strip(z, i, false, orbv, sgsv, wordv)
@@ -596,13 +704,13 @@ bsgs group wordProblem maxLoops diff =
                         newBasePoint := true
                         if qelt(z, p) ~= p then
                             newBasePoint := false
-                            basePoint    := (#baseOfGroup - ii + 1)::NNI
+                            basePoint    := (#baseOfGroup - ii + 1)::Nat
                             break
             noAnswer := not (testIdentity z)
             if noAnswer then
                 add_cnt := add_cnt + 1
                 -- we have missed something
-                word2 := []$(L NNI)
+                word2 := []$(List Nat)
                 if wordProblem then
                     for wdi in word3 repeat
                         ttt := newGroup.wdi
@@ -624,7 +732,7 @@ bsgs group wordProblem maxLoops diff =
                     if wordProblem then
                         outword.basePoint := cons(word, outword.basePoint)
                 kkk := basePoint
-        sizeOfGroup : NNI := 1
+        sizeOfGroup : Nat := 1
         for j in 1..#baseOfGroup repeat
             sizeOfGroup := sizeOfGroup * # orbv(j).orb
         group.information := [sizeOfGroup, sgs, baseOfGroup, orbv, supp,
@@ -1003,7 +1111,6 @@ janko2' l =
   else
     -- error "Exactly 100 integers for janko2 needed !"
     llli2gp [[[1]]]
-
 
 ||| janko2 constructs the janko group acting on the
 ||| integers 1, ..., 100.
