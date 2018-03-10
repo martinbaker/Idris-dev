@@ -815,6 +815,290 @@ abelianGroup l =
 alternatingGroup : Nat -> (PermutationGroup Nat)
 alternatingGroup n = alternatingGroup' (li1n n)
 
+||| mathieu11(li) constructs the mathieu group acting on the 11
+||| integers given in the list li.
+||| Note: duplicates in the list will be removed.
+||| error, if li has less or more than 11 different entries.
+mathieu11' : List Nat -> (PermutationGroup Nat)
+mathieu11' l =
+  -- permutations derived from the ATLAS
+  --l := removeDuplicates l
+  if length l == 11
+  then
+    let
+      a : List (List Nat) = [[nth' 1 l, nth' 10 l], [nth' 2 l, nth' 8 l], [nth' 3 l, nth' 11 l], [nth' 5 l, nth' 7 l]]
+    in 
+      llli2gp [a, [[nth' 1 l, nth' 4 l, nth' 7 l, nth' 6 l], [nth' 2 l, nth' 11 l, nth' 10 l, nth' 9 l]]]
+  else
+    -- error "Exactly 11 integers for mathieu11 needed !"
+    llli2gp [[[1]]]
+
+||| mathieu11 constructs the mathieu group acting on the
+||| integers 1, ..., 11.
+mathieu11 : (PermutationGroup Nat)
+mathieu11 = mathieu11' (li1n 11)
+
+||| mathieu12(li) constructs the mathieu group acting on the 12
+||| integers given in the list li.
+||| Note: duplicates in the list will be removed
+||| Error: if li has less or more than 12 different entries.
+mathieu12' : List Nat -> (PermutationGroup Nat)
+mathieu12' l =
+  -- permutations derived from the ATLAS
+  --l := removeDuplicates l
+  if length l == 12
+  then
+    let
+      a : List (List Nat) =
+          [[nth' 1 l, nth' 2 l, nth' 3 l, nth' 4 l, nth' 5 l, nth' 6 l,
+            nth' 7 l, nth' 8 l, nth' 9 l, nth' 10 l, nth' 11 l]]
+    in llli2gp [a, [[nth' 1 l, nth' 6 l, nth' 5 l, nth' 8 l, nth' 3 l,
+            nth' 7 l, nth' 4 l, nth' 2 l, nth' 9 l, nth' 10 l],
+            [nth' 11 l, nth' 12 l]]]
+  else
+    -- error "Exactly 12 integers for mathieu12 needed !"
+    llli2gp [[[1]]]
+
+||| mathieu12 constructs the mathieu group acting on the
+||| integers 1, ..., 12.
+mathieu12 : (PermutationGroup Nat)
+mathieu12 = mathieu12' (li1n 12)
+
+||| mathieu22(li) constructs the mathieu group acting on the 22
+||| integers given in the list li.
+||| Note: duplicates in the list will be removed.
+||| Error: if li has less or more than 22 different entries.
+mathieu22' : List Nat -> (PermutationGroup Nat)
+mathieu22' l =
+  -- permutations derived from the ATLAS
+  --l := removeDuplicates l
+  if length l == 22
+  then
+    let
+      a : List (List Nat) =
+        [[nth' 1 l, nth' 2 l, nth' 4 l, nth' 8 l, nth' 16 l, nth' 9 l,
+          nth' 18 l, nth' 13 l, nth' 3 l, nth' 6 l, nth' 12 l],
+          [nth' 5 l, nth' 10 l, nth' 20 l, nth' 17 l, nth' 11 l,
+          nth' 22 l, nth' 21 l, nth' 19 l, nth' 15 l, nth' 7 l, nth' 14 l]]
+      b : List (List Nat) = [[nth' 1 l, nth' 2 l, nth' 6 l, nth' 18 l],
+          [nth' 3 l, nth' 15 l], [nth' 5 l, nth' 8 l, nth' 21 l, nth' 13 l],
+          [nth' 7 l, nth' 9 l, nth' 20 l, nth' 12 l], [nth' 10 l, nth' 16 l],
+          [nth' 11 l, nth' 19 l, nth' 14 l, nth' 22 l]]
+    in llli2gp [a, b]
+  else
+    -- error "Exactly 22 integers for mathieu22 needed !"
+    llli2gp [[[1]]]
+
+||| mathieu22 constructs the mathieu group acting on the
+||| integers 1, ..., 22.
+mathieu22 : (PermutationGroup Nat)
+mathieu22 = mathieu22' (li1n 22)
+
+||| mathieu23(li) constructs the mathieu group acting on the 23
+||| integers given in the list li.
+||| Note: duplicates in the list will be removed.
+||| Error: if li has less or more than 23 different entries.
+mathieu23' : List Nat -> (PermutationGroup Nat)
+mathieu23' l =
+  -- permutations derived from the ATLAS
+  --l := removeDuplicates l
+  if length l == 23
+  then
+    let
+      a : List (List Nat) =
+        [[nth' 1 l, nth' 2 l, nth' 3 l, nth' 4 l, nth' 5 l, nth' 6 l,
+          nth' 7 l, nth' 8 l, nth' 9 l, nth' 10 l, nth' 11 l, nth' 12 l,
+          nth' 13 l, nth' 14 l, nth' 15 l, nth' 16 l, nth' 17 l, nth' 18 l,
+          nth' 19 l, nth' 20 l, nth' 21 l, nth' 22 l, nth' 23 l]]
+      b : List (List Nat) =
+        [[nth' 2 l, nth' 16 l, nth' 9 l, nth' 6 l, nth' 8 l],
+         [nth' 3 l, nth' 12 l, nth' 13 l, nth' 18 l, nth' 4 l],
+         [nth' 7 l, nth' 17 l, nth' 10 l, nth' 11 l, nth' 22 l],
+         [nth' 14 l, nth' 19 l, nth' 21 l, nth' 20 l, nth' 15 l]]
+    in llli2gp [a, b]
+  else
+    -- error "Exactly 23 integers for mathieu23 needed !"
+    llli2gp [[[1]]]
+
+||| mathieu23 constructs the mathieu group acting on the
+||| integers 1, ..., 23.
+mathieu23 : (PermutationGroup Nat)
+mathieu23 = mathieu23' (li1n 23)
+
+||| mathieu24(li) constructs the mathieu group acting on the 24
+||| integers given in the list li.
+||| Note: duplicates in the list will be removed.
+||| Error: if li has less or more than 24 different entries.
+mathieu24' : List Nat -> (PermutationGroup Nat)
+mathieu24' l =
+  -- permutations derived from the ATLAS
+  --l := removeDuplicates l
+  if length l == 24
+  then
+    let
+      a : List (List Nat) =
+        [[nth' 1 l, nth' 16 l, nth' 10 l, nth' 22 l, nth' 24 l],
+        [nth' 2 l, nth' 12 l, nth' 18 l, nth' 21 l, nth' 7 l],
+        [nth' 4 l, nth' 5 l, nth' 8 l, nth' 6 l, nth' 17 l],
+        [nth' 9 l, nth' 11 l, nth' 13 l, nth' 19 l, nth' 15 l]]
+      b : List (List Nat) =
+        [[nth' 1 l, nth' 22 l, nth' 13 l, nth' 14 l, nth' 6 l,
+        nth' 20 l, nth' 3 l, nth' 21 l, nth' 8 l, nth' 11 l],
+        [nth' 2 l, nth' 10 l],
+        [nth' 4 l, nth' 15 l, nth' 18 l, nth' 17 l, nth' 16 l,
+        nth' 5 l, nth' 9 l, nth' 19 l, nth' 12 l, nth' 7 l],
+        [nth' 23 l, nth' 24 l]]
+    in llli2gp [a, b]
+  else
+    -- error "Exactly 24 integers for mathieu24 needed !"
+    llli2gp [[[1]]]
+
+||| mathieu24 constructs the mathieu group acting on the
+||| integers 1, ..., 24.
+mathieu24 : (PermutationGroup Nat)
+mathieu24 = mathieu24' (li1n 24)
+
+||| janko2(li) constructs the janko group acting on the 100
+||| integers given in the list li.
+||| Note: duplicates in the list will be removed.
+||| Error: if li has less or more than 100 different entries
+janko2' : List Nat -> (PermutationGroup Nat)
+janko2' l =
+  -- permutations derived from the ATLAS
+  --l := removeDuplicates l
+  if length l == 100
+  then
+    let
+      a : List (List Nat) =
+        [[nth' 2 l, nth' 3 l, nth' 4 l, nth' 5 l, nth' 6 l, nth' 7 l, nth' 8 l],
+        [nth' 9 l, nth' 10 l, nth' 11 l, nth' 12 l, nth' 13 l, nth' 14 l, nth' 15 l],
+        [nth' 16 l, nth' 17 l, nth' 18 l, nth' 19 l, nth' 20 l, nth' 21 l, nth' 22 l],
+        [nth' 23 l, nth' 24 l, nth' 25 l, nth' 26 l, nth' 27 l, nth' 28 l, nth' 29 l],
+        [nth' 30 l, nth' 31 l, nth' 32 l, nth' 33 l, nth' 34 l, nth' 35 l, nth' 36 l],
+        [nth' 37 l, nth' 38 l, nth' 39 l, nth' 40 l, nth' 41 l, nth' 42 l, nth' 43 l],
+        [nth' 44 l, nth' 45 l, nth' 46 l, nth' 47 l, nth' 48 l, nth' 49 l, nth' 50 l],
+        [nth' 51 l, nth' 52 l, nth' 53 l, nth' 54 l, nth' 55 l, nth' 56 l, nth' 57 l],
+        [nth' 58 l, nth' 59 l, nth' 60 l, nth' 61 l, nth' 62 l, nth' 63 l, nth' 64 l],
+        [nth' 65 l, nth' 66 l, nth' 67 l, nth' 68 l, nth' 69 l, nth' 70 l, nth' 71 l],
+        [nth' 72 l, nth' 73 l, nth' 74 l, nth' 75 l, nth' 76 l, nth' 77 l, nth' 78 l],
+        [nth' 79 l, nth' 80 l, nth' 81 l, nth' 82 l, nth' 83 l, nth' 84 l, nth' 85 l],
+        [nth' 86 l, nth' 87 l, nth' 88 l, nth' 89 l, nth' 90 l, nth' 91 l, nth' 92 l],
+        [nth' 93 l, nth' 94 l, nth' 95 l, nth' 96 l, nth' 97 l, nth' 98 l, nth' 99 l] ]
+      b : List (List Nat) =
+        [[nth' 1 l, nth' 74 l, nth' 83 l, nth' 21 l, nth' 36 l, nth' 77 l, nth' 44 l,
+        nth' 80 l, nth' 64 l, nth' 2 l, nth' 34 l, nth' 75 l, nth' 48 l, nth' 17 l, nth' 100 l],
+        [nth' 3 l, nth' 15 l, nth' 31 l, nth' 52 l, nth' 19 l, nth' 11 l, nth' 73 l, nth' 79 l,
+        nth' 26 l, nth' 56 l, nth' 41 l, nth' 99 l, nth' 39 l, nth' 84 l, nth' 90 l],
+        [nth' 4 l, nth' 57 l, nth' 86 l, nth' 63 l, nth' 85 l, nth' 95 l, nth' 82 l,
+        nth' 97 l, nth' 98 l, nth' 81 l, nth' 8 l, nth' 69 l, nth' 38 l, nth' 43 l, nth' 58 l],
+        [nth' 5 l, nth' 66 l, nth' 49 l, nth' 59 l, nth' 61 l],
+        [nth' 6 l, nth' 68 l, nth' 89 l, nth' 94 l, nth' 92 l, nth' 20 l, nth' 13 l,
+        nth' 54 l, nth' 24 l, nth' 51 l, nth' 87 l, nth' 27 l, nth' 76 l, nth' 23 l, nth' 67 l],
+        [nth' 7 l, nth' 72 l, nth' 22 l, nth' 35 l, nth' 30 l, nth' 70 l, nth' 47 l, nth' 62 l,
+        nth' 45 l, nth' 46 l, nth' 40 l, nth' 28 l, nth' 65 l, nth' 93 l, nth' 42 l],
+        [nth' 9 l, nth' 71 l, nth' 37 l, nth' 91 l, nth' 18 l, nth' 55 l, nth' 96 l,
+        nth' 60 l, nth' 16 l, nth' 53 l, nth' 50 l, nth' 25 l, nth' 32 l, nth' 14 l, nth' 33 l],
+        [nth' 10 l, nth' 78 l, nth' 88 l, nth' 29 l, nth' 12 l] ]
+    in llli2gp [a, b]
+  else
+    -- error "Exactly 100 integers for janko2 needed !"
+    llli2gp [[[1]]]
+
+
+||| janko2 constructs the janko group acting on the
+||| integers 1, ..., 100.
+janko2 : (PermutationGroup Nat)
+janko2 = janko2' (li1n 100)
+
+||| rubiksGroup constructs the permutation group representing
+||| Rubic's Cube acting on integers 10*i+j for
+||| 1 <= i <= 6, 1 <= j <= 8.
+||| The faces of Rubik's Cube are labelled in the obvious way
+||| Front, Right, Up, Down, Left, Back and numbered from 1 to 6
+||| in this given ordering, the pieces on each face
+||| (except the unmoveable center piece) are clockwise numbered
+||| from 1 to 8 starting with the piece in the upper left
+||| corner. The moves of the cube are represented as permutations
+||| on these pieces, represented as a two digit
+||| integer ij where i is the numer of theface (1 to 6)
+||| and j is the number of the piece on this face.
+||| The remaining ambiguities are resolved by looking
+||| at the 6 generators, which represent a 90 degree turns of the
+||| faces, or from the following pictorial description.
+||| Permutation group representing Rubic's Cube acting on integers
+||| 10*i+j for 1 <= i <= 6, 1 <= j <=8.
+|||
+||| Rubik's Cube:   +-----+ +-- B   where: marks Side # :
+|||                / U   /|/
+|||               /     / |         F(ront)    <->    1
+|||       L -->  +-----+ R|         R(ight)    <->    2
+|||              |     |  +         U(p)       <->    3
+|||              |  F  | /          D(own)     <->    4
+|||              |     |/           L(eft)     <->    5
+|||              +-----+            B(ack)     <->    6
+|||                 ^
+|||                 |
+|||                 D
+|||
+||| The Cube's surface:
+|||                                The pieces on each side
+|||             +---+              (except the unmoveable center
+|||             |567|              piece) are clockwise numbered
+|||             |4U8|              from 1 to 8 starting with the
+|||             |321|              piece in the upper left
+|||         +---+---+---+          corner (see figure on the
+|||         |781|123|345|          left).  The moves of the cube
+|||         |6L2|8F4|2R6|          are represented as
+|||         |543|765|187|          permutations on these pieces.
+|||         +---+---+---+          Each of the pieces is
+|||             |123|              represented as a two digit
+|||             |8D4|              integer ij where i is the
+|||             |765|              # of the side ( 1 to 6 for
+|||             +---+              F to B (see table above ))
+|||             |567|              and j is the # of the piece.
+|||             |4B8|
+|||             |321|
+|||             +---+
+|||
+rubiksGroup : (PermutationGroup Nat)
+rubiksGroup =
+  let
+    -- each generator represents a 90 degree turn of the appropriate
+    -- side.
+    f : List (List Nat) =
+      [[11, 13, 15, 17], [12, 14, 16, 18], [51, 31, 21, 41], [53, 33, 23, 43], [52, 32, 22, 42]]
+    r : List (List Nat) =
+      [[21, 23, 25, 27], [22, 24, 26, 28], [13, 37, 67, 43], [15, 31, 61, 45], [14, 38, 68, 44]]
+    u : List (List Nat) =
+      [[31, 33, 35, 37], [32, 34, 36, 38], [13, 51, 63, 25], [11, 57, 61, 23], [12, 58, 62, 24]]
+    d : List (List Nat) =
+      [[41, 43, 45, 47], [42, 44, 46, 48], [17, 21, 67, 55], [15, 27, 65, 53], [16, 28, 66, 54]]
+    l : List (List Nat) =
+      [[51, 53, 55, 57], [52, 54, 56, 58], [11, 41, 65, 35], [17, 47, 63, 33], [18, 48, 64, 34]]
+    b : List (List Nat) =
+      [[61, 63, 65, 67], [62, 64, 66, 68], [45, 25, 35, 55], [47, 27, 37, 57], [46, 26, 36, 56]]
+  in llli2gp [f, r, u, d, l, b]
+
+||| youngGroup([n1, ..., nk]) constructs the direct product of the
+||| symmetric groups Sn1, ..., Snk.
+youngGroup' : List Nat -> (PermutationGroup Nat)
+youngGroup' l =
+  let
+    gens : List (List (List Nat)) =
+      []
+    --element : I := 1
+    --    for n in l | n > 1 repeat
+    --      gens := cons(list [i for i in element..(element+n-1)], gens)
+    --      if n >= 3 then gens := cons([[element, element+1]], gens)
+    --      element := element+n
+  in llli2gp (if (length gens) == 0 then [[[1]]] else gens)
+
+--||| youngGroup(lambda) constructs the direct product of the symmetric
+--||| groups given by the parts of the partition lambda.
+--youngGroup : Partition -> (PermutationGroup Nat)
+--      youngGroup(lambda : Partition) : PERMGRP I ==
+--        youngGroup(convert(lambda)$Partition)
+
 main : IO ()
 main = 
   let
@@ -890,237 +1174,4 @@ main =
     putStrLn ("numberOfLoops=" ++ (show numberOfLoops))
     putStrLn (show v)
     putStrLn (show v2)
--}
-
-{-
-
-
-
-
-
-
-
-||| mathieu11(li) constructs the mathieu group acting on the 11
-||| integers given in the list li.
-||| Note: duplicates in the list will be removed.
-||| error, if li has less or more than 11 different entries.
-mathieu11' : List Nat -> (PermutationGroup Nat)
-      mathieu11(l : L I) : PERMGRP I ==
-      -- permutations derived from the ATLAS
-        l := removeDuplicates l
-        length l ~= 11 => error "Exactly 11 integers for mathieu11 needed !"
-        a : L L I := [[l.1, l.10], [l.2, l.8], [l.3, l.11], [l.5, l.7]]
-        llli2gp [a, [[l.1, l.4, l.7, l.6], [l.2, l.11, l.10, l.9]]]
-
-||| mathieu11 constructs the mathieu group acting on the
-||| integers 1, ..., 11.
-mathieu11 : (PermutationGroup Nat)
-      mathieu11() : PERMGRP I == mathieu11 li1n 11
-
-||| mathieu12(li) constructs the mathieu group acting on the 12
-||| integers given in the list li.
-||| Note: duplicates in the list will be removed
-||| Error: if li has less or more than 12 different entries.
-mathieu12' : List Nat -> (PermutationGroup Nat)
-      mathieu12(l : L I) : PERMGRP I ==
-      -- permutations derived from the ATLAS
-        l := removeDuplicates l
-        length l ~= 12 => error "Exactly 12 integers for mathieu12 needed !"
-        a : L L I :=
-          [[l.1, l.2, l.3, l.4, l.5, l.6, l.7, l.8, l.9, l.10, l.11]]
-        llli2gp [a, [[l.1, l.6, l.5, l.8, l.3, l.7, l.4, l.2, l.9, l.10], [l.11, l.12]]]
-
-||| mathieu12 constructs the mathieu group acting on the
-||| integers 1, ..., 12.
-mathieu12 : (PermutationGroup Nat)
-      mathieu12() : PERMGRP I == mathieu12 li1n 12
-
-||| mathieu22(li) constructs the mathieu group acting on the 22
-||| integers given in the list li.
-||| Note: duplicates in the list will be removed.
-||| Error: if li has less or more than 22 different entries.
-mathieu22' : List Nat -> (PermutationGroup Nat)
-      mathieu22(l : L I) : PERMGRP I ==
-      -- permutations derived from the ATLAS
-        l := removeDuplicates l
-        length l ~= 22 => error "Exactly 22 integers for mathieu22 needed !"
-        a : L L I := [[l.1, l.2, l.4, l.8, l.16, l.9, l.18, l.13, l.3, l.6, l.12],   _
-          [l.5, l.10, l.20, l.17, l.11, l.22, l.21, l.19, l.15, l.7, l.14]]
-        b : L L I := [[l.1, l.2, l.6, l.18], [l.3, l.15], [l.5, l.8, l.21, l.13],   _
-          [l.7, l.9, l.20, l.12], [l.10, l.16], [l.11, l.19, l.14, l.22]]
-        llli2gp [a, b]
-
-||| mathieu22 constructs the mathieu group acting on the
-||| integers 1, ..., 22.
-mathieu22 : (PermutationGroup Nat)
-      mathieu22() : PERMGRP I == mathieu22 li1n 22
-
-||| mathieu23(li) constructs the mathieu group acting on the 23
-||| integers given in the list li.
-||| Note: duplicates in the list will be removed.
-||| Error: if li has less or more than 23 different entries.
-mathieu23' : List Nat -> (PermutationGroup Nat)
-      mathieu23(l : L I) : PERMGRP I ==
-      -- permutations derived from the ATLAS
-        l := removeDuplicates l
-        length l ~= 23 => error "Exactly 23 integers for mathieu23 needed !"
-        a : L L I := [[l.1, l.2, l.3, l.4, l.5, l.6, l.7, l.8, l.9, l.10, l.11, l.12, l.13, l.14, _
-                   l.15, l.16, l.17, l.18, l.19, l.20, l.21, l.22, l.23]]
-        b : L L I := [[l.2, l.16, l.9, l.6, l.8], [l.3, l.12, l.13, l.18, l.4],              _
-                   [l.7, l.17, l.10, l.11, l.22], [l.14, l.19, l.21, l.20, l.15]]
-        llli2gp [a, b]
-
-||| mathieu23 constructs the mathieu group acting on the
-||| integers 1, ..., 23.
-mathieu23 : (PermutationGroup Nat)
-      mathieu23() : PERMGRP I == mathieu23 li1n 23
-
-||| mathieu24(li) constructs the mathieu group acting on the 24
-||| integers given in the list li.
-||| Note: duplicates in the list will be removed.
-||| Error: if li has less or more than 24 different entries.
-mathieu24' : List Nat -> (PermutationGroup Nat)
-      mathieu24(l : L I) : PERMGRP I ==
-      -- permutations derived from the ATLAS
-        l := removeDuplicates l
-        length l ~= 24 => error "Exactly 24 integers for mathieu24 needed !"
-        a : L L I := [[l.1, l.16, l.10, l.22, l.24], [l.2, l.12, l.18, l.21, l.7],          _
-                   [l.4, l.5, l.8, l.6, l.17], [l.9, l.11, l.13, l.19, l.15]]
-        b : L L I := [[l.1, l.22, l.13, l.14, l.6, l.20, l.3, l.21, l.8, l.11], [l.2, l.10],  _
-                   [l.4, l.15, l.18, l.17, l.16, l.5, l.9, l.19, l.12, l.7], [l.23, l.24]]
-        llli2gp [a, b]
-
-||| mathieu24 constructs the mathieu group acting on the
-||| integers 1, ..., 24.
-mathieu24 : (PermutationGroup Nat)
-      mathieu24() : PERMGRP I == mathieu24 li1n 24
-
-||| janko2(li) constructs the janko group acting on the 100
-||| integers given in the list li.
-||| Note: duplicates in the list will be removed.
-||| Error: if li has less or more than 100 different entries
-janko2' : List Nat -> (PermutationGroup Nat)
-      -- permutations derived from the ATLAS
-        l := removeDuplicates l
-        length l ~= 100 => error "Exactly 100 integers for janko2 needed !"
-        a : L L I := [                                                            _
-                 [l.2, l.3, l.4, l.5, l.6, l.7, l.8],                               _
-                 [l.9, l.10, l.11, l.12, l.13, l.14, l.15],                         _
-                 [l.16, l.17, l.18, l.19, l.20, l.21, l.22],                        _
-                 [l.23, l.24, l.25, l.26, l.27, l.28, l.29],                        _
-                 [l.30, l.31, l.32, l.33, l.34, l.35, l.36],                        _
-                 [l.37, l.38, l.39, l.40, l.41, l.42, l.43],                        _
-                 [l.44, l.45, l.46, l.47, l.48, l.49, l.50],                        _
-                 [l.51, l.52, l.53, l.54, l.55, l.56, l.57],                        _
-                 [l.58, l.59, l.60, l.61, l.62, l.63, l.64],                        _
-                 [l.65, l.66, l.67, l.68, l.69, l.70, l.71],                        _
-                 [l.72, l.73, l.74, l.75, l.76, l.77, l.78],                        _
-                 [l.79, l.80, l.81, l.82, l.83, l.84, l.85],                        _
-                 [l.86, l.87, l.88, l.89, l.90, l.91, l.92],                        _
-                 [l.93, l.94, l.95, l.96, l.97, l.98, l.99] ]
-        b : L L I := [
-                [l.1, l.74, l.83, l.21, l.36, l.77, l.44, l.80, l.64, l.2, l.34, l.75, l.48, l.17, l.100], _
-                [l.3, l.15, l.31, l.52, l.19, l.11, l.73, l.79, l.26, l.56, l.41, l.99, l.39, l.84, l.90], _
-                [l.4, l.57, l.86, l.63, l.85, l.95, l.82, l.97, l.98, l.81, l.8, l.69, l.38, l.43, l.58], _
-                [l.5, l.66, l.49, l.59, l.61], _
-                [l.6, l.68, l.89, l.94, l.92, l.20, l.13, l.54, l.24, l.51, l.87, l.27, l.76, l.23, l.67], _
-                [l.7, l.72, l.22, l.35, l.30, l.70, l.47, l.62, l.45, l.46, l.40, l.28, l.65, l.93, l.42], _
-                [l.9, l.71, l.37, l.91, l.18, l.55, l.96, l.60, l.16, l.53, l.50, l.25, l.32, l.14, l.33], _
-                [l.10, l.78, l.88, l.29, l.12] ]
-        llli2gp [a, b]
-
-||| janko2 constructs the janko group acting on the
-||| integers 1, ..., 100.
-janko2 : (PermutationGroup Nat)
-      janko2() : PERMGRP I == janko2 li1n 100
-
-||| rubiksGroup constructs the permutation group representing
-||| Rubic's Cube acting on integers 10*i+j for
-||| 1 <= i <= 6, 1 <= j <= 8.
-||| The faces of Rubik's Cube are labelled in the obvious way
-||| Front, Right, Up, Down, Left, Back and numbered from 1 to 6
-||| in this given ordering, the pieces on each face
-||| (except the unmoveable center piece) are clockwise numbered
-||| from 1 to 8 starting with the piece in the upper left
-||| corner. The moves of the cube are represented as permutations
-||| on these pieces, represented as a two digit
-||| integer ij where i is the numer of theface (1 to 6)
-||| and j is the number of the piece on this face.
-||| The remaining ambiguities are resolved by looking
-||| at the 6 generators, which represent a 90 degree turns of the
-||| faces, or from the following pictorial description.
-||| Permutation group representing Rubic's Cube acting on integers
-||| 10*i+j for 1 <= i <= 6, 1 <= j <=8.
-|||
-||| Rubik's Cube:   +-----+ +-- B   where: marks Side # :
-|||                / U   /|/
-|||               /     / |         F(ront)    <->    1
-|||       L -->  +-----+ R|         R(ight)    <->    2
-|||              |     |  +         U(p)       <->    3
-|||              |  F  | /          D(own)     <->    4
-|||              |     |/           L(eft)     <->    5
-|||              +-----+            B(ack)     <->    6
-|||                 ^
-|||                 |
-|||                 D
-|||
-||| The Cube's surface:
-|||                                The pieces on each side
-|||             +---+              (except the unmoveable center
-|||             |567|              piece) are clockwise numbered
-|||             |4U8|              from 1 to 8 starting with the
-|||             |321|              piece in the upper left
-|||         +---+---+---+          corner (see figure on the
-|||         |781|123|345|          left).  The moves of the cube
-|||         |6L2|8F4|2R6|          are represented as
-|||         |543|765|187|          permutations on these pieces.
-|||         +---+---+---+          Each of the pieces is
-|||             |123|              represented as a two digit
-|||             |8D4|              integer ij where i is the
-|||             |765|              # of the side ( 1 to 6 for
-|||             +---+              F to B (see table above ))
-|||             |567|              and j is the # of the piece.
-|||             |4B8|
-|||             |321|
-|||             +---+
-|||
-rubiksGroup : (PermutationGroup Nat)
-      rubiksGroup() : PERMGRP I ==
-        -- each generator represents a 90 degree turn of the appropriate
-        -- side.
-        f : L L I :=
-         [[11, 13, 15, 17], [12, 14, 16, 18], [51, 31, 21, 41], [53, 33, 23, 43], [52, 32, 22, 42]]
-        r : L L I :=
-         [[21, 23, 25, 27], [22, 24, 26, 28], [13, 37, 67, 43], [15, 31, 61, 45], [14, 38, 68, 44]]
-        u : L L I :=
-         [[31, 33, 35, 37], [32, 34, 36, 38], [13, 51, 63, 25], [11, 57, 61, 23], [12, 58, 62, 24]]
-        d : L L I :=
-         [[41, 43, 45, 47], [42, 44, 46, 48], [17, 21, 67, 55], [15, 27, 65, 53], [16, 28, 66, 54]]
-        l : L L I :=
-         [[51, 53, 55, 57], [52, 54, 56, 58], [11, 41, 65, 35], [17, 47, 63, 33], [18, 48, 64, 34]]
-        b : L L I :=
-         [[61, 63, 65, 67], [62, 64, 66, 68], [45, 25, 35, 55], [47, 27, 37, 57], [46, 26, 36, 56]]
-        llli2gp [f, r, u, d, l, b]
-
-||| youngGroup([n1, ..., nk]) constructs the direct product of the
-||| symmetric groups Sn1, ..., Snk.
-youngGroup' : List Nat -> (PermutationGroup Nat)
-      -- definition of the exported functions:
-      youngGroup(l : L I) : PERMGRP I ==
-        gens := []$(L L L I)
-        element : I := 1
-        for n in l | n > 1 repeat
-          gens := cons(list [i for i in element..(element+n-1)], gens)
-          if n >= 3 then gens := cons([[element, element+1]], gens)
-          element := element+n
-        llli2gp
-          #gens = 0 => [[[1]]]
-          gens
-
---||| youngGroup(lambda) constructs the direct product of the symmetric
---||| groups given by the parts of the partition lambda.
---youngGroup : Partition -> (PermutationGroup Nat)
---      youngGroup(lambda : Partition) : PERMGRP I ==
---        youngGroup(convert(lambda)$Partition)
-
 -}
