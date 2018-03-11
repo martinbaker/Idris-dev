@@ -90,6 +90,16 @@ elementAt Z     (x::xs) = x --Just x
 elementAt (S n) (x::xs) = elementAt n xs
 elementAt _     []      = 0 --Nothing
 
+||| invert permutation, that is, reverse all generators.
+||| @p permutation to be inverted
+invert : Eq s => (p : (PermutationVec s)) -> (PermutationVec s)
+invert p = p
+-- calculate inverse
+--    grpinv := []$(L V NNI)
+--    for el in group repeat
+--      grpinv := cons(inv el, grpinv)
+--    grpinv := reverse grpinv
+
 ||| covert a preimage-image instance of permutation to a vector type
 ||| @p preimage-image instance of permutation to be converted.
 ||| @allMoved FiniteSet containing all points that are moved by permutations.

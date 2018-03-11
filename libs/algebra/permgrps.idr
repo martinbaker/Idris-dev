@@ -66,7 +66,7 @@ record Rec where
    ||| (corresponding to the order of gpbase)that is, stabiliser of
    ||| point 1 (if it exists) is first then the other stabilisers,
    ||| then the final orbit may not stabilise any points.
-   svc : List Integer -- was V I
+   svc : List Int -- was V I
 
 implementation Show Rec where
     show a = 
@@ -236,73 +236,6 @@ replaceNth n newVal (x::xs) =
     Z => newVal::xs
     (S a) => x::(replaceNth a newVal xs)
 
-||| Local function used by orbitWithSvc which is used by bsgs1
-||| Given a set of generators and a point this calculates the
-||| orbit and schreierVector.
-||| That is the points that can reach given point and the index
-||| of the generators used.
-||| For Schreier vector (denoted svc),
-|||    "-2" means not in the orbit,
-|||    "-1" means starting point,
-|||    PI correspond to generators
-orbitWithSvc1 : (group : List (List Nat)) ->
-                (grpinv : List (List Nat)) ->
-                (point : Nat) -> Rec
-orbitWithSvc1 group grpinv point =
-  let
-    fst : List Nat = case head' group of
-      Nothing => Nil
-      Just b => b
-    degree : Nat = length fst
-    orbit : List Nat = [ point ]
-    orbitv : List Nat = case degree of
-      Z => Nil
-      (S a) => point::(replicate a 0)
-    orbit_size : Nat = 1
-    schreierVector : List Integer = replaceNth point (-1) (replicate degree (-2))
-    position : Nat = 1
-  in 
-    mix3 orbit orbitv orbit_size schreierVector position
-      where
-        mix4 : (List Nat) -> (List Nat) -> Nat -> (List Integer) -> Nat -> Nat -> (List (List Nat)) ->
-          ((List Nat),(List Nat),Nat,(List Integer),Nat)
-        mix4 orbit orbitv orbit_size schreierVector position i Nil=
-          (orbit,orbitv,orbit_size,schreierVector,position)
-        mix4 orbit orbitv orbit_size schreierVector position i (grv::gs)=
-          let
-            ptr : Nat = minus orbit_size position
-            newPoint : Nat = case index' ptr orbitv of
-              Nothing => 0
-              Just b => b
-            newPoint2 : Nat = case index' newPoint grv of
-              Nothing => 0
-              Just b => b
-            newPoint3 : Integer = case index' newPoint2 schreierVector of
-              Nothing => 0
-              Just b => b
-            orbit2:(List Nat) = if newPoint3 == (-2) then newPoint2::orbit else orbit
-            orbit_size2:Nat = if newPoint3 == (-2) then S orbit_size else orbit_size
-            orbitv2:(List Nat) =
-              if newPoint3 == (-2)
-              then replaceNth orbit_size newPoint2 orbitv
-              else orbitv
-            position2:Nat = if newPoint3 == (-2) then S position else position
-            schreierVector2:(List Integer) =
-              if newPoint3 == (-2)
-              then replaceNth newPoint2 (cast i) schreierVector
-              else schreierVector
-          in (mix4 orbit2 orbitv2 orbit_size2 schreierVector2 position2 (S i) gs)
-      
-        mix3 : (List Nat) -> (List Nat) -> Nat -> (List Integer) -> Nat -> Rec
-        mix3 orbit orbitv orbit_size schreierVector Z =
-          Record1 (reverse orbit) schreierVector
-        mix3 orbit orbitv orbit_size schreierVector (S a) =
-          let
-            (orbit,orbitv,orbit_size,schreierVector,position) =
-              mix4 orbit orbitv orbit_size schreierVector (S a) 0 grpinv
-            m3:Rec = mix3 orbit orbitv orbit_size schreierVector position
-          in m3
-
 ||| return a random element (permutation) from a PermutationGroup
 random : Eq set => (group : (PermutationGroup set)) -> (maximalNumberOfFactors : Nat) ->
          Eff (Permutation set) [RND,SYSTEM]
@@ -369,7 +302,7 @@ randEle randomInteger group = case index' randomInteger group of
      Nothing => pure Nil
      Just x => pure x
 
-numOfLoops : Integer ->  Eff Nat [RND, SYSTEM]
+numOfLoops : Int ->  Eff Nat [RND, SYSTEM]
 numOfLoops maxLoops =
     if maxLoops < 0
     then pure (cast (- maxLoops))
@@ -436,6 +369,89 @@ convertToVect newGroup words mp degree ggg (ggp::ggps) =
             if wordProblem then words := cons(list ggg, words)
 -}
 
+||| Local function used by orbitWithSvc which is used by bsgs1
+||| Given a set of generators and a point this calculates the
+||| orbit and schreierVector.
+||| That is the points that can reach given point and the index
+||| of the generators used.
+||| For Schreier vector (denoted svc),
+|||    "-2" means not in the orbit,
+|||    "-1" means starting point,
+|||    PI correspond to generators
+||| @group    holds permutations as vectors as they are easier to
+|||           work with.
+||| @grpinv inverse of group (all generators reversed).
+orbitWithSvc1 : (Eq set) => (group :(PermutationVec set)) ->
+               (grpinv :(PermutationVec set)) ->
+               (point : Nat) -> Rec
+orbitWithSvc1 group grpinv point =
+  let
+    fst : List Nat = case head' (perms group) of
+      Nothing => Nil
+      Just b => b
+    degree : Nat = length fst
+    orbit : List Nat = [ point ]
+    orbitv : List Nat = case degree of
+      Z => Nil
+      (S a) => point::(replicate a 0)
+    orbit_size : Nat = 1
+    schreierVector : List Int = replaceNth point (-1) (replicate degree (-2))
+    position : Nat = 1
+  in 
+    mix3 orbit orbitv orbit_size schreierVector position
+      where
+        mix4 : (List Nat) -> (List Nat) -> Nat -> (List Int) -> Nat -> Nat -> (List (List Nat)) ->
+          ((List Nat),(List Nat),Nat,(List Int),Nat)
+        mix4 orbit orbitv orbit_size schreierVector position i Nil=
+          (orbit,orbitv,orbit_size,schreierVector,position)
+        mix4 orbit orbitv orbit_size schreierVector position i (grv::gs)=
+          let
+            ptr : Nat = minus orbit_size position
+            newPoint : Nat = case index' ptr orbitv of
+              Nothing => 0
+              Just b => b
+            newPoint2 : Nat = case index' newPoint grv of
+              Nothing => 0
+              Just b => b
+            newPoint3 : Int = case index' newPoint2 schreierVector of
+              Nothing => 0
+              Just b => b
+            orbit2:(List Nat) = if newPoint3 == (-2) then newPoint2::orbit else orbit
+            orbit_size2:Nat = if newPoint3 == (-2) then S orbit_size else orbit_size
+            orbitv2:(List Nat) =
+              if newPoint3 == (-2)
+              then replaceNth orbit_size newPoint2 orbitv
+              else orbitv
+            position2:Nat = if newPoint3 == (-2) then S position else position
+            schreierVector2:(List Int) =
+              if newPoint3 == (-2)
+              then replaceNth newPoint2 (cast i) schreierVector
+              else schreierVector
+          in (mix4 orbit2 orbitv2 orbit_size2 schreierVector2 position2 (S i) gs)
+      
+        mix3 : (List Nat) -> (List Nat) -> Nat -> (List Int) -> Nat -> Rec
+        mix3 orbit orbitv orbit_size schreierVector Z =
+          Record1 (reverse orbit) schreierVector
+        mix3 orbit orbitv orbit_size schreierVector (S a) =
+          let
+            (orbit,orbitv,orbit_size,schreierVector,position) =
+              mix4 orbit orbitv orbit_size schreierVector (S a) 0 (perms grpinv)
+            m3:Rec = mix3 orbit orbitv orbit_size schreierVector position
+          in m3
+
+||| Local function used by bsgs1
+||| Given a group and a point in the group this calculates the
+||| orbit and schreierVector.
+||| Calculates inverse group, then orbitWithSvc1 does the work.
+||| It is hard to describe these functions without diagrams so
+||| I have put a better explanation here:
+||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#orbitWithSvc
+||| @group    holds permutations as vectors as they are easier to
+|||           work with.
+orbitWithSvc : (Eq set) => (group :(PermutationVec set)) -> (point : Nat) -> Rec
+orbitWithSvc group point =
+  orbitWithSvc1 group (invert group) point
+
 ||| Local function used by bsgs
 ||| Tries to get a good approximation for the base points which
 ||| are put in gp_info.gpbase and stabiliser chain which is
@@ -467,7 +483,7 @@ convertToVect newGroup words mp degree ggg (ggp::ggps) =
 |||           by this function. The first value stabilises most
 |||           points, next value less points and so on.
 ||| @outword  Reference to words (if used) for stabiliser chain.
-bsgs1 : (group :(PermutationVec set)) ->
+bsgs1 : (Eq set) => (group :(PermutationVec set)) ->
         (number1 : Nat) ->
         (words: List (List Nat)) ->
         (maxLoops:  Int) ->
@@ -477,7 +493,11 @@ bsgs1 : (group :(PermutationVec set)) ->
         (outword : List (List (List Nat))) ->
         (Nat,List (PermutationVec set),List (List (List Nat)),List Nat)
 bsgs1 group number1 words maxLoops gp diff out outword =
-  (number1,out,outword,Nil)
+  let
+    degree:Nat = permVec.degree group
+    wordProblem : Bool = words /= Nil
+    ort : Rec = orbitWithSvc group number1
+  in (number1,out,outword,Nil)
 {-        -- try to get a good approximation for the strong generators and base
         degree := #(first(group))
         gp_info := gp.information
@@ -573,7 +593,7 @@ bsgs1 group number1 words maxLoops gp diff out outword =
 bsgs : (Eq set) => (group : (List (Permutation set))) ->
        (wordProblem : Bool) ->
        (maxLoops : Nat) ->
-       (diff : Integer) ->
+       (diff : Int) ->
        (Rec2 set)
 bsgs group wordProblem maxLoops diff =
   let
@@ -746,7 +766,7 @@ bsgs group wordProblem maxLoops diff =
 ||| initializeGroupForWordProblem gp 0 1
 initializeGroupForWordProblem : (Eq set) => (gp : (List (Permutation set))) ->
                                 (maxLoops:Nat) ->
-                                (diff:Integer) -> (Rec2 set)
+                                (diff:Int) -> (Rec2 set)
 initializeGroupForWordProblem gp maxLoops diff =
   bsgs gp True maxLoops diff
 
