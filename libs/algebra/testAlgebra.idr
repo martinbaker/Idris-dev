@@ -18,6 +18,7 @@ module testAlgebra
 import public fieldExpression
 import public finiteSet
 import public perm
+import public permVec
 import public quaternion
 --import public Data.Vect
 
@@ -68,6 +69,9 @@ seperateTestsCycle = putStrLn "cycle tests:"
 
 seperateTestsPerm : IO ()
 seperateTestsPerm = putStrLn "permutation tests:"
+
+seperateTestsPermVec : IO ()
+seperateTestsPermVec = putStrLn "permutation vec tests:"
 
 seperateTests1 : IO ()
 seperateTests1 = putStrLn "simplify expression tests:"
@@ -228,6 +232,29 @@ testPermutation2 =
       p2=permSetFromList [1,2] [2,1]
       p3=permSetFromList [1, 2, 3] [3, 1,2]
   in assertEq p3 (p*p2)
+
+||| permVec - test invert
+testPermVec1 : IO()
+testPermVec1 = 
+  let
+    mp:(FiniteSet String) = fromList ["a","b","c"]
+    perms:(List (List Nat)) = [[1,2,3],[2,3,1]]
+    perms2:(List (List Nat)) = [[3,2,1],[1,3,2]]
+    p:PermutationVec String = PermVec mp perms
+    pi:PermutationVec String = permVec.invert p
+    p2:PermutationVec String = PermVec mp perms2
+  in assertEq pi p2
+
+||| permVec - test invert is an involution.
+testPermVec2 : IO()
+testPermVec2 = 
+  let
+    mp:(FiniteSet String) = fromList ["a","b","c"]
+    perms:(List (List Nat)) = [[1,2,3],[2,3,1]]
+    p:PermutationVec String = PermVec mp perms
+    p2:PermutationVec String = permVec.invert (permVec.invert p)
+  in assertEq p p2
+
 
 ||| test simplify expression
 ||| 1+2=3

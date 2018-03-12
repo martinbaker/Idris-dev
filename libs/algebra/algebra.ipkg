@@ -34,6 +34,9 @@ tests = testAlgebra.seperateTests0
       , testAlgebra.seperateTestsPerm
       , testAlgebra.testPermutation1
       , testAlgebra.testPermutation2
+      , testAlgebra.seperateTestsPermVec
+      , testAlgebra.testPermVec1
+      , testAlgebra.testPermVec2
       , testAlgebra.seperateTests1
       , testAlgebra.testExpressionSimplify1
       , testAlgebra.testExpressionSimplify2

@@ -88,21 +88,34 @@ degree p = order (movedPoints p)
 elementAt : (n : Nat) -> (l : List Nat) -> Nat
 elementAt Z     (x::xs) = x --Just x
 elementAt (S n) (x::xs) = elementAt n xs
-elementAt _     []      = 0 --Nothing
+elementAt _ [] = 0 --Nothing
+
+||| local function for invert
+invertInd : Nat ->  (List Nat) -> (List Nat) -> (List Nat)
+invertInd i v soFar =
+  if (length soFar) == (length v)
+  then soFar
+  else invertInd (S i) v ((elementAt i v)::soFar)
+
+||| local function for invert
+inv : List (List Nat) -> List (List Nat)
+inv [] = []
+inv (v::vs) = (invertInd Z v Nil)::(inv vs)
 
 ||| invert permutation, that is, reverse all generators.
 ||| @p permutation to be inverted
 invert : Eq s => (p : (PermutationVec s)) -> (PermutationVec s)
-invert p = p
--- calculate inverse
---    grpinv := []$(L V NNI)
---    for el in group repeat
---      grpinv := cons(inv el, grpinv)
---    grpinv := reverse grpinv
+invert p =
+  let
+   points : FiniteSet s = mp p
+   indexes : List (List Nat) = perms p
+   invIndexes : List (List Nat) = inv indexes
+  in PermVec points invIndexes
 
 ||| covert a preimage-image instance of permutation to a vector type
 ||| @p preimage-image instance of permutation to be converted.
 ||| @allMoved FiniteSet containing all points that are moved by permutations.
+|||           result will index into this list.
 permToVectSingle : Eq s => (p : (Permutation s)) ->
                            (allMoved : (FiniteSet s)) ->
                            (List Nat)
@@ -134,6 +147,7 @@ permToVectSingle p allMoved =
 
 ||| covert a list of preimage-image permutations to a vector type
 ||| @p1 preimage-image instance of permutation to be converted
+||| @allMoved union of all points that move.
 permToVect1 : Eq s => (p1 : List (Permutation s)) -> (allMoved : (FiniteSet s)) -> (List (List Nat))
 permToVect1 Nil allMoved = Nil
 permToVect1 (p::ps) allMoved = (permToVectSingle p allMoved)::(permToVect1 ps  allMoved)

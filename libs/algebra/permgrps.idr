@@ -1246,7 +1246,8 @@ main =
     a3 : PermutationGroup Nat = alternatingGroup 3
     a4 : PermutationGroup Nat = alternatingGroup 4
     a5 : PermutationGroup Nat = alternatingGroup 5
-    
+    gd3: List (Permutation Nat) = gens d3
+    d3Group : PermutationVec Nat = permToVect gd3
   in
     do
       putStrLn ("permutation group cyclic 1=" ++ (show c1))
@@ -1266,7 +1267,7 @@ main =
       putStrLn ("permutation group alternating 3=" ++ (show a3))
       putStrLn ("permutation group alternating 4=" ++ (show a4))
       putStrLn ("permutation group alternating 5=" ++ (show a5))
-      
+      putStrLn ("d3 group " ++ (show gd3) ++ " vector=" ++ (show d3Group))
 {-
 main : IO ()
 main =
