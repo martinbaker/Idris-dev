@@ -9,7 +9,7 @@ pkgs = effects
 modules = finiteSet
         , cycle
         , perm
-        , permVec
+        , permsIndexed
         , permgrps
         , fieldExpression
         , quaternion

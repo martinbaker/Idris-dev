@@ -24,7 +24,7 @@
  - http://www.euclideanspace.com/prog/idris/
  -}
 
-module permVec
+module permsIndexed
 
 -- For now we need to have some runtime errors. I cant work out how
 -- to use Idris type system to make then impossible.

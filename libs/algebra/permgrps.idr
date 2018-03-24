@@ -44,7 +44,7 @@ module Main
 -- to use Idris type system to make then impossible.
 import public finiteSet
 import public perm
-import public permVec
+import public permsIndexed
 import public Effects
 import public Effect.Random
 import public Effect.System
@@ -297,6 +297,7 @@ pointList (g::gs) a =
     totalMoved : (FiniteSet set) = union newMoved a
   in pointList gs totalMoved
 
+
 randEle : Nat -> List (List Nat) -> Eff (List Nat) [RND, SYSTEM]
 randEle randomInteger group = case index' randomInteger group of
      Nothing => pure Nil
@@ -494,7 +495,7 @@ bsgs1 : (Eq set) => (group :(PermutationVec set)) ->
         (Nat,List (PermutationVec set),List (List (List Nat)),List Nat)
 bsgs1 group number1 words maxLoops gp diff out outword =
   let
-    degree:Nat = permVec.degree group
+    degree:Nat = permsIndexed.degree group
     wordProblem : Bool = words /= Nil
     ort : Rec = orbitWithSvc group number1
   in (number1,out,outword,Nil)
@@ -1225,7 +1226,7 @@ youngGroup' l =
 --youngGroup : Partition -> (PermutationGroup Nat)
 --      youngGroup(lambda : Partition) : PERMGRP I ==
 --        youngGroup(convert(lambda)$Partition)
-
+{-
 main : IO ()
 main = 
   let
@@ -1268,6 +1269,7 @@ main =
       putStrLn ("permutation group alternating 4=" ++ (show a4))
       putStrLn ("permutation group alternating 5=" ++ (show a5))
       putStrLn ("d3 group " ++ (show gd3) ++ " vector=" ++ (show d3Group))
+-}
 {-
 main : IO ()
 main =

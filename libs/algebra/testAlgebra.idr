@@ -2,7 +2,7 @@
   (c) 2018 Copyright Martin Baker
   I would prefer GPL3 licence but if there were any interest in including
   this with Idris library then a compatible licence would be acceptable.
-  
+
   This code attempts to implement quaternions using Idris.
   For an explanation with example session see this page:
   http://www.euclideanspace.com/prog/idris/quaternion/
@@ -18,7 +18,7 @@ module testAlgebra
 import public fieldExpression
 import public finiteSet
 import public perm
-import public permVec
+import public permsIndexed
 import public quaternion
 --import public Data.Vect
 
@@ -88,7 +88,7 @@ seperateTests4 = putStrLn "rotation matrix to quaternion tests:"
 ||| test FiniteSet
 ||| order is not important
 testFiniteSet1 : IO()
-testFiniteSet1 = 
+testFiniteSet1 =
   let fs1:(FiniteSet Integer)=fromList [1,2,3]
       fs2:(FiniteSet Integer)=fromList [3,2,1]
   in assertEq fs1 fs2
@@ -96,7 +96,7 @@ testFiniteSet1 =
 ||| test FiniteSet
 ||| duplicates are removed
 testFiniteSet2 : IO()
-testFiniteSet2 = 
+testFiniteSet2 =
   let fs1:(FiniteSet Integer)=fromList [1,2,2,1,3]
       fs2:(FiniteSet Integer)=fromList [3,2,1]
   in assertEq fs1 fs2
@@ -104,7 +104,7 @@ testFiniteSet2 =
 ||| test FiniteSet
 ||| no change union with empty set 
 testFiniteSet3 : IO()
-testFiniteSet3 = 
+testFiniteSet3 =
   let fs1:(FiniteSet Integer)=fromList []
       fs2:(FiniteSet Integer)=fromList [3,4,5,6,7]
       fs3:(FiniteSet Integer)=fromList [3,4,5,6,7]
@@ -114,7 +114,7 @@ testFiniteSet3 =
 ||| test FiniteSet
 ||| union
 testFiniteSet4 : IO()
-testFiniteSet4 = 
+testFiniteSet4 =
   let fs1:(FiniteSet Integer)=fromList [1,2,3,4]
       fs2:(FiniteSet Integer)=fromList [3,4,5,6,7]
       fs3:(FiniteSet Integer)=fromList [2, 1, 3, 4, 5, 6, 7]
@@ -124,7 +124,7 @@ testFiniteSet4 =
 ||| test FiniteSet
 ||| intersection with empty set is empty set 
 testFiniteSet5 : IO()
-testFiniteSet5 = 
+testFiniteSet5 =
   let fs1:(FiniteSet Integer)=fromList []
       fs2:(FiniteSet Integer)=fromList [3,4,5,6,7]
       fs3:(FiniteSet Integer)=fromList []
@@ -219,7 +219,7 @@ testCycle8 =
 ||| test Permutations
 ||| remove fixpoints
 testPermutation1 : IO()
-testPermutation1 = 
+testPermutation1 =
   let p=permSetFromList [1,2,3,4] [3,2,1,4]
       p2=permSetFromList [1,3] [3,1]
   in assertEq p p2
@@ -227,48 +227,48 @@ testPermutation1 =
 ||| test Permutations
 ||| multiply (compose)
 testPermutation2 : IO()
-testPermutation2 = 
+testPermutation2 =
   let p=permSetFromList [1,3] [3,1]
       p2=permSetFromList [1,2] [2,1]
       p3=permSetFromList [1, 2, 3] [3, 1,2]
   in assertEq p3 (p*p2)
 
-||| permVec - test invert
+||| permsIndexed - test invert
 testPermVec1 : IO()
-testPermVec1 = 
+testPermVec1 =
   let
     mp:(FiniteSet String) = fromList ["a","b","c"]
     perms:(List (List Nat)) = [[1,2,3],[2,3,1]]
     perms2:(List (List Nat)) = [[3,2,1],[1,3,2]]
     p:PermutationVec String = PermVec mp perms
-    pi:PermutationVec String = permVec.invert p
+    pi:PermutationVec String = permsIndexed.invert p
     p2:PermutationVec String = PermVec mp perms2
   in assertEq pi p2
 
-||| permVec - test invert is an involution.
+||| permsIndexed - test invert is an involution.
 testPermVec2 : IO()
-testPermVec2 = 
+testPermVec2 =
   let
     mp:(FiniteSet String) = fromList ["a","b","c"]
     perms:(List (List Nat)) = [[1,2,3],[2,3,1]]
     p:PermutationVec String = PermVec mp perms
-    p2:PermutationVec String = permVec.invert (permVec.invert p)
+    p2:PermutationVec String = permsIndexed.invert (permsIndexed.invert p)
   in assertEq p p2
 
 
 ||| test simplify expression
 ||| 1+2=3
 testExpressionSimplify1 : IO()
-testExpressionSimplify1 = 
+testExpressionSimplify1 =
   let e1 = LitFloat 1.0
       e2 = LitFloat 2.0
-      e3 = LitFloat 3.0   
+      e3 = LitFloat 3.0
   in assertEq e3 (simplify (fieldexp.(+) e1 e2))
 
 ||| test simplify expression
 ||| 1-2=-1
 testExpressionSimplify2 : IO()
-testExpressionSimplify2 = 
+testExpressionSimplify2 =
   let e1 = LitFloat 1.0
       e2 = LitFloat 2.0
       e3 = LitFloat (-1.0)
@@ -277,142 +277,142 @@ testExpressionSimplify2 =
 ||| test simplify expression
 ||| 2*3=6
 testExpressionSimplify3 : IO()
-testExpressionSimplify3 = 
+testExpressionSimplify3 =
   let e1 = LitFloat 2.0
       e2 = LitFloat 3.0
-      e3 = LitFloat 6.0   
+      e3 = LitFloat 6.0
   in assertEq e3 (simplify (fieldexp.(*) e1 e2))
 
 ||| test simplify expression
 ||| 6/3=2
 testExpressionSimplify4 : IO()
-testExpressionSimplify4 = 
+testExpressionSimplify4 =
   let e1 = LitFloat 6.0
       e2 = LitFloat 3.0
-      e3 = LitFloat 2.0   
+      e3 = LitFloat 2.0
   in assertEq e3 (simplify (fieldexp.(/) e1 e2))
 
 ||| test simplify expression
 ||| 0+x=x
 testExpressionSimplify5 : IO()
-testExpressionSimplify5 = 
+testExpressionSimplify5 =
   let e1 = LitFloat 0.0
-      e2 = VarFloat "x"   
+      e2 = VarFloat "x"
   in assertEq e2 (simplify (fieldexp.(+) e1 e2))
 
 ||| test simplify expression
 ||| x+0=x
 testExpressionSimplify6 : IO()
-testExpressionSimplify6 = 
+testExpressionSimplify6 =
   let e1 = VarFloat "x"
-      e2 = LitFloat 0.0  
+      e2 = LitFloat 0.0
   in assertEq e1 (simplify (fieldexp.(+) e1 e2))
 
 ||| test simplify expression
 ||| x-0=x
 testExpressionSimplify7 : IO()
-testExpressionSimplify7 = 
+testExpressionSimplify7 =
   let e1 = VarFloat "x"
-      e2 = LitFloat 0.0  
+      e2 = LitFloat 0.0
   in assertEq e1 (simplify (fieldexp.(-) e1 e2))
 
 ||| test simplify expression
 ||| 0-x=-x
 testExpressionSimplify8 : IO()
-testExpressionSimplify8 = 
+testExpressionSimplify8 =
   let e1 = LitFloat 0.0
       e2 = VarFloat "x"
-      e3 = Function "negate" [e2]  
+      e3 = Function "negate" [e2]
   in assertEq e3 (simplify (fieldexp.(-) e1 e2))
 
 ||| test simplify expression
 ||| x*1=x
 testExpressionSimplify9 : IO()
-testExpressionSimplify9 = 
+testExpressionSimplify9 =
   let e1 = VarFloat "x"
-      e2 = LitFloat 1.0  
+      e2 = LitFloat 1.0
   in assertEq e1 (simplify (fieldexp.(*) e1 e2))
 
 ||| test simplify expression
 ||| 1*x=x
 testExpressionSimplify10 : IO()
-testExpressionSimplify10 = 
+testExpressionSimplify10 =
   let e1 = LitFloat 1.0
-      e2 = VarFloat "x"   
+      e2 = VarFloat "x"
   in assertEq e2 (simplify (fieldexp.(*) e1 e2))
 
 ||| test simplify expression
 ||| x/1=x
 testExpressionSimplify11 : IO()
-testExpressionSimplify11 = 
+testExpressionSimplify11 =
   let e1 = VarFloat "x"
-      e2 = LitFloat 1.0  
+      e2 = LitFloat 1.0
   in assertEq e1 (simplify (fieldexp.(/) e1 e2))
 
 ||| test simplify expression
 ||| 1/x=inv x
 testExpressionSimplify12 : IO()
-testExpressionSimplify12 = 
+testExpressionSimplify12 =
   let e1 = LitFloat 1.0
       e2 = VarFloat "x"
-      e3 = Function "inv" [e2] 
+      e3 = Function "inv" [e2]
   in assertEq e3 (simplify (fieldexp.(/) e1 e2))
 
 ||| test simplify expression
 ||| x*0=0
 testExpressionSimplify13 : IO()
-testExpressionSimplify13 = 
+testExpressionSimplify13 =
   let e1 = VarFloat "x"
-      e2 = LitFloat 0.0  
+      e2 = LitFloat 0.0
   in assertEq e2 (simplify (fieldexp.(*) e1 e2))
 
 ||| test simplify expression
 ||| 0*x=0
 testExpressionSimplify14 : IO()
-testExpressionSimplify14 = 
+testExpressionSimplify14 =
   let e1 = LitFloat 0.0
-      e2 = VarFloat "x"   
+      e2 = VarFloat "x"
   in assertEq e1 (simplify (fieldexp.(*) e1 e2))
 
 ||| test simplify expression - compound
 ||| x*(x-x) = 0
 testExpressionSimplify15 : IO()
-testExpressionSimplify15 = 
+testExpressionSimplify15 =
   let e1 = VarFloat "x"
-      e2 = LitFloat 0.0  
+      e2 = LitFloat 0.0
   in assertEq e2 (simplify (fieldexp.(*) e1 (fieldexp.(-) e1 e1)))
 
 ||| test simplify expression
 ||| x + Undefined = Undefined
 testExpressionSimplify16 : IO()
-testExpressionSimplify16 = 
+testExpressionSimplify16 =
   let e1 = Undefined
-      e2 = VarFloat "x" 
+      e2 = VarFloat "x"
   --in assertEq e1 (simplify (fieldexp.(+) e1 e1))
   in assertEq e1 (simplify (fieldexp.(+) e1 e2))
 
 ||| test multipication - first axioms
 ||| i*i = j*j = k*k = i*j*k = -1
 testQuaternion1 : IO()
-testQuaternion1 = 
+testQuaternion1 =
   let qi=Quat 0.0 1.0 0.0 0.0
       qr=Quat (-1) 0.0 0.0 0.0
   in assertCloseEnough qr (qi*qi)
  
 testQuaternion2 : IO()
-testQuaternion2 = 
+testQuaternion2 =
   let qj=Quat 0.0 0.0 1.0 0.0
       qr=Quat (-1) 0.0 0.0 0.0
   in assertCloseEnough qr (qj*qj)
 
 testQuaternion3 : IO()
-testQuaternion3 = 
+testQuaternion3 =
   let qk=Quat 0.0 0.0 1.0 0.0
       qr=Quat (-1) 0.0 0.0 0.0
   in assertCloseEnough qr (qk*qk)
 
 testQuaternion4 : IO()
-testQuaternion4 = 
+testQuaternion4 =
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
@@ -421,42 +421,42 @@ testQuaternion4 =
 
 ||| testQuaternion multipication - multiplcation by reals
 testQuaternion5 : IO()
-testQuaternion5 = 
+testQuaternion5 =
   let qr=Quat 1.0 0.0 0.0 0.0
   in assertCloseEnough qr (qr*qr)
 
 testQuaternion6 : IO()
-testQuaternion6 = 
+testQuaternion6 =
   let qr=Quat 1.0 0.0 0.0 0.0
       qi=Quat 0.0 1.0 0.0 0.0
   in assertCloseEnough qi (qr*qi)
  
 testQuaternion7 : IO()
-testQuaternion7 = 
+testQuaternion7 =
   let qr=Quat 1.0 0.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
   in assertCloseEnough qj (qr*qj)
  
 testQuaternion8 : IO()
-testQuaternion8 = 
+testQuaternion8 =
   let qr=Quat 1.0 0.0 0.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertCloseEnough qk (qr*qk)
  
 testQuaternion9 : IO()
-testQuaternion9 = 
+testQuaternion9 =
   let qr=Quat 1.0 0.0 0.0 0.0
       qi=Quat 0.0 1.0 0.0 0.0
   in assertCloseEnough qi (qi*qr)
  
 testQuaternion10 : IO()
-testQuaternion10 = 
+testQuaternion10 =
   let qr=Quat 1.0 0.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
   in assertCloseEnough qj (qj*qr)
  
 testQuaternion11 : IO()
-testQuaternion11 = 
+testQuaternion11 =
   let qr=Quat 1.0 0.0 0.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertCloseEnough qk (qk*qr)
@@ -464,42 +464,42 @@ testQuaternion11 =
 ||| testQuaternion multipication - multiplcation of different
 ||| imaginary axes anticommute
 testQuaternion12 : IO()
-testQuaternion12 = 
+testQuaternion12 =
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertCloseEnough qk (qi*qj)
  
 testQuaternion13 : IO()
-testQuaternion13 = 
+testQuaternion13 =
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertCloseEnough (-qk) (qj*qi)
  
 testQuaternion14 : IO()
-testQuaternion14 = 
+testQuaternion14 =
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertCloseEnough qi (qj*qk)
  
 testQuaternion15 : IO()
-testQuaternion15 = 
+testQuaternion15 =
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertCloseEnough (-qi) (qk*qj)
  
 testQuaternion16 : IO()
-testQuaternion16 = 
+testQuaternion16 =
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
   in assertCloseEnough (-qj) (qi*qk)
  
 testQuaternion17 : IO()
-testQuaternion17 = 
+testQuaternion17 =
   let qi=Quat 0.0 1.0 0.0 0.0
       qj=Quat 0.0 0.0 1.0 0.0
       qk=Quat 0.0 0.0 0.0 1.0
@@ -507,7 +507,7 @@ testQuaternion17 =
 
 ||| testQuaternion addition
 testQuaternion18 : IO()
-testQuaternion18 = 
+testQuaternion18 =
   let qa=Quat 1.0 2.0 3.0 4.0
       qb=Quat 1.0 1.0 1.0 1.0
       qres=Quat 2.0 3.0 4.0 5.0
@@ -515,7 +515,7 @@ testQuaternion18 =
 
 ||| testQuaternion subtract
 testQuaternion19 : IO()
-testQuaternion19 = 
+testQuaternion19 =
   let qa=Quat 1.0 2.0 3.0 4.0
       qb=Quat 1.0 1.0 1.0 1.0 
       qres=Quat 0.0 1.0 2.0 3.0
@@ -524,145 +524,145 @@ testQuaternion19 =
 ||| test conversion between 3D rotation representations
 ||| using quaternions or 3x3 matrix.
 testRotate00 : IO()
-testRotate00 = 
+testRotate00 =
   let q=Quat 1.0 0.0 0.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, 1, 0], [0, 0, 1]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate01 : IO()
-testRotate01 = 
+testRotate01 =
   let q=Quat 0.7071 0.0 0.7071 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, 1], [0, 1, 0], [-1, 0, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate02 : IO()
-testRotate02 = 
+testRotate02 =
   let q=Quat 0.0 0.0 1.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, 1, 0], [0, 0, -1]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate03 : IO()
-testRotate03 = 
+testRotate03 =
   let q=Quat 0.7071 0.0 (-0.7071) 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [0, 1, 0], [1, 0, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate10 : IO()
-testRotate10 = 
+testRotate10 =
   let q=Quat 0.7071 0.0 0.0 0.7071
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [1, 0, 0], [0, 0, 1]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate11 : IO()
-testRotate11 = 
+testRotate11 =
   let q=Quat 0.5 0.5 0.5 0.5
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, 1], [1, 0, 0], [0, 1, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate12 : IO()
-testRotate12 = 
+testRotate12 =
   let q=Quat 0.0 0.7071 0.7071 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [1, 0, 0], [0, 0, -1]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate13 : IO()
-testRotate13 = 
+testRotate13 =
   let q=Quat 0.5 (-0.5) (-0.5) 0.5
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [1, 0, 0], [0, -1, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate20 : IO()
-testRotate20 = 
+testRotate20 =
   let q=Quat 0.7071 0.0 0.0 (-0.7071)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [-1, 0, 0], [0, 0, 1]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate21 : IO()
-testRotate21 = 
+testRotate21 =
   let q=Quat 0.5 (-0.5) 0.5 (-0.5)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, 1], [-1, 0, 0], [0, -1, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate22 : IO()
-testRotate22 = 
+testRotate22 =
   let q=Quat 0.0 (-0.7071) 0.7071 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [-1, 0, 0], [0, 0,-1]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate23 : IO()
-testRotate23 = 
+testRotate23 =
   let q=Quat 0.5 0.5 (-0.5) (-0.5)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [-1, 0, 0], [0, 1, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate30 : IO()
-testRotate30 = 
+testRotate30 =
   let q=Quat 0.7071 0.7071 0.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, 0, -1], [0, 1, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate31 : IO()
-testRotate31 = 
+testRotate31 =
   let q=Quat 0.5 0.5 0.5 (-0.5)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [0, 0, -1], [-1, 0, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate32 : IO()
-testRotate32 = 
+testRotate32 =
   let q=Quat 0.0 0.0 0.7071 (-0.7071)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, 0, -1], [0, -1, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate33 : IO()
-testRotate33 = 
+testRotate33 =
   let q=Quat 0.5 0.5 (-0.5) 0.5
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [0, 0, -1], [1, 0, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate40 : IO()
-testRotate40 = 
+testRotate40 =
   let q=Quat 0.0 1.0 0.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, -1, 0], [0, 0, -1]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate41 : IO()
-testRotate41 = 
+testRotate41 =
   let q=Quat 0.0 0.7071 0.0 (-0.7071)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [0, -1, 0], [-1, 0, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate42 : IO()
-testRotate42 = 
+testRotate42 =
   let q=Quat 0.0 0.0 0.0 1.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate43 : IO()
-testRotate43 = 
+testRotate43 =
   let q=Quat 0.0 0.7071 0.0 0.7071
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, 1], [0, -1, 0], [1, 0, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate50 : IO()
-testRotate50 = 
+testRotate50 =
   let q=Quat 0.7071 (-0.7071) 0.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, 0, 1], [0, -1, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate51 : IO()
-testRotate51 = 
+testRotate51 =
   let q=Quat 0.5 (-0.5) 0.5 0.5
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [0, 0, 1], [-1, 0, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate52 : IO()
-testRotate52 = 
+testRotate52 =
   let q=Quat 0.0 0.0 0.7071 0.7071
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, 0, 1], [0, 1, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
 
 testRotate53 : IO()
-testRotate53 = 
+testRotate53 =
   let q=Quat 0.5 (-0.5) (-0.5) (-0.5)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [0, 0, 1], [1, 0, 0]]
   in assertCloseEnough m (quaternion2Matrix q)
@@ -670,85 +670,85 @@ testRotate53 =
 ||| now test conversion between 3D rotation in opposite direction 
 ||| from 3x3 matrix to quaternion.
 testRotateM2Q00 : IO()
-testRotateM2Q00 = 
+testRotateM2Q00 =
   let q=Quat 1.0 0.0 0.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, 1, 0], [0, 0, 1]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q01 : IO()
-testRotateM2Q01 = 
+testRotateM2Q01 =
   let q=Quat 0.7071 0.0 0.7071 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, 1], [0, 1, 0], [-1, 0, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q02 : IO()
-testRotateM2Q02 = 
+testRotateM2Q02 =
   let q=Quat 0.0 0.0 1.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, 1, 0], [0, 0, -1]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q03 : IO()
-testRotateM2Q03 = 
+testRotateM2Q03 =
   let q=Quat 0.7071 0.0 (-0.7071) 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [0, 1, 0], [1, 0, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q10 : IO()
-testRotateM2Q10 = 
+testRotateM2Q10 =
   let q=Quat 0.7071 0.0 0.0 0.7071
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [1, 0, 0], [0, 0, 1]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q11 : IO()
-testRotateM2Q11 = 
+testRotateM2Q11 =
   let q=Quat 0.5 0.5 0.5 0.5
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, 1], [1, 0, 0], [0, 1, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q12 : IO()
-testRotateM2Q12 = 
+testRotateM2Q12 =
   let q=Quat 0.0 0.7071 0.7071 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [1, 0, 0], [0, 0, -1]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q13 : IO()
-testRotateM2Q13 = 
+testRotateM2Q13 =
   let q=Quat 0.5 (-0.5) (-0.5) 0.5
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [1, 0, 0], [0, -1, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q20 : IO()
-testRotateM2Q20 = 
+testRotateM2Q20 =
   let q=Quat 0.7071 0.0 0.0 (-0.7071)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [-1, 0, 0], [0, 0, 1]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q21 : IO()
-testRotateM2Q21 = 
+testRotateM2Q21 =
   let q=Quat 0.5 (-0.5) 0.5 (-0.5)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, 1], [-1, 0, 0], [0, -1, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q22 : IO()
-testRotateM2Q22 = 
+testRotateM2Q22 =
   let q=Quat 0.0 0.7071 (-0.7071) 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [-1, 0, 0], [0, 0,-1]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q23 : IO()
-testRotateM2Q23 = 
+testRotateM2Q23 =
   let q=Quat 0.5 0.5 (-0.5) (-0.5)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [-1, 0, 0], [0, 1, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q30 : IO()
-testRotateM2Q30 = 
+testRotateM2Q30 =
   let q=Quat 0.7071 0.7071 0.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, 0, -1], [0, 1, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q31 : IO()
-testRotateM2Q31 = 
+testRotateM2Q31 =
   let q=Quat 0.5 0.5 0.5 (-0.5)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [0, 0, -1], [-1, 0, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
@@ -756,19 +756,19 @@ testRotateM2Q31 =
 ||| I had to negate q because 'makeRealPositive' does not make
 ||| y term positive if w and x are zero
 testRotateM2Q32 : IO()
-testRotateM2Q32 = 
+testRotateM2Q32 =
   let q=Quat 0.0 0.0 0.7071 (-0.7071)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, 0, -1], [0, -1, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q33 : IO()
-testRotateM2Q33 = 
+testRotateM2Q33 =
   let q=Quat 0.5 0.5 (-0.5) 0.5
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [0, 0, -1], [1, 0, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q40 : IO()
-testRotateM2Q40 = 
+testRotateM2Q40 =
   let q=Quat 0.0 1.0 0.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, -1, 0], [0, 0, -1]]
   in assertCloseEnough q (matrix2Quaternion m)
@@ -776,43 +776,43 @@ testRotateM2Q40 =
 ||| I had to negate q because 'makeRealPositive' does not make
 ||| x term positive if w is zero
 testRotateM2Q41 : IO()
-testRotateM2Q41 = 
+testRotateM2Q41 =
   let q=Quat 0.0 0.7071 0.0 (-0.7071)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, -1], [0, -1, 0], [-1, 0, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q42 : IO()
-testRotateM2Q42 = 
+testRotateM2Q42 =
   let q=Quat 0.0 0.0 0.0 1.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q43 : IO()
-testRotateM2Q43 = 
+testRotateM2Q43 =
   let q=Quat 0.0 0.7071 0.0 0.7071
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 0, 1], [0, -1, 0], [1, 0, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q50 : IO()
-testRotateM2Q50 = 
+testRotateM2Q50 =
   let q=Quat 0.7071 (-0.7071) 0.0 0.0
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[1, 0, 0], [0, 0, 1], [0, -1, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q51 : IO()
-testRotateM2Q51 = 
+testRotateM2Q51 =
   let q=Quat 0.5 (-0.5) 0.5 0.5
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, -1, 0], [0, 0, 1], [-1, 0, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q52 : IO()
-testRotateM2Q52 = 
+testRotateM2Q52 =
   let q=Quat 0.0 0.0 0.7071 0.7071
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[-1, 0, 0], [0, 0, 1], [0, 1, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
 
 testRotateM2Q53 : IO()
-testRotateM2Q53 = 
+testRotateM2Q53 =
   let q=Quat 0.5 (-0.5) (-0.5) (-0.5)
       m:(CloseEnough Double => Vect 3 (Vect 3 Double))=[[0, 1, 0], [0, 0, 1], [1, 0, 0]]
   in assertCloseEnough q (matrix2Quaternion m)
