@@ -240,9 +240,9 @@ testPermVec1 =
     mp:(FiniteSet String) = fromList ["a","b","c"]
     perms:(List (List Nat)) = [[1,2,3],[2,3,1]]
     perms2:(List (List Nat)) = [[3,2,1],[1,3,2]]
-    p:PermutationVec String = PermVec mp perms
-    pi:PermutationVec String = permsIndexed.invert p
-    p2:PermutationVec String = PermVec mp perms2
+    p:PermutationVec String mp = PermVec perms
+    pi:PermutationVec String mp = permsIndexed.invert p
+    p2:PermutationVec String mp = PermVec perms2
   in assertEq pi p2
 
 ||| permsIndexed - test invert is an involution.
@@ -251,8 +251,8 @@ testPermVec2 =
   let
     mp:(FiniteSet String) = fromList ["a","b","c"]
     perms:(List (List Nat)) = [[1,2,3],[2,3,1]]
-    p:PermutationVec String = PermVec mp perms
-    p2:PermutationVec String = permsIndexed.invert (permsIndexed.invert p)
+    p:PermutationVec String mp = PermVec perms
+    p2:PermutationVec String mp = permsIndexed.invert (permsIndexed.invert p)
   in assertEq p p2
 
 

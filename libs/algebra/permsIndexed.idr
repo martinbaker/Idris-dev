@@ -38,15 +38,14 @@ import public perm
 ||| Implements multiple permutations (subgroups of bijections of a set).
 ||| Represents the permutation as a set together with a map defined
 ||| by a list of indexes into the set.
-record PermutationVec set where
+record PermutationVec set (x:(FiniteSet set)) where
    constructor PermVec
-   mp:(FiniteSet set)
    perms:(List (List Nat))
 
 ||| auxilary constructor - unit
 ||| This constructs the special permutation that does nothing.
-unitv : Eq s => PermutationVec s
-unitv = PermVec empty empty
+unitv : Eq s => PermutationVec s empty
+unitv = PermVec Nil
 
 ||| eval returns the image of element (el) under the
 ||| permutation p.
@@ -73,13 +72,13 @@ evalv p el =
 
 ||| movedPoints(p) returns the set of points moved by the permutation p.
 ||| @p permutation
-movedPoints : Eq s => (p : (PermutationVec s)) -> (FiniteSet s)
-movedPoints p = mp p
+movedPoints : Eq s => {fs:(FiniteSet s)} -> (p : (PermutationVec s fs)) -> (FiniteSet s)
+movedPoints p = fs -- was mp p
 
 ||| degree(p) retuns the number of points moved by the
 ||| permutation p.
 ||| @p permutation
-degree : Eq s => (p : (PermutationVec s)) ->  Nat
+degree : Eq s => {fs:(FiniteSet s)} -> (p : (PermutationVec s fs)) ->  Nat
 degree p = order (movedPoints p)
 
 ||| Attempt to find the nth element of a set.
@@ -104,13 +103,13 @@ inv (v::vs) = (invertInd Z v Nil)::(inv vs)
 
 ||| invert permutation, that is, reverse all generators.
 ||| @p permutation to be inverted
-invert : Eq s => (p : (PermutationVec s)) -> (PermutationVec s)
+invert : Eq s => {fs:(FiniteSet s)} -> (p : (PermutationVec s fs)) -> (PermutationVec s fs)
 invert p =
   let
-   points : FiniteSet s = mp p
+   --points : FiniteSet s = fs -- was mp p
    indexes : List (List Nat) = perms p
    invIndexes : List (List Nat) = inv indexes
-  in PermVec points invIndexes
+  in PermVec invIndexes
 
 ||| covert a preimage-image instance of permutation to a vector type
 ||| @p preimage-image instance of permutation to be converted.
@@ -160,12 +159,12 @@ movedPointsInPerms (p::ps) = union (preimage p) (movedPointsInPerms ps)
 
 ||| covert a list of preimage-image permutations to a vector type
 ||| @p preimage-image instance of permutation to be converted
-permToVect : Eq s => (p : List (Permutation s)) -> (PermutationVec s)
+permToVect : Eq s => {fs:(FiniteSet s)} -> (p : List (Permutation s)) -> (PermutationVec s fs)
 permToVect p = 
   let
     pPreIm :(FiniteSet s) = movedPointsInPerms p
     mapping : List (List Nat) = permToVect1 p pPreIm
-  in PermVec pPreIm mapping
+  in PermVec mapping
 
 {-||| orbit returns the orbit of element (el) under the
 ||| permutation p, i.e. the set which is given by applications of
@@ -183,12 +182,18 @@ orbit p el = buildOrbit p el empty
          else buildOrbit p el2 (insert el2 orbBuild)
 -}
 
-||| Return True if both the mp and map are the same but they can
+
+||| Return True if maps are the same but they can
 ||| be reordered and still be True provided mp and map are
 ||| reordered in the same way.
-implementation (Eq s) => Eq (PermutationVec s) where
+implementation Eq (PermutationVec s fs) where
   (==) a b = 
-    ((mp a) == (mp b)) && ((perms a) == (perms b))
+    --((mp a) == (mp b)) && ((perms a) == (perms b))
+    ((perms a) == (perms b))
 
-implementation Show s => Show (PermutationVec s) where
-    show a = "permVec " ++(show (mp a)) ++ (show (perms a))
+
+--implementation Show fs => Show PermutationVec (fs:(FiniteSet s)) where
+implementation Show (PermutationVec s fs) where
+    --show a = "permsIndexed " ++(show (mp a)) ++ (show (perms a))
+    show a = "permsIndexed " ++ (show (perms a))
+
