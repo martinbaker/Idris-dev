@@ -38,6 +38,34 @@
  -}
 
 --module permgrp
+||| call it 'Main' for now to speed up testing but revert to 'permgrp' when working
+|||PermutationGroup represents the whole group, that is:
+||| cyclic group 5' or 'dihedral group 3'.
+||| The functions will be functions on the whole group
+|||    such as: sum, product, quotient, subgroup, order, orbit, etc.
+||| So we would expect PermutationGroup to have a representation
+||| containing a set (list) of Permutation, it does, but to improve
+||| efficiency it also has other information as will be discussed below.
+|||
+||| The algorithms for this domain are designed to scale up to groups
+||| with thousands of elements.
+||| To do this we need to represent the group in a way that does not
+||| need to compute or store all the possible elements of the group,
+||| yet still be able to calculate:
+||| * The order of the group.
+||| * Test permutations to check if they are elements of the group.
+||| * Express elements as words in the group.
+||| To do this we use the theory of stabiliser chains and Schreier's
+||| subgroup lemma. This requires us to compute 'base and strong
+||| generators'
+||| 
+||| Acording to wikipedia permutation group software developed by Sims
+||| led to the proof of existence of some finite simple sporadic groups
+||| such as Higman–Sims, Lyons and O'Nan groups.
+||| 
+||| I find it easier to discuss this theory using diagrams so I have put
+||| this enhanced documentation on the web page here:
+||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/
 module Main
 
 -- For now we need to have some runtime errors. I cant work out how
@@ -52,6 +80,8 @@ import public Effect.System
 %access public export
 
 ||| holds orbit and Schreier vector
+||| It is used for an algorithm derived from Schreier's subgroup lemma.
+||| https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm
 record Rec where
    constructor Record1
    ||| a list of points on the orbit.
@@ -75,7 +105,7 @@ implementation Show Rec where
 
 ||| REC2 holds extra information about group in representation
 ||| to improve efficiency of some functions.
-record Rec2 set (fs:(FiniteSet set)) where
+record Rec2 set where
    constructor Record2
    ||| order  - Number of elements. Zero means that 'information'
    ||| data has not yet been computed.
@@ -99,9 +129,10 @@ record Rec2 set (fs:(FiniteSet set)) where
    ||| temporary value for debugging only
    ||| newGroup holds permutations as vectors as they are
    ||| easier to work with.
+   fs:FiniteSet set
    vecRep : PermutationVec set fs
 
-implementation Show set => Show (Rec2 set fs) where
+implementation Show set => Show (Rec2 set) where
     show a = 
       "groupInfo order=" ++ (show (order a)) ++
       " sgset=" ++ (show (sgset a)) ++
@@ -116,7 +147,7 @@ implementation Show set => Show (Rec2 set fs) where
 ||| The information component allows some functions to be run
 ||| more efficiently this data is created, when needed from gens.
 ||| The parts of the information data are defined as follows:
-record PermutationGroup set (fs:(FiniteSet set)) where
+record PermutationGroup set where
    constructor PermGrp
    ||| generators of the group
    gens:(List (Permutation set))
@@ -124,7 +155,7 @@ record PermutationGroup set (fs:(FiniteSet set)) where
    ||| I know its not FP style to explicity cache information but
    ||| it is important that this is calculated once because it involves
    ||| random methods.
-   information:(Rec2 set fs)
+   information:(Rec2 set)
 
 ||| REC3 holds an element and a word
 record Rec3 where
@@ -237,7 +268,7 @@ replaceNth n newVal (x::xs) =
     (S a) => x::(replaceNth a newVal xs)
 
 ||| return a random element (permutation) from a PermutationGroup
-random : Eq set => (group : (PermutationGroup set fs)) ->
+random : Eq set => (group : (PermutationGroup set)) ->
          (maximalNumberOfFactors : Nat) ->
          Eff (Permutation set) [RND,SYSTEM]
 random group maximalNumberOfFactors =
@@ -598,8 +629,8 @@ bsgs : (Eq set) => (group : (List (Permutation set))) ->
        (wordProblem : Bool) ->
        (maxLoops : Nat) ->
        (diff : Int) ->
-       (Rec2 set fs)
-bsgs group wordProblem maxLoops diff =
+       (Rec2 set)
+bsgs {set} group wordProblem maxLoops diff =
   let
     basePoint : Nat = 0
     newBasePoint : Bool = False
@@ -617,7 +648,7 @@ bsgs group wordProblem maxLoops diff =
     degree : Nat = order mp
   in
     if degree == 0
-    then Record2 1 Nil Nil Nil Nil unitv
+    then Record2 1 Nil Nil Nil Nil empty unitv
     else
       let
         --tmpv : List Nat = replicate degree 0
@@ -631,7 +662,12 @@ bsgs group wordProblem maxLoops diff =
         --(newGroup,words,_,_) : (List (List Nat),List (List Nat),Nat,(List (Permutation set))) =
         -- params are: newGroup words mp degree ggg ggp
         --  convertToVect Nil Nil mp degree 0 group
-        newGroup : PermutationVec set fs = permToVect group
+        --newGroup : PermutationVec set fs = permToVect group
+        --newGroup : PermutationVec set (fs:(FiniteSet set)) = permToVect group
+        --newGroup = permToVect group
+        mp:(FiniteSet set) = movedPointsInPerms group
+        newGroup:(PermutationVec set mp) = permToVect mp group
+        --fset : FiniteSet set = getPoints newGroup
         (k1,out1,outword1,gpbase1) = 
           -- try to get the (approximate) base length by pre-calling
           -- bsgs1 with maxloops=20
@@ -643,7 +679,7 @@ bsgs group wordProblem maxLoops diff =
         --(k:Nat,out : List (PermutationVec set),outword : List (List (List Nat)))) =
         (k2,out2,outword2,gpbase2) = bsgs1 newGroup 1 Nil maxLoops2 group 0 out1 outword1
       in
-        Record2 degree sgset gpbase2 orbs wd newGroup
+        Record2 degree sgset gpbase2 orbs wd mp newGroup
 
 {-        -- If bsgs1 has not yet been called first call it with base
         -- length of 20 then call it again with more accurate base
@@ -770,7 +806,8 @@ bsgs group wordProblem maxLoops diff =
 ||| initializeGroupForWordProblem gp 0 1
 initializeGroupForWordProblem : (Eq set) => (gp : (List (Permutation set))) ->
                                 (maxLoops:Nat) ->
-                                (diff:Int) -> (Rec2 set fs)
+                                (diff:Int) ->
+                                (Rec2 set)
 initializeGroupForWordProblem gp maxLoops diff =
   bsgs gp True maxLoops diff
 
@@ -782,14 +819,14 @@ initializeGroupForWordProblem gp maxLoops diff =
 ||| generators are initialsed properly.
 ||| @gp generators of the group
 permutationGroup : (Eq set) => (gp : (List (Permutation set))) ->
-                    (PermutationGroup set fs)
+                    (PermutationGroup set)
 permutationGroup gp =
   let
-    information : Rec2 set fs = initializeGroupForWordProblem gp 0 1
+    information : Rec2 set = initializeGroupForWordProblem gp 0 1
   in
     PermGrp gp information
 
-implementation Show set => Show (PermutationGroup set fs) where
+implementation Show set => Show (PermutationGroup set) where
     show a = "permutationGroup" ++(show (gens a)) ++
              "\n" ++ (show (information a))
 
@@ -816,7 +853,7 @@ llln2lp llln = llc2lp (llln2llc llln)
 ||| Converts an list of permutations each represented by a list
 ||| of cycles ( each of them represented as a list of Integers )
 ||| to the permutation group generated by these permutations.
-llli2gp : (Eq set) => List (List (List set)) -> (PermutationGroup set fs)
+llli2gp : (Eq set) => List (List (List set)) -> (PermutationGroup set)
 llli2gp llln = permutationGroup (llln2lp llln)
 
 ||| n th entry in a list of integers
@@ -840,12 +877,12 @@ nth n l =
 ||| cyclicGroup([i1, ..., ik]) constructs the cyclic group of
 ||| order k acting on the integers i1, ..., ik.
 ||| Note: duplicates in the list will be removed.
-cyclicGroup' : List Nat -> (PermutationGroup Nat fs)
+cyclicGroup' : List Nat -> (PermutationGroup Nat)
 cyclicGroup' l = llli2gp [[l]]
 
 ||| cyclicGroup(n) constructs the cyclic group of order n acting
 ||| on the integers 1, ..., n.
-cyclicGroup : Nat -> (PermutationGroup Nat fs)
+cyclicGroup : Nat -> (PermutationGroup Nat)
 cyclicGroup n =
   cyclicGroup' (li1n n)
 
@@ -853,7 +890,7 @@ cyclicGroup n =
 ||| the integers in the list li, generators are the
 ||| cycle given by li and the 2-cycle (li.1, li.2).
 ||| Note: duplicates in the list will be removed.
-symmetricGroup' : List Nat -> (PermutationGroup Nat fs)
+symmetricGroup' : List Nat -> (PermutationGroup Nat)
 symmetricGroup' l =
   --    l := removeDuplicates l
   --    length l = 0 => error "Cannot construct symmetric group on empty set !"
@@ -871,13 +908,13 @@ symmetricGroup' l =
 ||| symmetricGroup(n) constructs the symmetric group Sn
 ||| acting on the integers 1, ..., n, generators are the
 ||| n-cycle (1, ..., n) and the 2-cycle (1, 2).
-symmetricGroup : Nat -> (PermutationGroup Nat fs)
+symmetricGroup : Nat -> (PermutationGroup Nat)
 symmetricGroup n = symmetricGroup' (li1n n)
 
 ||| dihedralGroup([i1, ..., ik]) constructs the dihedral group of
 ||| order 2k acting on the integers out of i1, ..., ik.
 ||| Note: duplicates in the list will be removed.
-dihedralGroup' : List Nat -> (PermutationGroup Nat fs)
+dihedralGroup' : List Nat -> (PermutationGroup Nat)
 dihedralGroup' l =
   let
     -- l := removeDuplicates l
@@ -892,7 +929,7 @@ dihedralGroup' l =
 
 ||| dihedralGroup(n) constructs the dihedral group of order 2n
 ||| acting on integers 1, ..., N.
-dihedralGroup : Nat -> (PermutationGroup Nat fs)
+dihedralGroup : Nat -> (PermutationGroup Nat)
 dihedralGroup n =
   case n of
     (S Z) => llli2gp [[[1]]] --n = 1 => symmetricGroup (2::PI)
@@ -907,7 +944,7 @@ dihedralGroup n =
 ||| n-2-cycle (li.3, ..., li.n) and the 3-cycle
 ||| (li.1, li.2, li.3), if n is even.
 ||| Note: duplicates in the list will be removed.
-alternatingGroup' : List Nat -> (PermutationGroup Nat fs)
+alternatingGroup' : List Nat -> (PermutationGroup Nat)
 alternatingGroup' l =
   --    l := removeDuplicates l
   --    length l = 0 => error "Cannot construct symmetric group on empty set !"
@@ -927,7 +964,7 @@ alternatingGroup' l =
 
 ||| abelianGroup([n1, ..., nk]) constructs the abelian group that
 ||| is the direct product of cyclic groups with order ni.
-abelianGroup : List Nat -> (PermutationGroup Nat fs)
+abelianGroup : List Nat -> (PermutationGroup Nat)
 abelianGroup l =
   let
     gens : List (List (List Nat)) =
@@ -945,14 +982,14 @@ abelianGroup l =
 ||| if n is odd and the product of the 2-cycle (1, 2) with
 ||| n-2-cycle (3, ..., n) and the 3-cycle (1, 2, 3)
 ||| if n is even.
-alternatingGroup : Nat -> (PermutationGroup Nat fs)
+alternatingGroup : Nat -> (PermutationGroup Nat)
 alternatingGroup n = alternatingGroup' (li1n n)
 
 ||| mathieu11(li) constructs the mathieu group acting on the 11
 ||| integers given in the list li.
 ||| Note: duplicates in the list will be removed.
 ||| error, if li has less or more than 11 different entries.
-mathieu11' : List Nat -> (PermutationGroup Nat fs)
+mathieu11' : List Nat -> (PermutationGroup Nat)
 mathieu11' l =
   -- permutations derived from the ATLAS
   --l := removeDuplicates l
@@ -968,14 +1005,14 @@ mathieu11' l =
 
 ||| mathieu11 constructs the mathieu group acting on the
 ||| integers 1, ..., 11.
-mathieu11 : (PermutationGroup Nat fs)
+mathieu11 : (PermutationGroup Nat)
 mathieu11 = mathieu11' (li1n 11)
 
 ||| mathieu12(li) constructs the mathieu group acting on the 12
 ||| integers given in the list li.
 ||| Note: duplicates in the list will be removed
 ||| Error: if li has less or more than 12 different entries.
-mathieu12' : List Nat -> (PermutationGroup Nat fs)
+mathieu12' : List Nat -> (PermutationGroup Nat)
 mathieu12' l =
   -- permutations derived from the ATLAS
   --l := removeDuplicates l
@@ -994,14 +1031,14 @@ mathieu12' l =
 
 ||| mathieu12 constructs the mathieu group acting on the
 ||| integers 1, ..., 12.
-mathieu12 : (PermutationGroup Nat fs)
+mathieu12 : (PermutationGroup Nat)
 mathieu12 = mathieu12' (li1n 12)
 
 ||| mathieu22(li) constructs the mathieu group acting on the 22
 ||| integers given in the list li.
 ||| Note: duplicates in the list will be removed.
 ||| Error: if li has less or more than 22 different entries.
-mathieu22' : List Nat -> (PermutationGroup Nat fs)
+mathieu22' : List Nat -> (PermutationGroup Nat)
 mathieu22' l =
   -- permutations derived from the ATLAS
   --l := removeDuplicates l
@@ -1024,14 +1061,14 @@ mathieu22' l =
 
 ||| mathieu22 constructs the mathieu group acting on the
 ||| integers 1, ..., 22.
-mathieu22 : (PermutationGroup Nat fs)
+mathieu22 : (PermutationGroup Nat)
 mathieu22 = mathieu22' (li1n 22)
 
 ||| mathieu23(li) constructs the mathieu group acting on the 23
 ||| integers given in the list li.
 ||| Note: duplicates in the list will be removed.
 ||| Error: if li has less or more than 23 different entries.
-mathieu23' : List Nat -> (PermutationGroup Nat fs)
+mathieu23' : List Nat -> (PermutationGroup Nat)
 mathieu23' l =
   -- permutations derived from the ATLAS
   --l := removeDuplicates l
@@ -1055,14 +1092,14 @@ mathieu23' l =
 
 ||| mathieu23 constructs the mathieu group acting on the
 ||| integers 1, ..., 23.
-mathieu23 : (PermutationGroup Nat fs)
+mathieu23 : (PermutationGroup Nat)
 mathieu23 = mathieu23' (li1n 23)
 
 ||| mathieu24(li) constructs the mathieu group acting on the 24
 ||| integers given in the list li.
 ||| Note: duplicates in the list will be removed.
 ||| Error: if li has less or more than 24 different entries.
-mathieu24' : List Nat -> (PermutationGroup Nat fs)
+mathieu24' : List Nat -> (PermutationGroup Nat)
 mathieu24' l =
   -- permutations derived from the ATLAS
   --l := removeDuplicates l
@@ -1088,14 +1125,14 @@ mathieu24' l =
 
 ||| mathieu24 constructs the mathieu group acting on the
 ||| integers 1, ..., 24.
-mathieu24 : (PermutationGroup Nat fs)
+mathieu24 : (PermutationGroup Nat)
 mathieu24 = mathieu24' (li1n 24)
 
 ||| janko2(li) constructs the janko group acting on the 100
 ||| integers given in the list li.
 ||| Note: duplicates in the list will be removed.
 ||| Error: if li has less or more than 100 different entries
-janko2' : List Nat -> (PermutationGroup Nat fs)
+janko2' : List Nat -> (PermutationGroup Nat)
 janko2' l =
   -- permutations derived from the ATLAS
   --l := removeDuplicates l
@@ -1139,7 +1176,7 @@ janko2' l =
 
 ||| janko2 constructs the janko group acting on the
 ||| integers 1, ..., 100.
-janko2 : (PermutationGroup Nat fs)
+janko2 : (PermutationGroup Nat)
 janko2 = janko2' (li1n 100)
 
 ||| rubiksGroup constructs the permutation group representing
@@ -1192,7 +1229,7 @@ janko2 = janko2' (li1n 100)
 |||             |321|
 |||             +---+
 |||
-rubiksGroup : (PermutationGroup Nat fs)
+rubiksGroup : (PermutationGroup Nat)
 rubiksGroup =
   let
     -- each generator represents a 90 degree turn of the appropriate
@@ -1213,7 +1250,7 @@ rubiksGroup =
 
 ||| youngGroup([n1, ..., nk]) constructs the direct product of the
 ||| symmetric groups Sn1, ..., Snk.
-youngGroup' : List Nat -> (PermutationGroup Nat fs)
+youngGroup' : List Nat -> (PermutationGroup Nat)
 youngGroup' l =
   let
     gens : List (List (List Nat)) =
@@ -1227,10 +1264,11 @@ youngGroup' l =
 
 --||| youngGroup(lambda) constructs the direct product of the symmetric
 --||| groups given by the parts of the partition lambda.
---youngGroup : Partition -> (PermutationGroup Nat fs)
+--youngGroup : Partition -> (PermutationGroup Nat)
 --      youngGroup(lambda : Partition) : PERMGRP I ==
 --        youngGroup(convert(lambda)$Partition)
-{-
+
+
 main : IO ()
 main = 
   let
@@ -1252,7 +1290,8 @@ main =
     a4 : PermutationGroup Nat = alternatingGroup 4
     a5 : PermutationGroup Nat = alternatingGroup 5
     gd3: List (Permutation Nat) = gens d3
-    d3Group : PermutationVec Nat = permToVect gd3
+    mp:(FiniteSet Nat) = movedPointsInPerms gd3
+    d3Group:(PermutationVec Nat mp) = permToVect mp gd3
   in
     do
       putStrLn ("permutation group cyclic 1=" ++ (show c1))
@@ -1273,7 +1312,7 @@ main =
       putStrLn ("permutation group alternating 4=" ++ (show a4))
       putStrLn ("permutation group alternating 5=" ++ (show a5))
       putStrLn ("d3 group " ++ (show gd3) ++ " vector=" ++ (show d3Group))
--}
+
 {-
 main : IO ()
 main =

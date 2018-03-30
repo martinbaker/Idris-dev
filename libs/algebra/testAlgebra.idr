@@ -10,6 +10,7 @@
   http://www.euclideanspace.com/prog/idris/
 -}
 
+||| Tests for algebra code.
 module testAlgebra
 
 -- Local Variables:

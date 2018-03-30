@@ -10,6 +10,7 @@
  - http://www.euclideanspace.com/prog/idris/
  -}
 
+||| modles an epresiion which may have variables that are fields
 module fieldexp
 
 %access public export

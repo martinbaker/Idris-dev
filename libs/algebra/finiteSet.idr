@@ -53,6 +53,7 @@
  - is based on ballanced trees and so only works on ordered sets.
  -}
 
+||| FiniteSet: A container which cannot contain duplicates.
 module FiniteSet
 
 %access  public export

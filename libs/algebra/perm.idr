@@ -32,6 +32,8 @@
  - I have not used this code directly, just some of the concepts.
  -}
 
+||| This code implements Permutations (subgroups of bijections
+||| of a set)
 module perm
 
 -- For now we need to have some runtime errors. I cant work out how

@@ -12,6 +12,7 @@
   http://www.euclideanspace.com/prog/idris/
 -}
 
+||| Implements quaternions.
 module quat
 
 import public fieldExpression

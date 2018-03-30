@@ -22,6 +22,7 @@
  - I have not used this code directly, just some of the concepts.
  -}
 
+||| Cycle, like a list but no repations.
 module cycle
 
 import public finiteSet

@@ -24,6 +24,9 @@
  - http://www.euclideanspace.com/prog/idris/
  -}
 
+||| This code implements Permutations (subgroups of bijections
+||| of a set) in an indexed form which is easier to work with
+||| than the preimage-image form.
 module permsIndexed
 
 -- For now we need to have some runtime errors. I cant work out how
@@ -56,6 +59,9 @@ evalv p el =
   case List.index' el p of
     Nothing => el
     Just x => x
+
+getPoints : {fs:(FiniteSet set)} -> (PermutationVec set fs) -> (FiniteSet set)
+getPoints y = fs
 
 ||| Multiplcation of permutations represents composition.
 ||| That is the result is the same a taking the first permutation
@@ -149,7 +155,7 @@ permToVectSingle p allMoved =
 ||| @allMoved union of all points that move.
 permToVect1 : Eq s => (p1 : List (Permutation s)) -> (allMoved : (FiniteSet s)) -> (List (List Nat))
 permToVect1 Nil allMoved = Nil
-permToVect1 (p::ps) allMoved = (permToVectSingle p allMoved)::(permToVect1 ps  allMoved)
+permToVect1 (p::ps) allMoved = (permToVectSingle p allMoved)::(permToVect1 ps allMoved)
 
 ||| A union of all the points moved in a set of permutations
 ||| @p2 preimage-image instance of permutation to be converted
@@ -159,11 +165,13 @@ movedPointsInPerms (p::ps) = union (preimage p) (movedPointsInPerms ps)
 
 ||| covert a list of preimage-image permutations to a vector type
 ||| @p preimage-image instance of permutation to be converted
-permToVect : Eq s => {fs:(FiniteSet s)} -> (p : List (Permutation s)) -> (PermutationVec s fs)
-permToVect p = 
+permToVect : Eq s => (mp:(FiniteSet s)) ->
+                     (p : List (Permutation s)) ->
+                     PermutationVec s fs
+permToVect mp p = 
   let
-    pPreIm :(FiniteSet s) = movedPointsInPerms p
-    mapping : List (List Nat) = permToVect1 p pPreIm
+    --pPreIm :(FiniteSet s) = movedPointsInPerms p
+    mapping : List (List Nat) = permToVect1 p mp
   in PermVec mapping
 
 {-||| orbit returns the orbit of element (el) under the
