@@ -15,8 +15,6 @@
  - Amer. Math. Soc., Providence, R. I., 1971, pp. 191-195
  - (I can't find this paper online)
  -
- - I (Martin Baker) was therefore motivated to write these notes.
- -
  - I did find some other sources for information about the
  - Schreier-Sims algorithm such as this:
  - \url{https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm}
@@ -73,35 +71,12 @@ module Main
 import public finiteSet
 import public perm
 import public permsIndexed
+import public orbitAndSchreier
 import public Effects
 import public Effect.Random
 import public Effect.System
 
 %access public export
-
-||| holds orbit and Schreier vector
-||| It is used for an algorithm derived from Schreier's subgroup lemma.
-||| https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm
-record OrbitAndSchreier set (x:(FiniteSet set)) where
-   constructor MkOrbSch
-   ||| a list of points on the orbit.
-   orb : List Nat
-   ||| The Schreier vector (svc) part allows you to compute element
-   ||| of the group moving given point to base point of the orbit.
-   ||| *  -2 means point not in orbit,
-   ||| *  -1 means base point,
-   ||| positive value is index of strong generator moving
-   ||| given point closer to base point.
-   ||| This list of orbits tends to be in a certain order,
-   ||| (corresponding to the order of gpbase)that is, stabiliser of
-   ||| point 1 (if it exists) is first then the other stabilisers,
-   ||| then the final orbit may not stabilise any points.
-   svc : List Int
-
-implementation Show (OrbitAndSchreier s fs) where
-    show a = 
-      "orbit&SchreiergroupInfo orb=" ++ (show (orb a)) ++
-      " svc=" ++ (show (svc a))
 
 ||| GrpInfo holds extra information about group in representation
 ||| to improve efficiency of some functions.
@@ -111,7 +86,7 @@ record GrpInfo set where
    ||| data has not yet been computed.
    order : Nat
    ||| sgset  - Strong Generators
-   sgset : List (List Nat) -- was List V Nat
+   sgset : List (List Nat)
    ||| gpbase - sequence of points stabilised by the group.
    gpbase : List Nat
    ||| mp - moved points
@@ -122,7 +97,7 @@ record GrpInfo set where
    |||  internal representation)
    mp:FiniteSet set
    ||| orbs   - Describes orbits of base point.
-   orbs : List (OrbitAndSchreier set mp) -- V Rec
+   orbs : List (OrbitAndSchreier set mp)
    ||| wd - Gives representation of strong generators in terms
    ||| of original generators
    wd : List (List Nat)
@@ -255,16 +230,6 @@ ranelt group word maxLoops =
                in (lst r) ++ words2
              else (lst r)
          in mix (Record3 randomElement3 w3 randomInteger2) a n w
-
-||| replace the n th term in a list with given value
-||| If nth term does not exist then don't do anything so no
-||| need for error checking.
-replaceNth : Nat -> v -> List v -> List v
-replaceNth n newVal Nil = Nil
-replaceNth n newVal (x::xs) =
-  case n of
-    Z => newVal::xs
-    (S a) => x::(replaceNth a newVal xs)
 
 ||| return a random element (permutation) from a PermutationGroup
 random : Eq set => (group : (PermutationGroup set)) ->
@@ -401,75 +366,6 @@ convertToVect newGroup words mp degree ggg (ggp::ggps) =
             if wordProblem then words := cons(list ggg, words)
 -}
 
-||| Local function used by orbitWithSvc which is used by bsgs1
-||| Given a set of generators and a point this calculates the
-||| orbit and schreierVector.
-||| That is the points that can reach given point and the index
-||| of the generators used.
-||| For Schreier vector (denoted svc),
-|||    "-2" means not in the orbit,
-|||    "-1" means starting point,
-|||    PI correspond to generators
-||| @group    holds permutations as vectors as they are easier to
-|||           work with.
-||| @grpinv inverse of group (all generators reversed).
-orbitWithSvc1 : (Eq set) => (group :(PermutationVec set fs)) ->
-               (grpinv :(PermutationVec set fs)) ->
-               (point : Nat) -> (OrbitAndSchreier set fs)
-orbitWithSvc1 group grpinv point =
-  let
-    fst : List Nat = case head' (perms group) of
-      Nothing => Nil
-      Just b => b
-    degree : Nat = length fst
-    orbit : List Nat = [ point ]
-    orbitv : List Nat = case degree of
-      Z => Nil
-      (S a) => point::(replicate a 0)
-    orbit_size : Nat = 1
-    schreierVector : List Int = replaceNth point (-1) (replicate degree (-2))
-    position : Nat = 1
-  in 
-    mix3 orbit orbitv orbit_size schreierVector position
-      where
-        mix4 : (List Nat) -> (List Nat) -> Nat -> (List Int) -> Nat -> Nat -> (List (List Nat)) ->
-          ((List Nat),(List Nat),Nat,(List Int),Nat)
-        mix4 orbit orbitv orbit_size schreierVector position i Nil=
-          (orbit,orbitv,orbit_size,schreierVector,position)
-        mix4 orbit orbitv orbit_size schreierVector position i (grv::gs)=
-          let
-            ptr : Nat = minus orbit_size position
-            newPoint : Nat = case index' ptr orbitv of
-              Nothing => 0
-              Just b => b
-            newPoint2 : Nat = case index' newPoint grv of
-              Nothing => 0
-              Just b => b
-            newPoint3 : Int = case index' newPoint2 schreierVector of
-              Nothing => 0
-              Just b => b
-            orbit2:(List Nat) = if newPoint3 == (-2) then newPoint2::orbit else orbit
-            orbit_size2:Nat = if newPoint3 == (-2) then S orbit_size else orbit_size
-            orbitv2:(List Nat) =
-              if newPoint3 == (-2)
-              then replaceNth orbit_size newPoint2 orbitv
-              else orbitv
-            position2:Nat = if newPoint3 == (-2) then S position else position
-            schreierVector2:(List Int) =
-              if newPoint3 == (-2)
-              then replaceNth newPoint2 (cast i) schreierVector
-              else schreierVector
-          in (mix4 orbit2 orbitv2 orbit_size2 schreierVector2 position2 (S i) gs)
-      
-        mix3 : (List Nat) -> (List Nat) -> Nat -> (List Int) -> Nat -> (OrbitAndSchreier set fs)
-        mix3 orbit orbitv orbit_size schreierVector Z =
-          MkOrbSch (reverse orbit) schreierVector
-        mix3 orbit orbitv orbit_size schreierVector (S a) =
-          let
-            (orbit,orbitv,orbit_size,schreierVector,position) =
-              mix4 orbit orbitv orbit_size schreierVector (S a) 0 (perms grpinv)
-            m3:(OrbitAndSchreier set fs) = mix3 orbit orbitv orbit_size schreierVector position
-          in m3
 
 ||| Local function used by bsgs1
 ||| Given a group and a point in the group this calculates the
