@@ -2,11 +2,11 @@
  - (c) 2018 Copyright Martin Baker
  - I would prefer GPL3 licence but if there were any interest in including
  - this with Idris library then a compatible licence would be acceptable.
- - 
+ -
  - This type represents a permutation group.
  - The concepts come from a CAS program called Axiom and its fork FriCAS.
  - https://github.com/fricas/fricas/blob/master/src/algebra/permgrps.spad
- - 
+ -
  - FriCAS is a wonderful programs but its documentation is, how can I put
  - this politely, not very good.
  - The original authors provided minimal documentation apart from a
@@ -14,24 +14,24 @@
  - in Computers in Algebra and Number Theory, SIAM-AMS Proc., Vol. 4,
  - Amer. Math. Soc., Providence, R. I., 1971, pp. 191-195
  - (I can't find this paper online)
- - 
+ -
  - I (Martin Baker) was therefore motivated to write these notes.
- - 
+ -
  - I did find some other sources for information about the
  - Schreier-Sims algorithm such as this:
  - \url{https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm}
- - 
+ -
  - Waldek Hebisch referred to these notes by A. Hulpke which contain a
  - sketch of the algorithm.
  - \url{http://www.math.colostate.edu/~hulpke/CGT/cgtnotes.pdf}
- - 
+ -
  - Waldeks description on FriCAS forum here:
  - \url{https://groups.google.com/forum/?hl=en#!topic/fricas-devel/EtLwgd2dWNU}
  - 
  - I have therefore put together this together with what I have worked
  - out myself to attempt this overview of PermutationGroup code to
  - add some documentation and comments here.
- - 
+ -
  - I find it improves the documentation to use diagrams, I have
  - therefore put this enhanced documentation on the web page here:
  - \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/}
@@ -82,8 +82,8 @@ import public Effect.System
 ||| holds orbit and Schreier vector
 ||| It is used for an algorithm derived from Schreier's subgroup lemma.
 ||| https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm
-record Rec where
-   constructor Record1
+record OrbitAndSchreier set (x:(FiniteSet set)) where
+   constructor MkOrbSch
    ||| a list of points on the orbit.
    orb : List Nat
    ||| The Schreier vector (svc) part allows you to compute element
@@ -96,17 +96,17 @@ record Rec where
    ||| (corresponding to the order of gpbase)that is, stabiliser of
    ||| point 1 (if it exists) is first then the other stabilisers,
    ||| then the final orbit may not stabilise any points.
-   svc : List Int -- was V I
+   svc : List Int
 
-implementation Show Rec where
+implementation Show (OrbitAndSchreier s fs) where
     show a = 
       "orbit&SchreiergroupInfo orb=" ++ (show (orb a)) ++
       " svc=" ++ (show (svc a))
 
-||| REC2 holds extra information about group in representation
+||| GrpInfo holds extra information about group in representation
 ||| to improve efficiency of some functions.
-record Rec2 set where
-   constructor Record2
+record GrpInfo set where
+   constructor MkGrpInfo
    ||| order  - Number of elements. Zero means that 'information'
    ||| data has not yet been computed.
    order : Nat
@@ -114,25 +114,24 @@ record Rec2 set where
    sgset : List (List Nat) -- was List V Nat
    ||| gpbase - sequence of points stabilised by the group.
    gpbase : List Nat
-   ||| orbs   - Describes orbits of base point.
-   orbs : List Rec -- V Rec
-   {-||| mp - moved points
+   ||| mp - moved points
    ||| Set of elements of S moved by some permutation.
    ||| That is, all points in generators, but don't
    ||| include if all generators map the points to themselves.
    ||| (needed for mapping between permutations on S and
    |||  internal representation)
-   mp : FiniteSet set-}
+   mp:FiniteSet set
+   ||| orbs   - Describes orbits of base point.
+   orbs : List (OrbitAndSchreier set mp) -- V Rec
    ||| wd - Gives representation of strong generators in terms
    ||| of original generators
    wd : List (List Nat)
    ||| temporary value for debugging only
    ||| newGroup holds permutations as vectors as they are
    ||| easier to work with.
-   fs:FiniteSet set
-   vecRep : PermutationVec set fs
+   vecRep : PermutationVec set mp
 
-implementation Show set => Show (Rec2 set) where
+implementation Show set => Show (GrpInfo set) where
     show a = 
       "groupInfo order=" ++ (show (order a)) ++
       " sgset=" ++ (show (sgset a)) ++
@@ -155,7 +154,7 @@ record PermutationGroup set where
    ||| I know its not FP style to explicity cache information but
    ||| it is important that this is calculated once because it involves
    ||| random methods.
-   information:(Rec2 set)
+   information:(GrpInfo set)
 
 ||| REC3 holds an element and a word
 record Rec3 where
@@ -416,7 +415,7 @@ convertToVect newGroup words mp degree ggg (ggp::ggps) =
 ||| @grpinv inverse of group (all generators reversed).
 orbitWithSvc1 : (Eq set) => (group :(PermutationVec set fs)) ->
                (grpinv :(PermutationVec set fs)) ->
-               (point : Nat) -> Rec
+               (point : Nat) -> (OrbitAndSchreier set fs)
 orbitWithSvc1 group grpinv point =
   let
     fst : List Nat = case head' (perms group) of
@@ -462,14 +461,14 @@ orbitWithSvc1 group grpinv point =
               else schreierVector
           in (mix4 orbit2 orbitv2 orbit_size2 schreierVector2 position2 (S i) gs)
       
-        mix3 : (List Nat) -> (List Nat) -> Nat -> (List Int) -> Nat -> Rec
+        mix3 : (List Nat) -> (List Nat) -> Nat -> (List Int) -> Nat -> (OrbitAndSchreier set fs)
         mix3 orbit orbitv orbit_size schreierVector Z =
-          Record1 (reverse orbit) schreierVector
+          MkOrbSch (reverse orbit) schreierVector
         mix3 orbit orbitv orbit_size schreierVector (S a) =
           let
             (orbit,orbitv,orbit_size,schreierVector,position) =
               mix4 orbit orbitv orbit_size schreierVector (S a) 0 (perms grpinv)
-            m3:Rec = mix3 orbit orbitv orbit_size schreierVector position
+            m3:(OrbitAndSchreier set fs) = mix3 orbit orbitv orbit_size schreierVector position
           in m3
 
 ||| Local function used by bsgs1
@@ -483,7 +482,7 @@ orbitWithSvc1 group grpinv point =
 |||           work with.
 orbitWithSvc : (Eq set) => (group :(PermutationVec set fs)) ->
                (point : Nat) -> 
-               Rec
+               (OrbitAndSchreier set fs)
 orbitWithSvc group point =
   orbitWithSvc1 group (invert group) point
 
@@ -531,7 +530,7 @@ bsgs1 group number1 words maxLoops gp diff out outword =
   let
     degree:Nat = permsIndexed.degree group
     wordProblem : Bool = words /= Nil
-    ort : Rec = orbitWithSvc group number1
+    ort : (OrbitAndSchreier set fs) = orbitWithSvc group number1
   in (number1,out,outword,Nil)
 {-        -- try to get a good approximation for the strong generators and base
         degree := #(first(group))
@@ -629,7 +628,7 @@ bsgs : (Eq set) => (group : (List (Permutation set))) ->
        (wordProblem : Bool) ->
        (maxLoops : Nat) ->
        (diff : Int) ->
-       (Rec2 set)
+       (GrpInfo set)
 bsgs {set} group wordProblem maxLoops diff =
   let
     basePoint : Nat = 0
@@ -648,14 +647,13 @@ bsgs {set} group wordProblem maxLoops diff =
     degree : Nat = order mp
   in
     if degree == 0
-    then Record2 1 Nil Nil Nil Nil empty unitv
+    then MkGrpInfo 1 Nil Nil empty Nil Nil unitv
     else
       let
         --tmpv : List Nat = replicate degree 0
         --gp : (List (Permutation set)) = group
         --
         sgset : List (List Nat) = Nil
-        orbs : List Rec = Nil
         wd : List (List Nat) = Nil
         -- 'newGroup' holds permutations as vectors as they are
         -- easier to work with.
@@ -667,6 +665,7 @@ bsgs {set} group wordProblem maxLoops diff =
         --newGroup = permToVect group
         mp:(FiniteSet set) = movedPointsInPerms group
         newGroup:(PermutationVec set mp) = permToVect mp group
+        orbs : List (OrbitAndSchreier set mp) = Nil
         --fset : FiniteSet set = getPoints newGroup
         (k1,out1,outword1,gpbase1) = 
           -- try to get the (approximate) base length by pre-calling
@@ -679,7 +678,7 @@ bsgs {set} group wordProblem maxLoops diff =
         --(k:Nat,out : List (PermutationVec set),outword : List (List (List Nat)))) =
         (k2,out2,outword2,gpbase2) = bsgs1 newGroup 1 Nil maxLoops2 group 0 out1 outword1
       in
-        Record2 degree sgset gpbase2 orbs wd mp newGroup
+        MkGrpInfo degree sgset gpbase2 mp orbs wd newGroup
 
 {-        -- If bsgs1 has not yet been called first call it with base
         -- length of 20 then call it again with more accurate base
@@ -807,7 +806,7 @@ bsgs {set} group wordProblem maxLoops diff =
 initializeGroupForWordProblem : (Eq set) => (gp : (List (Permutation set))) ->
                                 (maxLoops:Nat) ->
                                 (diff:Int) ->
-                                (Rec2 set)
+                                (GrpInfo set)
 initializeGroupForWordProblem gp maxLoops diff =
   bsgs gp True maxLoops diff
 
@@ -822,7 +821,7 @@ permutationGroup : (Eq set) => (gp : (List (Permutation set))) ->
                     (PermutationGroup set)
 permutationGroup gp =
   let
-    information : Rec2 set = initializeGroupForWordProblem gp 0 1
+    information : GrpInfo set = initializeGroupForWordProblem gp 0 1
   in
     PermGrp gp information
 
