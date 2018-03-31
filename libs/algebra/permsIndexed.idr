@@ -41,14 +41,14 @@ import public perm
 ||| Implements multiple permutations (subgroups of bijections of a set).
 ||| Represents the permutation as a set together with a map defined
 ||| by a list of indexes into the set.
-record PermutationVec set (x:(FiniteSet set)) where
-   constructor PermVec
+record PermsIndexed set (x:(FiniteSet set)) where
+   constructor MkPermsIndexed
    perms:(List (List Nat))
 
 ||| auxilary constructor - unit
 ||| This constructs the special permutation that does nothing.
-unitv : Eq s => PermutationVec s empty
-unitv = PermVec Nil
+unitv : Eq s => PermsIndexed s empty
+unitv = MkPermsIndexed Nil
 
 ||| eval returns the image of element (el) under the
 ||| permutation p.
@@ -60,7 +60,7 @@ evalv p el =
     Nothing => el
     Just x => x
 
-getPoints : {fs:(FiniteSet set)} -> (PermutationVec set fs) -> (FiniteSet set)
+getPoints : {fs:(FiniteSet set)} -> (PermsIndexed set fs) -> (FiniteSet set)
 getPoints y = fs
 
 ||| Multiplcation of permutations represents composition.
@@ -78,13 +78,13 @@ getPoints y = fs
 
 ||| movedPoints(p) returns the set of points moved by the permutation p.
 ||| @p permutation
-movedPoints : Eq s => {fs:(FiniteSet s)} -> (p : (PermutationVec s fs)) -> (FiniteSet s)
+movedPoints : Eq s => {fs:(FiniteSet s)} -> (p : (PermsIndexed s fs)) -> (FiniteSet s)
 movedPoints p = fs -- was mp p
 
 ||| degree(p) retuns the number of points moved by the
 ||| permutation p.
 ||| @p permutation
-degree : Eq s => {fs:(FiniteSet s)} -> (p : (PermutationVec s fs)) ->  Nat
+degree : Eq s => {fs:(FiniteSet s)} -> (p : (PermsIndexed s fs)) ->  Nat
 degree p = order (movedPoints p)
 
 ||| Attempt to find the nth element of a set.
@@ -109,13 +109,13 @@ inv (v::vs) = (invertInd Z v Nil)::(inv vs)
 
 ||| invert permutation, that is, reverse all generators.
 ||| @p permutation to be inverted
-invert : Eq s => {fs:(FiniteSet s)} -> (p : (PermutationVec s fs)) -> (PermutationVec s fs)
+invert : Eq s => {fs:(FiniteSet s)} -> (p : (PermsIndexed s fs)) -> (PermsIndexed s fs)
 invert p =
   let
    --points : FiniteSet s = fs -- was mp p
    indexes : List (List Nat) = perms p
    invIndexes : List (List Nat) = inv indexes
-  in PermVec invIndexes
+  in MkPermsIndexed invIndexes
 
 ||| covert a preimage-image instance of permutation to a vector type
 ||| @p preimage-image instance of permutation to be converted.
@@ -167,22 +167,22 @@ movedPointsInPerms (p::ps) = union (preimage p) (movedPointsInPerms ps)
 ||| @p preimage-image instance of permutation to be converted
 permToVect : Eq s => (mp:(FiniteSet s)) ->
                      (p : List (Permutation s)) ->
-                     PermutationVec s fs
+                     PermsIndexed s fs
 permToVect mp p = 
   let
     --pPreIm :(FiniteSet s) = movedPointsInPerms p
     mapping : List (List Nat) = permToVect1 p mp
-  in PermVec mapping
+  in MkPermsIndexed mapping
 
 {-||| orbit returns the orbit of element (el) under the
 ||| permutation p, i.e. the set which is given by applications of
 ||| the powers of p to el.
 ||| @p permutation
 ||| @el element
-orbit : Eq s => (p : (PermutationVec s)) -> (el : s) -> (FiniteSet s)
+orbit : Eq s => (p : (PermsIndexed s)) -> (el : s) -> (FiniteSet s)
 orbit p el = buildOrbit p el empty
   where
-    buildOrbit : Eq s => (p : (PermutationVec s)) -> (el : s) -> (FiniteSet s) -> (FiniteSet s)
+    buildOrbit : Eq s => (p : (PermsIndexed s)) -> (el : s) -> (FiniteSet s) -> (FiniteSet s)
     buildOrbit p el orbBuild = 
       let el2:s = eval p el
       in if el==el2
@@ -194,14 +194,14 @@ orbit p el = buildOrbit p el empty
 ||| Return True if maps are the same but they can
 ||| be reordered and still be True provided mp and map are
 ||| reordered in the same way.
-implementation Eq (PermutationVec s fs) where
+implementation Eq (PermsIndexed s fs) where
   (==) a b = 
     --((mp a) == (mp b)) && ((perms a) == (perms b))
     ((perms a) == (perms b))
 
 
---implementation Show fs => Show PermutationVec (fs:(FiniteSet s)) where
-implementation Show (PermutationVec s fs) where
+--implementation Show fs => Show PermsIndexed (fs:(FiniteSet s)) where
+implementation Show (PermsIndexed s fs) where
     --show a = "permsIndexed " ++(show (mp a)) ++ (show (perms a))
     show a = "permsIndexed " ++ (show (perms a))
 

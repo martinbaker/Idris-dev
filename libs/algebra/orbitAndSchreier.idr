@@ -106,8 +106,8 @@ replaceNth n newVal (x::xs) =
 ||| @group    holds permutations as vectors as they are easier to
 |||           work with.
 ||| @grpinv inverse of group (all generators reversed).
-orbitWithSvc1 : (Eq set) => (group :(PermutationVec set fs)) ->
-               (grpinv :(PermutationVec set fs)) ->
+orbitWithSvc1 : (Eq set) => (group :(PermsIndexed set fs)) ->
+               (grpinv :(PermsIndexed set fs)) ->
                (point : Nat) -> (OrbitAndSchreier set fs)
 orbitWithSvc1 group grpinv point =
   let
@@ -173,6 +173,22 @@ orbitWithSvc1 group grpinv point =
               mix4 orbit orbitv orbit_size schreierVector (S a) 0 (perms grpinv)
             m3:(OrbitAndSchreier set fs) = mix3 orbit orbitv orbit_size schreierVector position
           in m3
+
+||| Local function used by bsgs1
+||| Given a group and a point in the group this calculates the
+||| orbit and schreierVector.
+||| Calculates inverse group, then orbitWithSvc1 does the work.
+||| It is hard to describe these functions without diagrams so
+||| I have put a better explanation here:
+||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#orbitWithSvc
+||| @group    holds permutations as vectors as they are easier to
+|||           work with.
+orbitWithSvc : (Eq set) => (group :(PermsIndexed set fs)) ->
+               (point : Nat) -> 
+               (OrbitAndSchreier set fs)
+orbitWithSvc group point =
+  orbitWithSvc1 group (invert group) point
+
 
 implementation Show (OrbitAndSchreier s fs) where
     show a = 

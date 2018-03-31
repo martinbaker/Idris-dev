@@ -104,7 +104,7 @@ record GrpInfo set where
    ||| temporary value for debugging only
    ||| newGroup holds permutations as vectors as they are
    ||| easier to work with.
-   vecRep : PermutationVec set mp
+   vecRep : PermsIndexed set mp
 
 implementation Show set => Show (GrpInfo set) where
     show a = 
@@ -366,22 +366,6 @@ convertToVect newGroup words mp degree ggg (ggp::ggps) =
             if wordProblem then words := cons(list ggg, words)
 -}
 
-
-||| Local function used by bsgs1
-||| Given a group and a point in the group this calculates the
-||| orbit and schreierVector.
-||| Calculates inverse group, then orbitWithSvc1 does the work.
-||| It is hard to describe these functions without diagrams so
-||| I have put a better explanation here:
-||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#orbitWithSvc
-||| @group    holds permutations as vectors as they are easier to
-|||           work with.
-orbitWithSvc : (Eq set) => (group :(PermutationVec set fs)) ->
-               (point : Nat) -> 
-               (OrbitAndSchreier set fs)
-orbitWithSvc group point =
-  orbitWithSvc1 group (invert group) point
-
 ||| Local function used by bsgs
 ||| Tries to get a good approximation for the base points which
 ||| are put in gp_info.gpbase and stabiliser chain which is
@@ -413,15 +397,15 @@ orbitWithSvc group point =
 |||           by this function. The first value stabilises most
 |||           points, next value less points and so on.
 ||| @outword  Reference to words (if used) for stabiliser chain.
-bsgs1 : (Eq set) => (group :(PermutationVec set fs)) ->
+bsgs1 : (Eq set) => (group :(PermsIndexed set fs)) ->
         (number1 : Nat) ->
         (words: List (List Nat)) ->
         (maxLoops:  Int) ->
         (gp: (List (Permutation set))) ->
         (diff : Int) ->
-        (out : List (PermutationVec set fs)) ->
+        (out : List (PermsIndexed set fs)) ->
         (outword : List (List (List Nat))) ->
-        (Nat,List (PermutationVec set fs),List (List (List Nat)),List Nat)
+        (Nat,List (PermsIndexed set fs),List (List (List Nat)),List Nat)
 bsgs1 group number1 words maxLoops gp diff out outword =
   let
     degree:Nat = permsIndexed.degree group
@@ -443,7 +427,7 @@ bsgs1 group number1 words maxLoops gp diff out outword =
             if k1 ~= 1 then break
         -- ort is set to first orbit with more than 1 element
         -- 'i' will be the fist element in this orbit
-        gpsgs := []$(PermutationVec set)
+        gpsgs := []$(PermsIndexed set)
         words2 := []$(List (List Nat))
         gplength : Nat := #group
         -- set jj to be nontrivial element
@@ -460,7 +444,7 @@ bsgs1 group number1 words maxLoops gp diff out outword =
                       words2 := cons(append(words.jj, words.k), words2)
         -- gpsgs now contains a list of the permutations in vector
         -- form.
-        group2 := []$(PermutationVec set)
+        group2 := []$(PermsIndexed set)
         -- group2 will hold the representative elements (one per coset)
         words3 := []$(List (List Nat))
         j : I  := 15
@@ -533,7 +517,7 @@ bsgs {set} group wordProblem maxLoops diff =
     out : List (List (List Nat)) = Nil
     -- out will hold stabiliser chain
     outword : List (List (List Nat)) = Nil
-    --outr : Reference(L PermutationVec set) := ref([])
+    --outr : Reference(L PermsIndexed set) := ref([])
     -- outr is reference to stabiliser chain (out above)
     outwordr : List (List (List Nat)) = Nil
     -- put list of points into supp and also put into
@@ -556,11 +540,11 @@ bsgs {set} group wordProblem maxLoops diff =
         --(newGroup,words,_,_) : (List (List Nat),List (List Nat),Nat,(List (Permutation set))) =
         -- params are: newGroup words mp degree ggg ggp
         --  convertToVect Nil Nil mp degree 0 group
-        --newGroup : PermutationVec set fs = permToVect group
-        --newGroup : PermutationVec set (fs:(FiniteSet set)) = permToVect group
+        --newGroup : PermsIndexed set fs = permToVect group
+        --newGroup : PermsIndexed set (fs:(FiniteSet set)) = permToVect group
         --newGroup = permToVect group
         mp:(FiniteSet set) = movedPointsInPerms group
-        newGroup:(PermutationVec set mp) = permToVect mp group
+        newGroup:(PermsIndexed set mp) = permToVect mp group
         orbs : List (OrbitAndSchreier set mp) = Nil
         --fset : FiniteSet set = getPoints newGroup
         (k1,out1,outword1,gpbase1) = 
@@ -570,8 +554,8 @@ bsgs {set} group wordProblem maxLoops diff =
           then bsgs1 newGroup 1 Nil 20 group 0 Nil Nil
           else (maxLoops,Nil,Nil,Nil)
         maxLoops2:Int = cast (length gpbase1)
-        --(Nat,List (PermutationVec set)),(outword : List (List (List Nat)))) 
-        --(k:Nat,out : List (PermutationVec set),outword : List (List (List Nat)))) =
+        --(Nat,List (PermsIndexed set)),(outword : List (List (List Nat)))) 
+        --(k:Nat,out : List (PermsIndexed set),outword : List (List (List Nat)))) =
         (k2,out2,outword2,gpbase2) = bsgs1 newGroup 1 Nil maxLoops2 group 0 out1 outword1
       in
         MkGrpInfo degree sgset gpbase2 mp orbs wd newGroup
@@ -610,7 +594,7 @@ bsgs {set} group wordProblem maxLoops diff =
             gp_info.gpbase := baseOfGroup
             gp_info.orbs := orbv
             -- test whether we have a base and a strong generating set
-            sgs : PermutationVec set := []
+            sgs : PermsIndexed set := []
             wordlist := []
             for i in 1..(kkk-1) repeat
                 sgs := append(sgs, out.i)
@@ -1186,7 +1170,7 @@ main =
     a5 : PermutationGroup Nat = alternatingGroup 5
     gd3: List (Permutation Nat) = gens d3
     mp:(FiniteSet Nat) = movedPointsInPerms gd3
-    d3Group:(PermutationVec Nat mp) = permToVect mp gd3
+    d3Group:(PermsIndexed Nat mp) = permToVect mp gd3
   in
     do
       putStrLn ("permutation group cyclic 1=" ++ (show c1))
