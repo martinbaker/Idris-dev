@@ -20,6 +20,7 @@ import public fieldExpression
 import public finiteSet
 import public perm
 import public permsIndexed
+import public orbitAndSchreier
 import public quaternion
 --import public Data.Vect
 
@@ -73,6 +74,10 @@ seperateTestsPerm = putStrLn "permutation tests:"
 
 seperateTestsPermVec : IO ()
 seperateTestsPermVec = putStrLn "permutation vec tests:"
+
+-- testOrbitWithSvc1
+seperateOrbitWithSvc : IO ()
+seperateOrbitWithSvc = putStrLn "OrbitWithSvc tests:"
 
 seperateTests1 : IO ()
 seperateTests1 = putStrLn "simplify expression tests:"
@@ -241,9 +246,9 @@ testPermVec1 =
     mp:(FiniteSet String) = fromList ["a","b","c"]
     perms:(List (List Nat)) = [[1,2,3],[2,3,1]]
     perms2:(List (List Nat)) = [[3,2,1],[1,3,2]]
-    p:PermutationVec String mp = PermVec perms
-    pi:PermutationVec String mp = permsIndexed.invert p
-    p2:PermutationVec String mp = PermVec perms2
+    p:PermsIndexed String mp = MkPermsIndexed perms
+    pi:PermsIndexed String mp = permsIndexed.invert p
+    p2:PermsIndexed String mp = MkPermsIndexed perms2
   in assertEq pi p2
 
 ||| permsIndexed - test invert is an involution.
@@ -252,10 +257,20 @@ testPermVec2 =
   let
     mp:(FiniteSet String) = fromList ["a","b","c"]
     perms:(List (List Nat)) = [[1,2,3],[2,3,1]]
-    p:PermutationVec String mp = PermVec perms
-    p2:PermutationVec String mp = permsIndexed.invert (permsIndexed.invert p)
+    p:PermsIndexed String mp = MkPermsIndexed perms
+    p2:PermsIndexed String mp = permsIndexed.invert (permsIndexed.invert p)
   in assertEq p p2
 
+||| orbitWithSvc - test d3.
+testOrbitWithSvc1 : IO()
+testOrbitWithSvc1 =
+  let
+    gd3: List (Permutation Nat) = [permSetFromList [1, 2, 3] [2, 3,1],permSetFromList [1, 2, 3] [3, 2,1]]
+    mp:(FiniteSet Nat) = movedPointsInPerms gd3
+    d3Group:(PermsIndexed Nat mp) = permToVect mp gd3
+    orb1= orbitWithSvc d3Group 0
+    orb2= MkOrbSch [0,1,2] [-1,0,1]
+  in assertEq orb1 orb2
 
 ||| test simplify expression
 ||| 1+2=3

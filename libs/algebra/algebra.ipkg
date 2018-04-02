@@ -38,6 +38,8 @@ tests = testAlgebra.seperateTests0
       , testAlgebra.seperateTestsPermVec
       , testAlgebra.testPermVec1
       , testAlgebra.testPermVec2
+      , testAlgebra.seperateOrbitWithSvc
+      , testAlgebra.testOrbitWithSvc1
       , testAlgebra.seperateTests1
       , testAlgebra.testExpressionSimplify1
       , testAlgebra.testExpressionSimplify2

@@ -174,6 +174,61 @@ permToVect mp p =
     mapping : List (List Nat) = permToVect1 p mp
   in MkPermsIndexed mapping
 
+||| Function used locally by bsgs as first stage in
+||| constructing strong generators.
+||| Encodes a permutation as a 'vector', a list of indexes
+||| where the first entry gives the index that point 1
+||| translates to,  the second entry gives the index that
+||| point 2 translates to, and so on.
+||| There are 2 versions of this function. If S has
+||| OrderedSet then the points are sorted so that index 1
+||| is the lowest and so on.
+||| Parameter definitions:
+||| @i index to element (1..degree)
+||| @q result so far
+||| @mp   - moved points is list of elements of set
+|||          which are moved by p.
+||| @p      - permutation being converted.
+||| @degree - number of points being permuted.
+perm_to_vec : Eq set => (i : Nat) ->
+              (q : (List Nat)) ->
+              (mp : FiniteSet set) ->
+              (p : (Permutation set)) ->
+              (degree : Nat) ->
+              (List Nat)
+perm_to_vec i q mp p degree =
+  let
+    pre : FiniteSet set = preimage p
+    ima : FiniteSet set = image p
+    qe : Nat = FiniteSet.lookupIndexed i pre ima
+  in 
+    if (S i) < degree
+    then perm_to_vec (S i) (qe::q) mp p degree
+    else qe::q
+
+||| convert the definition of the group in terms of a mapping between
+||| abitary sets to a definition using Nat which is easier to work with.
+||| @newGroup generators (permutations) calculated so far
+||| @words for word problem
+||| @mp   - moved points is list of elements of set which are moved.
+||| @degree - number of points being permuted.
+||| @ggg index
+||| @ggp group input
+convertToVect: Eq set => (newGroup : List (List Nat)) ->
+              (words : List (List Nat)) ->
+              (mp : FiniteSet set) ->
+              (degree : Nat) ->
+              (ggg : Nat) ->
+              (ggp: List (Permutation set)) ->
+              (List (List Nat) , List (List Nat) , Nat , List (Permutation set))
+convertToVect newGroup words mp degree ggg Nil =
+  (newGroup,words,S ggg,Nil)
+convertToVect newGroup words mp degree ggg (ggp::ggps) =
+  let
+    -- q is current generator
+    q : List Nat = perm_to_vec Z (replicate degree 0) mp ggp degree
+  in (q::newGroup,words,S ggg,ggps)
+
 {-||| orbit returns the orbit of element (el) under the
 ||| permutation p, i.e. the set which is given by applications of
 ||| the powers of p to el.

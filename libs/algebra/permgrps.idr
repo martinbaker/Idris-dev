@@ -305,61 +305,6 @@ numOfLoops maxLoops =
     then pure (cast (- maxLoops))
     else pure (cast ! (rndNum (cast maxLoops)))
 
-||| Function used locally by bsgs as first stage in
-||| constructing strong generators.
-||| Encodes a permutation as a 'vector', a list of indexes
-||| where the first entry gives the index that point 1
-||| translates to,  the second entry gives the index that
-||| point 2 translates to, and so on.
-||| There are 2 versions of this function. If S has
-||| OrderedSet then the points are sorted so that index 1
-||| is the lowest and so on.
-||| Parameter definitions:
-||| @i index to element (1..degree)
-||| @q result so far
-||| @mp   - moved points is list of elements of set
-|||          which are moved by p.
-||| @p      - permutation being converted.
-||| @degree - number of points being permuted.
-perm_to_vec : Eq set => (i : Nat) ->
-              (q : (List Nat)) ->
-              (mp : FiniteSet set) ->
-              (p : (Permutation set)) ->
-              (degree : Nat) ->
-              (List Nat)
-perm_to_vec i q mp p degree =
-  let
-    pre : FiniteSet set = preimage p
-    ima : FiniteSet set = image p
-    qe : Nat = FiniteSet.lookupIndexed i pre ima
-  in 
-    if (S i) < degree
-    then perm_to_vec (S i) (qe::q) mp p degree
-    else qe::q
-
-||| convert the definition of the group in terms of a mapping between
-||| abitary sets to a definition using Nat which is easier to work with.
-||| @newGroup generators (permutations) calculated so far
-||| @words for word problem
-||| @mp   - moved points is list of elements of set which are moved.
-||| @degree - number of points being permuted.
-||| @ggg index
-||| @ggp group input
-convertToVect: Eq set => (newGroup : List (List Nat)) ->
-              (words : List (List Nat)) ->
-              (mp : FiniteSet set) ->
-              (degree : Nat) ->
-              (ggg : Nat) ->
-              (ggp: List (Permutation set)) ->
-              (List (List Nat) , List (List Nat) , Nat , List (Permutation set))
-convertToVect newGroup words mp degree ggg Nil =
-  (newGroup,words,S ggg,Nil)
-convertToVect newGroup words mp degree ggg (ggp::ggps) =
-  let
-    -- q is current generator
-    q : List Nat = perm_to_vec Z (replicate degree 0) mp ggp degree
-  in (q::newGroup,words,S ggg,ggps)
-
 {-        for ggg in 1..#gp for ggp in gp repeat
             q := perm_to_vec(supp, ggp, degree)
             newGroup := cons(q, newGroup )
@@ -535,18 +480,12 @@ bsgs {set} group wordProblem maxLoops diff =
         --
         sgset : List (List Nat) = Nil
         wd : List (List Nat) = Nil
+        -- mp holds set of all points that move
+        mp:(FiniteSet set) = movedPointsInPerms group
         -- 'newGroup' holds permutations as vectors as they are
         -- easier to work with.
-        --(newGroup,words,_,_) : (List (List Nat),List (List Nat),Nat,(List (Permutation set))) =
-        -- params are: newGroup words mp degree ggg ggp
-        --  convertToVect Nil Nil mp degree 0 group
-        --newGroup : PermsIndexed set fs = permToVect group
-        --newGroup : PermsIndexed set (fs:(FiniteSet set)) = permToVect group
-        --newGroup = permToVect group
-        mp:(FiniteSet set) = movedPointsInPerms group
         newGroup:(PermsIndexed set mp) = permToVect mp group
         orbs : List (OrbitAndSchreier set mp) = Nil
-        --fset : FiniteSet set = getPoints newGroup
         (k1,out1,outword1,gpbase1) = 
           -- try to get the (approximate) base length by pre-calling
           -- bsgs1 with maxloops=20
@@ -1147,7 +1086,7 @@ youngGroup' l =
 --      youngGroup(lambda : Partition) : PERMGRP I ==
 --        youngGroup(convert(lambda)$Partition)
 
-
+{-
 main : IO ()
 main = 
   let
@@ -1171,6 +1110,9 @@ main =
     gd3: List (Permutation Nat) = gens d3
     mp:(FiniteSet Nat) = movedPointsInPerms gd3
     d3Group:(PermsIndexed Nat mp) = permToVect mp gd3
+    orb1= orbitWithSvc d3Group 0
+    orb2= orbitWithSvc d3Group 1
+    orb3= orbitWithSvc d3Group 2
   in
     do
       putStrLn ("permutation group cyclic 1=" ++ (show c1))
@@ -1191,7 +1133,10 @@ main =
       putStrLn ("permutation group alternating 4=" ++ (show a4))
       putStrLn ("permutation group alternating 5=" ++ (show a5))
       putStrLn ("d3 group " ++ (show gd3) ++ " vector=" ++ (show d3Group))
-
+      putStrLn ("orb for pt 0 in d3 group " ++ (show orb1))
+      putStrLn ("orb for pt 1 in d3 group " ++ (show orb2))
+      putStrLn ("orb for pt 2 in d3 group " ++ (show orb3))
+-}
 {-
 main : IO ()
 main =
