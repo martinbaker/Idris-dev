@@ -10,21 +10,22 @@
  - FriCAS is a wonderful programs but its documentation is, how can I put
  - this politely, not very good.
  - The original authors provided minimal documentation apart from a
- - reference to a paper:- C. Sims: Determining the conjugacy classes of a permutation group,
+ - reference to a paper:- C. Sims: Determining the conjugacy classes of a
+ - permutation group,
  - in Computers in Algebra and Number Theory, SIAM-AMS Proc., Vol. 4,
  - Amer. Math. Soc., Providence, R. I., 1971, pp. 191-195
  - (I can't find this paper online)
  -
  - I did find some other sources for information about the
  - Schreier-Sims algorithm such as this:
- - \url{https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm}
+ - https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm
  -
  - Waldek Hebisch referred to these notes by A. Hulpke which contain a
  - sketch of the algorithm.
- - \url{http://www.math.colostate.edu/~hulpke/CGT/cgtnotes.pdf}
+ - http://www.math.colostate.edu/~hulpke/CGT/cgtnotes.pdf
  -
  - Waldeks description on FriCAS forum here:
- - \url{https://groups.google.com/forum/?hl=en#!topic/fricas-devel/EtLwgd2dWNU}
+ - https://groups.google.com/forum/?hl=en#!topic/fricas-devel/EtLwgd2dWNU
  - 
  - I have therefore put together this together with what I have worked
  - out myself to attempt this overview of PermutationGroup code to
@@ -32,7 +33,7 @@
  -
  - I find it improves the documentation to use diagrams, I have
  - therefore put this enhanced documentation on the web page here:
- - \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/}
+ - http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/
  -}
 
 --module permgrp
@@ -355,8 +356,15 @@ bsgs1 group number1 words maxLoops gp diff out outword =
   let
     degree:Nat = permsIndexed.degree group
     wordProblem : Bool = words /= Nil
-    ort : (OrbitAndSchreier set fs) = orbitWithSvc group number1
-  in (number1,out,outword,Nil)
+    (i,ort1) : (Nat,Maybe (OrbitAndSchreier set fs))
+      = firstOrbit group
+  in 
+    case ort1 of
+      Nothing => (number1,out,outword,Nil)
+      Just ort =>
+        let
+          x : Maybe ((List Nat)) = firstMover group i
+        in (number1,out,outword,Nil)
 {-        -- try to get a good approximation for the strong generators and base
         degree := #(first(group))
         gp_info := gp.information

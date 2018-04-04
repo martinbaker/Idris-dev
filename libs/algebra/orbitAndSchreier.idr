@@ -10,21 +10,22 @@
  - FriCAS is a wonderful programs but its documentation is, how can I put
  - this politely, not very good.
  - The original authors provided minimal documentation apart from a
- - reference to a paper:- C. Sims: Determining the conjugacy classes of a permutation group,
+ - reference to a paper:- C. Sims: Determining the conjugacy classes of a
+ - permutation group,
  - in Computers in Algebra and Number Theory, SIAM-AMS Proc., Vol. 4,
  - Amer. Math. Soc., Providence, R. I., 1971, pp. 191-195
  - (I can't find this paper online)
  -
  - I did find some other sources for information about the
  - Schreier-Sims algorithm such as this:
- - \url{https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm}
+ - https://en.wikipedia.org/wiki/Schreier%E2%80%93Sims_algorithm
  -
  - Waldek Hebisch referred to these notes by A. Hulpke which contain a
  - sketch of the algorithm.
- - \url{http://www.math.colostate.edu/~hulpke/CGT/cgtnotes.pdf}
+ - http://www.math.colostate.edu/~hulpke/CGT/cgtnotes.pdf
  -
  - Waldeks description on FriCAS forum here:
- - \url{https://groups.google.com/forum/?hl=en#!topic/fricas-devel/EtLwgd2dWNU}
+ - https://groups.google.com/forum/?hl=en#!topic/fricas-devel/EtLwgd2dWNU
  - 
  - I have therefore put together this together with what I have worked
  - out myself to attempt this overview of PermutationGroup code to
@@ -32,7 +33,7 @@
  -
  - I find it improves the documentation to use diagrams, I have
  - therefore put this enhanced documentation on the web page here:
- - \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/}
+ - http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/
  -}
 
 ||| To do this we need to represent the group in a way that does not
@@ -194,6 +195,35 @@ orbitWithSvc : (Eq set) => (group :(PermsIndexed set fs)) ->
                (OrbitAndSchreier set fs)
 orbitWithSvc group point =
   orbitWithSvc1 group (invert group) point
+
+||| Returns the first non-identity orbit with point index of
+||| point on that orbit, that is orbit of
+||| first point which has an orbit length longer than 1
+||| @group    holds permutations as vectors as they are easier to
+|||           work with.
+firstOrbit : (Eq set) => (group :(PermsIndexed set fs)) ->
+                         (Nat,Maybe (OrbitAndSchreier set fs))
+firstOrbit group =
+  firstOrbit1 group 0
+  where
+    firstOrbit1 : (Eq set) => (group :(PermsIndexed set fs)) ->
+                         Nat ->
+                         (Nat,Maybe (OrbitAndSchreier set fs))
+    firstOrbit1 group point =
+      let
+        ort : OrbitAndSchreier set fs = orbitWithSvc group point
+        k : List Nat = orb ort
+        k1 : Nat = length k
+      in
+        if k1==1
+        then
+          if (degree group) < point
+          then
+            firstOrbit1 group (S point)
+          else
+            (point,Nothing)
+        else
+          (point,Just ort)
 
 ||| Return True if maps are the same but they can
 ||| be reordered and still be True provided mp and map are

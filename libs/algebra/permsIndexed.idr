@@ -229,6 +229,31 @@ convertToVect newGroup words mp degree ggg (ggp::ggps) =
     q : List Nat = perm_to_vec Z (replicate degree 0) mp ggp degree
   in (q::newGroup,words,S ggg,ggps)
 
+||| return the n th generator
+nthGen : Eq s => (g : (PermsIndexed s fs)) -> (n : Nat) -> Maybe ((List Nat))
+nthGen g n = List.index' n (perms g)
+
+||| find the first generator g that moves point p
+||| used by permgrps.bsgs1
+firstMover : Eq s => (g : (PermsIndexed s fs)) -> (p : Nat) -> Maybe ((List Nat))
+firstMover g p =
+  firstMover1 g p 0
+    where
+      firstMover1 : Eq s => (g : (PermsIndexed s fs)) ->
+                           (p : Nat) ->
+                           (i : Nat) ->
+                           Maybe ((List Nat))
+      firstMover1 g p i =
+        let
+          x =nthGen g i
+        in
+          case x of
+            Nothing => Nothing
+            Just y =>
+              if p == elementAt p y
+              then firstMover1 g p (S i)
+              else Just y
+
 {-||| orbit returns the orbit of element (el) under the
 ||| permutation p, i.e. the set which is given by applications of
 ||| the powers of p to el.
