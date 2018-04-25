@@ -81,6 +81,10 @@ getPoints y = fs
 movedPoints : Eq s => {fs:(FiniteSet s)} -> (p : (PermsIndexed s fs)) -> (FiniteSet s)
 movedPoints p = fs -- was mp p
 
+||| modify generators
+modifyGens : (p : (PermsIndexed s fs)) -> (List Nat) -> PermsIndexed s fs
+modifyGens p x = p
+
 ||| degree(p) retuns the number of points moved by the
 ||| permutation p.
 ||| @p permutation

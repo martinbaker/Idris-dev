@@ -356,9 +356,11 @@ bsgs1 group number1 words maxLoops gp diff out outword =
   let
     degree:Nat = permsIndexed.degree group
     wordProblem : Bool = words /= Nil
+    -- find moved point i, that is first point with orbit > 1
     (i,ort1) : (Nat,Maybe (OrbitAndSchreier set fs))
       = firstOrbit group
   in 
+    -- find a generator which moves point i
     case ort1 of
       Nothing => (number1,out,outword,Nil)
       Just ort =>
@@ -436,6 +438,8 @@ bsgs1 group number1 words maxLoops gp diff out outword =
         gp_info.gpbase := cons(i, gp_info.gpbase)
         sizeOfGroup
 -}
+
+
 
 ||| This is a local function to initialise base and strong
 ||| generators and other values in group:%.
@@ -1180,3 +1184,47 @@ main =
     putStrLn (show v)
     putStrLn (show v2)
 -}
+
+||| test bsgs1
+main : IO ()
+main = 
+  let
+    --group : (PermutationGroup Nat) = dihedralGroup 3
+    p : Permutation Nat =permSetFromList [1,2,3] [2,3,1]
+    p2 : Permutation Nat =permSetFromList [1,3] [3,1]
+    group : List (Permutation Nat) = [p,p2]
+    mp:(FiniteSet Nat) = movedPointsInPerms group
+    out1 : List (PermsIndexed Nat mp) = Nil
+    -- out will hold stabiliser chain
+    outword1 : List (List (List Nat)) = Nil
+    --outr : Reference(L PermsIndexed set) := ref([])
+    -- outr is reference to stabiliser chain (out above)
+    outwordr : List (List (List Nat)) = Nil
+    -- 'newGroup' holds permutations as vectors as they are
+    -- easier to work with.
+    newGroup:(PermsIndexed Nat mp) = permToVect mp group
+    --orbs : List (OrbitAndSchreier Nat mp) = Nil
+    --(number2,out2,outword2,w) : (Nat,List (PermsIndexed Nat mp),List (List (List Nat)),List Nat) =
+    --    bsgs1 newGroup 1 Nil maxLoops2 group 0 out1 outword1
+    -- internals of bsgs1
+    degree:Nat = permsIndexed.degree newGroup
+    wordProblem : Bool = outword1 /= Nil
+    -- find moved point i, that is first point with orbit > 1
+    (i,ort1) : (Nat,Maybe (OrbitAndSchreier set fs))
+      = firstOrbit newGroup
+    -- find a generator x which moves point i
+    genjj: Maybe ((List Nat)) = firstMover newGroup i
+    gpsgs :(PermsIndexed Nat mp) = case genjj  of
+      Nothing => newGroup
+      Just x => modifyGens newGroup x
+  in do
+    --putStrLn ("number=" ++ (show number2))
+    --putStrLn ("out=" ++ (show out2))
+    --putStrLn ("outwordr2=" ++ (show outword2))
+    --putStrLn ("w=" ++ (show w))
+    putStrLn ("group=" ++ (show newGroup))
+    putStrLn ("degree=" ++ (show degree))
+    putStrLn ("i=" ++ (show i))
+    putStrLn ("ort1=" ++ (show ort1))
+    putStrLn ("genjj generator which moves i=" ++ (show genjj))
+    putStrLn ("gpsgs=" ++ (show gpsgs))
