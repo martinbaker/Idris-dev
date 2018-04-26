@@ -1216,7 +1216,7 @@ main =
     genjj: Maybe ((List Nat)) = firstMover newGroup i
     gpsgs :(PermsIndexed Nat mp) = case genjj  of
       Nothing => newGroup
-      Just x => modifyGens newGroup x
+      Just x => modifyGens newGroup x i
   in do
     --putStrLn ("number=" ++ (show number2))
     --putStrLn ("out=" ++ (show out2))

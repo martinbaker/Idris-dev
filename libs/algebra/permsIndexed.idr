@@ -81,10 +81,6 @@ getPoints y = fs
 movedPoints : Eq s => {fs:(FiniteSet s)} -> (p : (PermsIndexed s fs)) -> (FiniteSet s)
 movedPoints p = fs -- was mp p
 
-||| modify generators
-modifyGens : (p : (PermsIndexed s fs)) -> (List Nat) -> PermsIndexed s fs
-modifyGens p x = p
-
 ||| degree(p) retuns the number of points moved by the
 ||| permutation p.
 ||| @p permutation
@@ -257,6 +253,21 @@ firstMover g p =
               if p == elementAt p y
               then firstMover1 g p (S i)
               else Just y
+
+||| modify generators so no generators stabilise i
+||| used by bsgs1
+||| @p initial generators
+||| @x non trivial element (element that does not stabise i
+||| @i point which will not be stabilised
+modifyGens : (p : (PermsIndexed s fs)) -> (x:(List Nat)) -> (i:Nat) -> PermsIndexed s fs
+modifyGens p x i =
+  MkPermsIndexed (modyfyGens1 (perms p) x i) where
+    modyfyGens1 : (List (List Nat)) -> (List Nat) -> Nat -> (List (List Nat))
+    modyfyGens1 Nil x1 i1 = Nil
+    modyfyGens1 (p1::ps) x1 i1 =
+      if index' i1 p1 == Just i1
+      then (p1 * x1)::(modyfyGens1 ps x1 i1)
+      else p1::(modyfyGens1 ps x1 i1)
 
 {-||| orbit returns the orbit of element (el) under the
 ||| permutation p, i.e. the set which is given by applications of
