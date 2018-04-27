@@ -1185,6 +1185,28 @@ main =
     putStrLn (show v2)
 -}
 
+||| find generators for stabiliser
+||| used in bsgs1
+||| @j starting value 15
+||| @group original group
+||| @group2In generators so far
+||| @ort orbit and stabiliser
+||| @maxloops maximum length of loops
+findGensForStab : (j:Int) ->
+                  (group:(PermsIndexed Nat mp)) ->
+                  (group2In :List (List Nat)) ->
+                  (ort :(OrbitAndSchreier set fs)) ->
+                  (maxloops:Nat) ->
+                  Eff (Int,List (List Nat)) [RND, SYSTEM]
+findGensForStab j group group2In ort maxloops =
+  if j>0
+  then 
+    let
+      ran : (List Nat) = [1] --randEle maxloops group
+    in
+      pure (j,Nil)
+  else pure (j,group2In)
+
 ||| test bsgs1
 main : IO ()
 main = 
@@ -1203,28 +1225,32 @@ main =
     -- 'newGroup' holds permutations as vectors as they are
     -- easier to work with.
     newGroup:(PermsIndexed Nat mp) = permToVect mp group
-    --orbs : List (OrbitAndSchreier Nat mp) = Nil
-    --(number2,out2,outword2,w) : (Nat,List (PermsIndexed Nat mp),List (List (List Nat)),List Nat) =
-    --    bsgs1 newGroup 1 Nil maxLoops2 group 0 out1 outword1
-    -- internals of bsgs1
     degree:Nat = permsIndexed.degree newGroup
     wordProblem : Bool = outword1 /= Nil
     -- find moved point i, that is first point with orbit > 1
-    (i,ort1) : (Nat,Maybe (OrbitAndSchreier set fs))
+    (i,ort1) : (Nat,Maybe (OrbitAndSchreier Nat mp))
       = firstOrbit newGroup
-    -- find a generator x which moves point i
+    -- genjj : a generator x which moves point i
     genjj: Maybe ((List Nat)) = firstMover newGroup i
+    -- gpsgs : set of generators where none stabilise point i
     gpsgs :(PermsIndexed Nat mp) = case genjj  of
       Nothing => newGroup
       Just x => modifyGens newGroup x i
   in do
-    --putStrLn ("number=" ++ (show number2))
-    --putStrLn ("out=" ++ (show out2))
-    --putStrLn ("outwordr2=" ++ (show outword2))
-    --putStrLn ("w=" ++ (show w))
+    (g4s,randomInteger) <- run $ do
+      --(randomInteger) <- run $ do
+      rndNumInit 1
+      randomInteger' <- rndNum 3
+      let x : (OrbitAndSchreier Nat mp) = case ort1 of
+          Nothing => MkOrbSch Nil Nil
+          Just y => y
+      gens4Stab <- findGensForStab 15 newGroup Nil x 20
+      --pure (randomInteger')
+      pure (gens4Stab,randomInteger')
     putStrLn ("group=" ++ (show newGroup))
     putStrLn ("degree=" ++ (show degree))
     putStrLn ("i=" ++ (show i))
     putStrLn ("ort1=" ++ (show ort1))
     putStrLn ("genjj generator which moves i=" ++ (show genjj))
     putStrLn ("gpsgs=" ++ (show gpsgs))
+    putStrLn ("GensForStab=" ++ (show g4s))
