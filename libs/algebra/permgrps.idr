@@ -1253,11 +1253,16 @@ findGensForStab j group group2In ort maxloops =
       ran <- ranelt (perms group) Nil (cast maxloops)
       str <- strip1 (elt ran) ort group []
       let el2 : List Nat = elt str
+      let isMem:Bool = (testIdentity el2) || (member group el2)
+      let group3In:List (List Nat) =
+        if isMem
+        then group2In
+        else (el2::group2In)
       let j2:Int =
-        if testIdentity el2
+        if isMem
         then j-1
-        else j-2
-      pure (j,Nil)
+        else j-3
+      findGensForStab j2 group group3In ort maxloops
   else pure (j,group2In)
 
 ||| test bsgs1

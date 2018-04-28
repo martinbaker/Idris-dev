@@ -269,6 +269,14 @@ modifyGens p x i =
       then (p1 * x1)::(modyfyGens1 ps x1 i1)
       else p1::(modyfyGens1 ps x1 i1)
 
+||| returns true if x is a generator of p
+member : (p : (PermsIndexed s fs)) -> (x:(List Nat)) -> Bool
+member p x =
+  let
+    gens : (List (List Nat)) = perms p
+  in
+    elem x gens
+
 {-||| orbit returns the orbit of element (el) under the
 ||| permutation p, i.e. the set which is given by applications of
 ||| the powers of p to el.
