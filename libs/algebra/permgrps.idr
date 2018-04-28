@@ -174,6 +174,42 @@ times p q =
         in
           compose as bs cs (c::ds)
 
+||| Local function used by bsgs1
+||| If the given element is in group calculate its normal form.
+||| Multiply element by coset representation.
+||| The coset is determined by point: Take point as the first
+||| point listed in orb and look that up in element.
+||| Parameters:
+||| @element  V NNI
+||| @orbit  orbit and Schreier vector
+|||            REC:Record ( orb : L NNI, svc : V I )
+||| @group L V NNI the group generators
+||| @words words if used
+||| Result:
+|||  REC3:Record(elt : V NNI, lst : L NNI)
+||| It is hard to describe these functions without diagrams so
+||| I have put a better explanation here:
+||| \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#strip1}
+strip1 : (element : List Nat) ->
+         (orbit :(OrbitAndSchreier set fs)) ->
+         (group:(PermsIndexed set fs)) ->
+         (words : List (List Nat)) ->
+         Eff Rec3 [RND,SYSTEM]
+strip1 element orbit group words =
+  pure (Record3 [] [] 1)
+{-        grpv := vector(group)$Vector(V NNI)
+        -- grpv expresses the group as a vector of vectors.
+        wordv : V L NNI := empty()
+        do_words := not(empty?(words))
+        if do_words then
+            wordv := vector(words)
+        -- qelt(orbit.orb, 1) gives base element
+        -- then we apply 'element' generator to this.
+        point := qelt(element, qelt(orbit.orb, 1))
+        cr := cosetRep1(point, do_words, orbit, grpv, wordv)
+        [times(cr.elt, element), reverse(cr.lst)]$REC3
+-}
+
 ||| At start of program Initialise random number generator
 ||| by setting seed to system time.
 rndNumInit : Nat -> Eff Integer [RND, SYSTEM]
@@ -1185,6 +1221,18 @@ main =
     putStrLn (show v2)
 -}
 
+||| is identity if element at position n is n
+||| for every element
+testIdentity : (List Nat) -> Bool
+testIdentity x =
+  testIdentity' x 0 where
+    testIdentity' : (List Nat) -> Nat -> Bool
+    testIdentity' Nil n = True
+    testIdentity' (x::xs) n =
+      if x==n
+      then testIdentity' xs (S n)
+      else False
+
 ||| find generators for stabiliser
 ||| used in bsgs1
 ||| @j starting value 15
@@ -1195,15 +1243,20 @@ main =
 findGensForStab : (j:Int) ->
                   (group:(PermsIndexed Nat mp)) ->
                   (group2In :List (List Nat)) ->
-                  (ort :(OrbitAndSchreier set fs)) ->
+                  (ort :(OrbitAndSchreier Nat mp)) ->
                   (maxloops:Nat) ->
                   Eff (Int,List (List Nat)) [RND, SYSTEM]
 findGensForStab j group group2In ort maxloops =
   if j>0
-  then 
-    let
-      ran : (List Nat) = [1] --randEle maxloops group
-    in
+  then
+    do
+      ran <- ranelt (perms group) Nil (cast maxloops)
+      str <- strip1 (elt ran) ort group []
+      let el2 : List Nat = elt str
+      let j2:Int =
+        if testIdentity el2
+        then j-1
+        else j-2
       pure (j,Nil)
   else pure (j,group2In)
 
