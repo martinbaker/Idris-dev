@@ -174,6 +174,93 @@ times p q =
         in
           compose as bs cs (c::ds)
 
+||| Local function used by strip1 and bsgs.
+||| Calculate coset representative from orbit.
+||| The representative is a group element (permutation in the form
+||| of a vector), not necessarily a generator.
+||| The element we want is an element that returns given point
+||| to the base point. That is, given 'ppt' return 'g' such that:
+||| eval(g,ppt) = base point
+||| Parameters:
+||| @ppt : NNI is input point.
+||| @do_words - true if set for word problem
+||| @o        - orbit and Schreier vector for required base.
+|||                REC:Record (orb:L NNI,svc:V I)
+||| @grpv     - group gens defined as vector of a vector.
+||| @wordv    - used for word problem.
+||| Result is permutation (group element) and word:
+|||  REC3:Record(elt : V NNI, lst : L NNI)
+||| It is hard to describe these functions without diagrams so
+||| I have put a better explanation here:
+||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#cosetRep1
+cosetRep1 : (ppt : Nat) -> (do_words : Bool) ->
+            (o : (OrbitAndSchreier set fs)) ->
+            (grpv : List (List Nat)) ->
+            (wordv : List (List Nat)) -> Rec3
+cosetRep1 ppt do_words o grpv wordv =
+  let
+    f: List Nat = case grpv of
+      Nil => []
+      (x::xs) => x
+    degree:Nat = minus (length f) 1
+    xelt:List Nat = [0..degree]
+    oorb: List Nat= orb o -- does not appear to be used
+    osvc: List Int = svc o
+    pm: Maybe Int = index' ppt osvc
+    -- p is current point in svc
+    -- "-2" means not in the orbit, "-1" means base point,
+    -- in these cases return identity vector.
+    p:Int = case pm of
+      Nothing => 0
+      Just y => y
+    tmpv : List Nat = Nil
+  in
+    if p<0
+    then (Record3 xelt [] ppt)
+    else
+      cosetRep' xelt tmpv grpv ppt (cast p) where
+        cosetRep' : (xelt:List Nat) -> (List Nat) ->
+                  (grpv : List (List Nat)) ->
+                  Nat -> Nat -> Rec3
+        cosetRep' xelt tmpv grpv ppt p =
+          let
+            xm: Maybe (List Nat) = index' p grpv
+            x: List Nat = case xm of
+              Nothing => []
+              Just y => y
+            tmpv2: List Nat = times x xelt
+          in
+            (Record3 xelt [] p)
+{-        #grpv = 0 => error "cosetRep needs nonempty group"
+        degree := #(grpv(1))
+        -- init xelt to identity generator
+        xelt : V NNI := [ n for n in 1..degree ]
+        word         := []$(L NNI)
+        oorb         := o.orb
+        -- oorb is orbit which has type L NNI
+        -- FIXME oorb does not appear to be used?
+        osvc         := o.svc
+        -- osvc is Schreier vector which has type V I
+        p := qelt(osvc, ppt)
+        -- p is current point in svc
+        -- "-2" means not in the orbit, "-1" means base point,
+        -- in these cases return identity vector.
+        p < 0 => return [xelt, word]
+        tmpv : V NNI := new(degree, 0)
+        repeat
+            x    := qelt(grpv, p)
+            -- select generator
+            times!(tmpv, x, xelt)
+            (tmpv, xelt) := (xelt, tmpv)
+            if do_words then word := append(wordv.p, word)
+            -- apply permutation to get next point
+            ppt  := qelt(x, ppt)
+            -- lookup point in Schreier vector
+            p := qelt(osvc, ppt)
+            -- if starting point then return
+            p < 0 => return [xelt, word]
+-}
+
 ||| Local function used by bsgs1
 ||| If the given element is in group calculate its normal form.
 ||| Multiply element by coset representation.
@@ -189,14 +276,30 @@ times p q =
 |||  REC3:Record(elt : V NNI, lst : L NNI)
 ||| It is hard to describe these functions without diagrams so
 ||| I have put a better explanation here:
-||| \url{http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#strip1}
+||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#strip1
 strip1 : (element : List Nat) ->
          (orbit :(OrbitAndSchreier set fs)) ->
          (group:(PermsIndexed set fs)) ->
          (words : List (List Nat)) ->
-         Eff Rec3 [RND,SYSTEM]
+         Rec3
 strip1 element orbit group words =
-  pure (Record3 [] [] 1)
+  let
+    grpv : List (List Nat) = perms group
+    orb1 : List Nat = orb orbit
+    -- orb1 is list of points on orbit
+    orbp1 : Nat = case orb1 of
+      Nil => 0
+      (x::xs) => x
+    -- orbp1 is first point in orbit
+    pointM : Maybe Nat = index' orbp1 element
+    point : Nat = case pointM of
+      Nothing => 0
+      Just y => y
+    cr : Rec3 = cosetRep1 point False orbit grpv Nil
+    cre : List Nat = elt cr
+    cret : List Nat = times cre element
+  in
+    (Record3 cret [] 1)
 {-        grpv := vector(group)$Vector(V NNI)
         -- grpv expresses the group as a vector of vectors.
         wordv : V L NNI := empty()
@@ -1251,7 +1354,7 @@ findGensForStab j group group2In ort maxloops =
   then
     do
       ran <- ranelt (perms group) Nil (cast maxloops)
-      str <- strip1 (elt ran) ort group []
+      let str : Rec3 = strip1 (elt ran) ort group []
       let el2 : List Nat = elt str
       let isMem:Bool = (testIdentity el2) || (member group el2)
       let group3In:List (List Nat) =
