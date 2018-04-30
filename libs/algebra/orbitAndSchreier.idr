@@ -163,7 +163,7 @@ orbitWithSvc1 group grpinv point =
               then replaceNth newPoint2 (cast i) schreierVector
               else schreierVector
           in (mix4 orbit2 orbitv2 orbit_size2 schreierVector2 position2 (S i) gs)
-      
+
         mix3 : (List Nat) -> -- orbit initialised to: [point=x where x=0,1,2]
                (List Nat) -> -- orbitv initialised to: [point,0,0]
                Nat ->        -- orbit size initialised to 1
@@ -176,7 +176,7 @@ orbitWithSvc1 group grpinv point =
           let
             (orbit,orbitv,orbit_size,schreierVector,position) =
               mix4 orbit orbitv orbit_size schreierVector (S a) 0 (perms grpinv)
-          in 
+          in
             case position of
               Z => MkOrbSch (reverse orbit) schreierVector
               (S p) => mix3 orbit orbitv orbit_size schreierVector p
@@ -255,7 +255,7 @@ orbitWithSvc1Test group grpinv point =
     orbit_size : Nat = 1
     schreierVector : List Int = replaceNth point (-1) (replicate degree (-2))
     position : Nat = 1
-  in 
+  in
     (mix4 orbit orbitv orbit_size schreierVector position 0 (perms grpinv))
       where
         mix4 : (List Nat) ->

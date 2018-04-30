@@ -9,6 +9,7 @@ pkgs = effects
 modules = finiteSet
         , cycle
         , perm
+        , permIndexedElement
         , permsIndexed
         , orbitAndSchreier
         , permgrps

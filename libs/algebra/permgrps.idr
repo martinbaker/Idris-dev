@@ -152,27 +152,14 @@ show a =
 ||| internal multiplication of permutations
 ||| (multiply means compose permutations)
 times : ( p : List Nat) ->( q : List Nat ) -> (List Nat)
-times p q =
+times Nil q = Nil
+times (p1::ps) q =
   let
-    pIn : List Nat = [1..(length p)]
-  in reverse (compose pIn p q Nil)
-    where
-      compose : (List Nat) -> (List Nat) -> (List Nat) -> (List Nat) -> (List Nat)
-      compose Nil bs cs ds = ds
-      compose (Z::as) bs cs ds = (Z::ds)
-      compose ((S a)::as) bs cs ds =
-        let
-          bm : Maybe Nat = List.index' a bs
-          b : Nat = case bm of
-            Nothing => 0
-            Just Z => 0
-            Just (S x) => x
-          cm : Maybe Nat = List.index' b cs
-          c : Nat = case cm of
-            Nothing => 0
-            Just x => x
-        in
-          compose as bs cs (c::ds)
+    pOutM : Maybe Nat = List.index' p1 q
+    pOut : Nat = case pOutM of
+      Nothing => 0
+      Just p2 => p2
+  in pOut::(times ps q)
 
 ||| Local function used by strip1 and bsgs.
 ||| Calculate coset representative from orbit.
@@ -204,7 +191,7 @@ cosetRep1 ppt do_words o grpv wordv =
       (x::xs) => x
     degree:Nat = minus (length f) 1
     xelt:List Nat = [0..degree]
-    oorb: List Nat= orb o -- does not appear to be used
+    -- oorb: List Nat= orb o -- does not appear to be used
     osvc: List Int = svc o
     pm: Maybe Int = index' ppt osvc
     -- p is current point in svc
@@ -213,54 +200,40 @@ cosetRep1 ppt do_words o grpv wordv =
     p:Int = case pm of
       Nothing => 0
       Just y => y
-    tmpv : List Nat = Nil
   in
     if p<0
     then (Record3 xelt [] ppt)
     else
-      cosetRep' xelt tmpv grpv ppt (cast p) where
-        cosetRep' : (xelt:List Nat) -> (List Nat) ->
+      cosetRep' xelt Nil grpv osvc ppt (cast p) where
+        cosetRep' : (xelt:List Nat) ->
+                  (tmpv : (List Nat)) ->
                   (grpv : List (List Nat)) ->
+                  (osvc: List Int) ->
                   Nat -> Nat -> Rec3
-        cosetRep' xelt tmpv grpv ppt p =
+        cosetRep' xelt tmpv grpv osvc ppt p =
           let
             xm: Maybe (List Nat) = index' p grpv
+            -- select generator
             x: List Nat = case xm of
               Nothing => []
               Just y => y
             tmpv2: List Nat = times x xelt
-          in
-            (Record3 xelt [] p)
-{-        #grpv = 0 => error "cosetRep needs nonempty group"
-        degree := #(grpv(1))
-        -- init xelt to identity generator
-        xelt : V NNI := [ n for n in 1..degree ]
-        word         := []$(L NNI)
-        oorb         := o.orb
-        -- oorb is orbit which has type L NNI
-        -- FIXME oorb does not appear to be used?
-        osvc         := o.svc
-        -- osvc is Schreier vector which has type V I
-        p := qelt(osvc, ppt)
-        -- p is current point in svc
-        -- "-2" means not in the orbit, "-1" means base point,
-        -- in these cases return identity vector.
-        p < 0 => return [xelt, word]
-        tmpv : V NNI := new(degree, 0)
-        repeat
-            x    := qelt(grpv, p)
-            -- select generator
-            times!(tmpv, x, xelt)
-            (tmpv, xelt) := (xelt, tmpv)
-            if do_words then word := append(wordv.p, word)
             -- apply permutation to get next point
-            ppt  := qelt(x, ppt)
+            pptm : Maybe Nat = index' ppt x
+            ppt: Nat = case pptm of
+              Nothing => 0
+              Just y => y
             -- lookup point in Schreier vector
-            p := qelt(osvc, ppt)
+            pm : Maybe Int = index' ppt osvc
+            p: Int = case pm of
+              Nothing => 0
+              Just y => y
             -- if starting point then return
-            p < 0 => return [xelt, word]
--}
-
+          in
+            if p<0
+            then (Record3 tmpv2 [] ppt)
+            else cosetRep' tmpv2 xelt grpv osvc ppt (cast p)
+            
 ||| Local function used by bsgs1
 ||| If the given element is in group calculate its normal form.
 ||| Multiply element by coset representation.
@@ -299,19 +272,7 @@ strip1 element orbit group words =
     cre : List Nat = elt cr
     cret : List Nat = times cre element
   in
-    (Record3 cret [] 1)
-{-        grpv := vector(group)$Vector(V NNI)
-        -- grpv expresses the group as a vector of vectors.
-        wordv : V L NNI := empty()
-        do_words := not(empty?(words))
-        if do_words then
-            wordv := vector(words)
-        -- qelt(orbit.orb, 1) gives base element
-        -- then we apply 'element' generator to this.
-        point := qelt(element, qelt(orbit.orb, 1))
-        cr := cosetRep1(point, do_words, orbit, grpv, wordv)
-        [times(cr.elt, element), reverse(cr.lst)]$REC3
--}
+    (Record3 cret [] point)
 
 ||| At start of program Initialise random number generator
 ||| by setting seed to system time.
@@ -1397,17 +1358,58 @@ main =
     gpsgs :(PermsIndexed Nat mp) = case genjj  of
       Nothing => newGroup
       Just x => modifyGens newGroup x i
+    a:List Nat = [2,0,1]
+    b:List Nat = [0,1,2]
+    c:List Nat = times a b
   in do
-    (g4s,randomInteger) <- run $ do
-      --(randomInteger) <- run $ do
+    (grpv',point',cr',ort',ran',str',g4s) <- run $ do
       rndNumInit 1
-      randomInteger' <- rndNum 3
+      --randomInteger' <- rndNum 3
       let x : (OrbitAndSchreier Nat mp) = case ort1 of
           Nothing => MkOrbSch Nil Nil
           Just y => y
-      gens4Stab <- findGensForStab 15 newGroup Nil x 20
-      --pure (randomInteger')
-      pure (gens4Stab,randomInteger')
+      ------------------------------------------------
+      --gens4Stab <- findGensForStab 15 newGroup Nil x 20
+      ---------- inside findGensForStab ---------------
+      --findGensForStab j group group2In ort maxloops =
+      let j:Int = 15
+      let group2In:List (List Nat) = Nil
+      let ort: (OrbitAndSchreier Nat mp)= x
+      let maxloops: Nat= 2
+      ran <- ranelt (perms newGroup) Nil (cast maxloops)
+      --------------------------------------------------
+      -- let str : Rec3 = strip1 (elt ran) ort newGroup []
+      --------- inside strip1 --------------------------
+      let element : List Nat = elt ran
+      let grpv : List (List Nat) = perms newGroup
+      let orb1 : List Nat = orb ort
+      -- orb1 is list of points on orbit
+      let orbp1 : Nat = case orb1 of
+        Nil => 0
+        (x::xs) => x
+      -- orbp1 is first point in orbit
+      let pointM : Maybe Nat = index' orbp1 element
+      let point : Nat = case pointM of
+        Nothing => 0
+        Just y => y
+      let     cr : Rec3 = cosetRep1 point False ort grpv Nil
+      let     cre : List Nat = elt cr
+      let     cret : List Nat = times cre element
+      let str : Rec3 = (Record3 cret [] point)
+      ------- end of inside strip 1 --------------------
+      let el2 : List Nat = elt str
+      let isMem:Bool = (testIdentity el2) || (member newGroup el2)
+      let group3In:List (List Nat) =
+        if isMem
+        then group2In
+        else (el2::group2In)
+      let j2:Int =
+        if isMem
+        then j-1
+        else j-3
+      gens4Stab <- findGensForStab j2 newGroup group3In ort maxloops
+      -------- end inside findGensForStab -------------
+      pure (grpv,point,cr,ort,ran,str,gens4Stab)
     putStrLn ("group=" ++ (show newGroup))
     putStrLn ("degree=" ++ (show degree))
     putStrLn ("i=" ++ (show i))
@@ -1415,3 +1417,10 @@ main =
     putStrLn ("genjj generator which moves i=" ++ (show genjj))
     putStrLn ("gpsgs=" ++ (show gpsgs))
     putStrLn ("GensForStab=" ++ (show g4s))
+    putStrLn ("ort=" ++ (show ort'))
+    putStrLn ("ran=" ++ (show ran'))
+    putStrLn ("point=" ++ (show point'))
+    putStrLn ("grpv=" ++ (show grpv'))
+    putStrLn ("cr=" ++ (show cr'))
+    putStrLn ("str=" ++ (show str'))
+    --putStrLn ("a=" ++ (show a) ++" b=" ++ (show b) ++" c=" ++ (show c))
