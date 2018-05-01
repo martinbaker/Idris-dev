@@ -133,20 +133,6 @@ record PermutationGroup set where
    ||| random methods.
    information:(GrpInfo set)
 
-{-
-||| internal multiplication of permutations
-||| (multiply means compose permutations)
-times : ( p : List Nat) ->( q : List Nat ) -> (List Nat)
-times Nil q = Nil
-times (p1::ps) q =
-  let
-    pOutM : Maybe Nat = List.index' p1 q
-    pOut : Nat = case pOutM of
-      Nothing => 0
-      Just p2 => p2
-  in pOut::(times ps q)
--}
-
 ||| Local function used by strip1 and bsgs.
 ||| Calculate coset representative from orbit.
 ||| The representative is a group element (permutation in the form

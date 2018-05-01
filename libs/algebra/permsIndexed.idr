@@ -34,6 +34,7 @@ module permsIndexed
 --import Effects
 import public finiteSet
 import public perm
+import public permIndexedElement
 --import Effect.Exception
 
 %access public export
@@ -42,8 +43,25 @@ import public perm
 ||| Represents the permutation as a set together with a map defined
 ||| by a list of indexes into the set.
 record PermsIndexed set (x:(FiniteSet set)) where
-   constructor MkPermsIndexed
-   perms:(List (List Nat))
+   constructor MkPermsIndex
+   --perms:(List (List Nat))
+   gensIndexed : List PermIndexedElement
+
+||| zip up permutations only
+MkPermsIndexed : (List (List Nat)) -> (PermsIndexed set fs)
+MkPermsIndexed Nil = MkPermsIndex []
+MkPermsIndexed m = MkPermsIndex (mpi m) where
+  mpi : (List (List Nat)) -> List PermIndexedElement
+  mpi Nil = Nil
+  mpi (x::xs) = (PIE x [] 0)::(mpi xs)
+
+||| unzip to permutations only
+perms : (PermsIndexed set fs) -> (List (List Nat))
+perms p = perms' (gensIndexed p) where
+  perms' : (List PermIndexedElement) -> (List (List Nat))
+  perms' Nil = Nil
+  perms' (x::xs) =
+    (elt x)::(perms' xs)
 
 ||| auxilary constructor - unit
 ||| This constructs the special permutation that does nothing.
