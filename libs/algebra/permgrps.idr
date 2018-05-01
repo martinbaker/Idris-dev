@@ -71,6 +71,7 @@ module Main
 -- to use Idris type system to make then impossible.
 import public finiteSet
 import public perm
+import public permIndexedElement
 import public permsIndexed
 import public orbitAndSchreier
 import public Effects
@@ -132,23 +133,7 @@ record PermutationGroup set where
    ||| random methods.
    information:(GrpInfo set)
 
-||| REC3 holds an element and a word
-record Rec3 where
-   constructor Record3
-   ||| element
-   elt : List Nat
-   ||| word
-   lst : List Nat
-   |||
-   val : Nat
-
-show : Rec3 -> String
-show a =
-  let
-    s1:String = Prelude.Show.show (elt a)
-    s2:String = Prelude.Show.show (lst a)
-  in "Rec3:" ++ s1 ++ ":" ++ s2 ++ ":" ++ show (val a)
-
+{-
 ||| internal multiplication of permutations
 ||| (multiply means compose permutations)
 times : ( p : List Nat) ->( q : List Nat ) -> (List Nat)
@@ -160,6 +145,7 @@ times (p1::ps) q =
       Nothing => 0
       Just p2 => p2
   in pOut::(times ps q)
+-}
 
 ||| Local function used by strip1 and bsgs.
 ||| Calculate coset representative from orbit.
@@ -183,14 +169,14 @@ times (p1::ps) q =
 cosetRep1 : (ppt : Nat) -> (do_words : Bool) ->
             (o : (OrbitAndSchreier set fs)) ->
             (grpv : List (List Nat)) ->
-            (wordv : List (List Nat)) -> Rec3
+            (wordv : List (List Nat)) -> PermIndexedElement
 cosetRep1 ppt do_words o grpv wordv =
   let
     f: List Nat = case grpv of
       Nil => []
       (x::xs) => x
     degree:Nat = minus (length f) 1
-    xelt:List Nat = [0..degree]
+    xelt:PermIndexedElement = PIE [0..degree] [] 3
     -- oorb: List Nat= orb o -- does not appear to be used
     osvc: List Int = svc o
     pm: Maybe Int = index' ppt osvc
@@ -202,14 +188,14 @@ cosetRep1 ppt do_words o grpv wordv =
       Just y => y
   in
     if p<0
-    then (Record3 xelt [] ppt)
+    then xelt
     else
-      cosetRep' xelt Nil grpv osvc ppt (cast p) where
-        cosetRep' : (xelt:List Nat) ->
-                  (tmpv : (List Nat)) ->
+      cosetRep' xelt (PIE [] [] 3) grpv osvc ppt (cast p) where
+        cosetRep' : (xelt:PermIndexedElement) ->
+                  (tmpv : PermIndexedElement) ->
                   (grpv : List (List Nat)) ->
                   (osvc: List Int) ->
-                  Nat -> Nat -> Rec3
+                  Nat -> Nat -> PermIndexedElement
         cosetRep' xelt tmpv grpv osvc ppt p =
           let
             xm: Maybe (List Nat) = index' p grpv
@@ -217,12 +203,10 @@ cosetRep1 ppt do_words o grpv wordv =
             x: List Nat = case xm of
               Nothing => []
               Just y => y
-            tmpv2: List Nat = times x xelt
+            x1:PermIndexedElement=PIE x Nil 3
+            tmpv2: PermIndexedElement = x1 * xelt
             -- apply permutation to get next point
-            pptm : Maybe Nat = index' ppt x
-            ppt: Nat = case pptm of
-              Nothing => 0
-              Just y => y
+            ppt:Nat = evalv x1 ppt
             -- lookup point in Schreier vector
             pm : Maybe Int = index' ppt osvc
             p: Int = case pm of
@@ -231,7 +215,7 @@ cosetRep1 ppt do_words o grpv wordv =
             -- if starting point then return
           in
             if p<0
-            then (Record3 tmpv2 [] ppt)
+            then tmpv2
             else cosetRep' tmpv2 xelt grpv osvc ppt (cast p)
             
 ||| Local function used by bsgs1
@@ -254,7 +238,7 @@ strip1 : (element : List Nat) ->
          (orbit :(OrbitAndSchreier set fs)) ->
          (group:(PermsIndexed set fs)) ->
          (words : List (List Nat)) ->
-         Rec3
+         PermIndexedElement
 strip1 element orbit group words =
   let
     grpv : List (List Nat) = perms group
@@ -268,11 +252,12 @@ strip1 element orbit group words =
     point : Nat = case pointM of
       Nothing => 0
       Just y => y
-    cr : Rec3 = cosetRep1 point False orbit grpv Nil
-    cre : List Nat = elt cr
-    cret : List Nat = times cre element
+    cr : PermIndexedElement = cosetRep1 point False orbit grpv Nil
+    --cre : List Nat = elt cr
+    e:PermIndexedElement = PIE element Nil 3
+    cret : PermIndexedElement = cr * e
   in
-    (Record3 cret [] point)
+    cret
 
 ||| At start of program Initialise random number generator
 ||| by setting seed to system time.
@@ -289,7 +274,7 @@ rndNum last = rndInt 0 (cast last)
 ranelt : (group : List (List Nat)) ->
          (word : List (List Nat)) ->
          (maxLoops : Integer) ->
-         Eff Rec3 [RND,SYSTEM]
+         Eff PermIndexedElement [RND,SYSTEM]
 ranelt group word maxLoops =
   let
     numberOfGenerators:Nat = length group
@@ -309,9 +294,9 @@ ranelt group word maxLoops =
       then cast (- maxLoops)
       else cast ! (rndNum (cast maxLoops))
   in 
-    mix (Record3 randomElement words randomInteger) numberOfLoops numberOfGenerators doWords
+    mix (PIE randomElement words randomInteger) numberOfLoops numberOfGenerators doWords
       where
-        mix : Rec3 -> Nat -> Nat -> Bool -> Eff Rec3 [RND,SYSTEM]
+        mix : PermIndexedElement -> Nat -> Nat -> Bool -> Eff PermIndexedElement [RND,SYSTEM]
         mix r Z n w = pure r
         mix r (S a) n w =
          let
@@ -320,7 +305,8 @@ ranelt group word maxLoops =
            randomElement2 : List Nat = case index' randomInteger2 group of
              Nothing => Nil
              Just b => b
-           randomElement3 : List Nat = times (elt r) randomElement2
+           re2 : PermIndexedElement = PIE randomElement2 Nil 3
+           re3 : PermIndexedElement  =  r * re2
            w3 : List Nat =
              if w
              then 
@@ -330,7 +316,7 @@ ranelt group word maxLoops =
                    Just b => b
                in (lst r) ++ words2
              else (lst r)
-         in mix (Record3 randomElement3 w3 randomInteger2) a n w
+         in mix re3 a n w
 
 ||| return a random element (permutation) from a PermutationGroup
 random : Eq set => (group : (PermutationGroup set)) ->
@@ -1315,7 +1301,7 @@ findGensForStab j group group2In ort maxloops =
   then
     do
       ran <- ranelt (perms group) Nil (cast maxloops)
-      let str : Rec3 = strip1 (elt ran) ort group []
+      let str : PermIndexedElement = strip1 (elt ran) ort group []
       let el2 : List Nat = elt str
       let isMem:Bool = (testIdentity el2) || (member group el2)
       let group3In:List (List Nat) =
@@ -1358,9 +1344,9 @@ main =
     gpsgs :(PermsIndexed Nat mp) = case genjj  of
       Nothing => newGroup
       Just x => modifyGens newGroup x i
-    a:List Nat = [2,0,1]
-    b:List Nat = [0,1,2]
-    c:List Nat = times a b
+    --a:List Nat = [2,0,1]
+    --b:List Nat = [0,1,2]
+    --c:List Nat = times a b
   in do
     (grpv',point',cr',ort',ran',str',g4s) <- run $ do
       rndNumInit 1
@@ -1378,7 +1364,7 @@ main =
       let maxloops: Nat= 2
       ran <- ranelt (perms newGroup) Nil (cast maxloops)
       --------------------------------------------------
-      -- let str : Rec3 = strip1 (elt ran) ort newGroup []
+      -- let str : PermIndexedElement = strip1 (elt ran) ort newGroup []
       --------- inside strip1 --------------------------
       let element : List Nat = elt ran
       let grpv : List (List Nat) = perms newGroup
@@ -1392,10 +1378,10 @@ main =
       let point : Nat = case pointM of
         Nothing => 0
         Just y => y
-      let     cr : Rec3 = cosetRep1 point False ort grpv Nil
+      let     cr : PermIndexedElement = cosetRep1 point False ort grpv Nil
       let     cre : List Nat = elt cr
-      let     cret : List Nat = times cre element
-      let str : Rec3 = (Record3 cret [] point)
+      let e : PermIndexedElement = PIE element Nil 3
+      let str : PermIndexedElement = cr * e
       ------- end of inside strip 1 --------------------
       let el2 : List Nat = elt str
       let isMem:Bool = (testIdentity el2) || (member newGroup el2)

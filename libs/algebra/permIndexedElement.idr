@@ -38,7 +38,8 @@ import public perm
 
 %access public export
 
-||| REC3 holds an element and a word
+||| PermIndexedElement holds an element (single permutation)
+||| and a word
 record PermIndexedElement where
    constructor PIE
    ||| element as single permutation
