@@ -55,7 +55,9 @@ MkPermsIndexed m = MkPermsIndex (mpi m) where
   mpi Nil = Nil
   mpi (x::xs) = (PIE x [] 0)::(mpi xs)
 
+
 ||| unzip to permutations only
+||| used in show and == (should really find a beeter way)
 perms : (PermsIndexed set fs) -> (List (List Nat))
 perms p = perms' (gensIndexed p) where
   perms' : (List PermIndexedElement) -> (List (List Nat))
@@ -68,6 +70,7 @@ perms p = perms' (gensIndexed p) where
 unitv : Eq s => PermsIndexed s empty
 unitv = MkPermsIndexed Nil
 
+{-
 ||| eval returns the image of element (el) under the
 ||| permutation p.
 ||| @p single permutation as a list of indexes
@@ -77,10 +80,12 @@ evalv p el =
   case List.index' el p of
     Nothing => el
     Just x => x
+-}
 
 getPoints : {fs:(FiniteSet set)} -> (PermsIndexed set fs) -> (FiniteSet set)
 getPoints y = fs
 
+{-
 ||| Multiplcation of permutations represents composition.
 ||| That is the result is the same a taking the first permutation
 ||| and applying the second permutation to the result of the first.
@@ -93,6 +98,7 @@ getPoints y = fs
       compose : (List Nat) -> (List Nat) -> (List Nat)
       compose Nil _ = Nil
       compose (q::qs) p = (evalv p q)::(compose qs p)
+-}
 
 ||| movedPoints(p) returns the set of points moved by the permutation p.
 ||| @p permutation
@@ -105,35 +111,23 @@ movedPoints p = fs -- was mp p
 degree : Eq s => {fs:(FiniteSet s)} -> (p : (PermsIndexed s fs)) ->  Nat
 degree p = order (movedPoints p)
 
-||| Attempt to find the nth element of a set.
-||| If the provided index is out of bounds, return Nothing.
-||| Only valid for cases of set where order is significant
-elementAt : (n : Nat) -> (l : List Nat) -> Nat
-elementAt Z     (x::xs) = x --Just x
-elementAt (S n) (x::xs) = elementAt n xs
-elementAt _ [] = 0 --Nothing
-
-||| local function for invert
-invertInd : Nat ->  (List Nat) -> (List Nat) -> (List Nat)
-invertInd i v soFar =
-  if (length soFar) == (length v)
-  then soFar
-  else invertInd (S i) v ((elementAt i v)::soFar)
-
-||| local function for invert
-inv : List (List Nat) -> List (List Nat)
-inv [] = []
-inv (v::vs) = (invertInd Z v Nil)::(inv vs)
-
 ||| invert permutation, that is, reverse all generators.
 ||| @p permutation to be inverted
 invert : Eq s => {fs:(FiniteSet s)} -> (p : (PermsIndexed s fs)) -> (PermsIndexed s fs)
 invert p =
   let
    --points : FiniteSet s = fs -- was mp p
-   indexes : List (List Nat) = perms p
-   invIndexes : List (List Nat) = inv indexes
-  in MkPermsIndexed invIndexes
+   indexes : List PermIndexedElement = gensIndexed p
+  in MkPermsIndex (inv indexes) where
+    ||| local function for invert
+    inv : List PermIndexedElement -> List PermIndexedElement
+    inv [] = []
+    inv (v::vs) = (invertEle v)::(inv vs)
+
+elemAt : (n : Nat) -> (l : List Nat) -> Nat
+elemAt Z     (x::xs) = x
+elemAt (S n) (x::xs) = elemAt n xs
+elemAt _ [] = 0
 
 ||| covert a preimage-image instance of permutation to a vector type
 ||| @p preimage-image instance of permutation to be converted.
@@ -159,7 +153,7 @@ permToVectSingle p allMoved =
         let
           a : Nat = case (elemIndex n preImIndex) of
             Nothing => n
-            Just b => elementAt b imIndex
+            Just b => elemAt b imIndex
         in 
           if
             (S n) >= siz
@@ -248,22 +242,22 @@ convertToVect newGroup words mp degree ggg (ggp::ggps) =
   in (q::newGroup,words,S ggg,ggps)
 
 ||| return the n th generator
-nthGen : Eq s => (g : (PermsIndexed s fs)) -> (n : Nat) -> Maybe ((List Nat))
-nthGen g n = List.index' n (perms g)
+nthGen : Eq s => (g : (PermsIndexed s fs)) -> (n : Nat) -> Maybe PermIndexedElement
+nthGen g n = List.index' n (gensIndexed g)
 
 ||| find the first generator g that moves point p
 ||| used by permgrps.bsgs1
-firstMover : Eq s => (g : (PermsIndexed s fs)) -> (p : Nat) -> Maybe ((List Nat))
+firstMover : Eq s => (g : (PermsIndexed s fs)) -> (p : Nat) -> Maybe PermIndexedElement
 firstMover g p =
   firstMover1 g p 0
     where
       firstMover1 : Eq s => (g : (PermsIndexed s fs)) ->
                            (p : Nat) ->
                            (i : Nat) ->
-                           Maybe ((List Nat))
+                           Maybe PermIndexedElement
       firstMover1 g p i =
         let
-          x =nthGen g i
+          x:Maybe PermIndexedElement =nthGen g i
         in
           case x of
             Nothing => Nothing
@@ -277,21 +271,22 @@ firstMover g p =
 ||| @p initial generators
 ||| @x non trivial element (element that does not stabise i
 ||| @i point which will not be stabilised
-modifyGens : (p : (PermsIndexed s fs)) -> (x:(List Nat)) -> (i:Nat) -> PermsIndexed s fs
+modifyGens : (p : (PermsIndexed s fs)) -> (x:PermIndexedElement) -> (i:Nat) -> PermsIndexed s fs
 modifyGens p x i =
-  MkPermsIndexed (modyfyGens1 (perms p) x i) where
-    modyfyGens1 : (List (List Nat)) -> (List Nat) -> Nat -> (List (List Nat))
+  MkPermsIndex (modyfyGens1 (gensIndexed p) x i) where
+    modyfyGens1 : (List PermIndexedElement) -> PermIndexedElement -> Nat -> (List PermIndexedElement)
     modyfyGens1 Nil x1 i1 = Nil
     modyfyGens1 (p1::ps) x1 i1 =
-      if index' i1 p1 == Just i1
+      --if index' i1 p1 == Just i1
+      if evalv p1 i1 == i1
       then (p1 * x1)::(modyfyGens1 ps x1 i1)
       else p1::(modyfyGens1 ps x1 i1)
 
 ||| returns true if x is a generator of p
-member : (p : (PermsIndexed s fs)) -> (x:(List Nat)) -> Bool
+member : (p : (PermsIndexed s fs)) -> (x:PermIndexedElement) -> Bool
 member p x =
   let
-    gens : (List (List Nat)) = perms p
+    gens : List PermIndexedElement = gensIndexed p
   in
     elem x gens
 

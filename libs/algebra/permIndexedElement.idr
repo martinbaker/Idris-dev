@@ -50,12 +50,12 @@ record PermIndexedElement where
    ||| length of both elt and lst
    ln : Nat
 
-show : PermIndexedElement -> String
-show a =
-  let
-    s1:String = Prelude.Show.show (elt a)
-    s2:String = Prelude.Show.show (lst a)
-  in "PIE:" ++ s1 ++ ":" ++ s2 ++ ":" ++ show (ln a)
+implementation Show PermIndexedElement where
+  show a =
+    let
+      s1:String = Prelude.Show.show (elt a)
+      s2:String = Prelude.Show.show (lst a)
+    in "PIE:" ++ s1 ++ ":" ++ s2 ++ ":" ++ show (ln a)
 
 ||| elements are the same if permutations are the same
 implementation Eq PermIndexedElement where
@@ -96,3 +96,31 @@ evalv p el =
         compose Nil _ = Nil
         compose (q::qs) p1 = (evalv p1 q)::(compose qs p1)
 
+||| Attempt to find the nth element of a set.
+||| If the provided index is out of bounds, return Nothing.
+||| Only valid for cases of set where order is significant
+elementAt : (n : Nat) -> (p : PermIndexedElement) -> Nat
+elementAt n p = elementAt' n (elt p)  where
+  elementAt' : (n : Nat) -> (l : List Nat) -> Nat
+  elementAt' Z     (x::xs) = x
+  elementAt' (S n) (x::xs) = elementAt' n xs
+  elementAt' _ [] = 0
+
+length : (p : PermIndexedElement) -> Nat
+length p = length (elt p)
+
+||| local function for invert
+||| @e element to be inverted
+invertEle : (e:PermIndexedElement) -> PermIndexedElement
+invertEle e =
+  let
+    l:Nat = length e
+    ew:List Nat = lst e
+  in
+    PIE (invertInd Z e Nil) (reverse ew) l
+      where
+        invertInd : Nat -> PermIndexedElement -> (List Nat) -> (List Nat)
+        invertInd i v soFar =
+          if (length soFar) == (length v)
+          then soFar
+          else invertInd (S i) v ((elementAt i v)::soFar)
