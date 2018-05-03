@@ -55,7 +55,7 @@ MkPermsIndexed m = MkPermsIndex (mpi m) where
   mpi Nil = Nil
   mpi (x::xs) = (PIE x [] 0)::(mpi xs)
 
-
+{-
 ||| unzip to permutations only
 ||| used in show and == (should really find a beeter way)
 perms : (PermsIndexed set fs) -> (List (List Nat))
@@ -64,23 +64,33 @@ perms p = perms' (gensIndexed p) where
   perms' Nil = Nil
   perms' (x::xs) =
     (elt x)::(perms' xs)
+-}
 
 ||| auxilary constructor - unit
-||| This constructs the special permutation that does nothing.
+||| This constructs the special permutation.
 unitv : Eq s => PermsIndexed s empty
 unitv = MkPermsIndexed Nil
 
-{-
+||| identity permutation that does nothing.
+id : (PermsIndexed set fs) -> PermIndexedElement
+id p =
+  let
+    f: PermIndexedElement = case gensIndexed p of
+      Nil => PIE [] [] 0
+      (x::xs) => x
+    degree:Nat = minus (length f) 1
+  in PIE [0..degree] [] degree
+
+
 ||| eval returns the image of element (el) under the
 ||| permutation p.
 ||| @p single permutation as a list of indexes
 ||| @el element index to be evaluated
-evalv : (p : (List Nat)) -> (el : Nat) -> Nat
+evalv : (p : (PermsIndexed set fs)) -> (el : Nat) -> PermIndexedElement
 evalv p el =
-  case List.index' el p of
-    Nothing => el
+  case List.index' el (gensIndexed p) of
+    Nothing => PIE [] [] 0
     Just x => x
--}
 
 getPoints : {fs:(FiniteSet set)} -> (PermsIndexed set fs) -> (FiniteSet set)
 getPoints y = fs
@@ -313,11 +323,10 @@ orbit p el = buildOrbit p el empty
 implementation Eq (PermsIndexed s fs) where
   (==) a b = 
     --((mp a) == (mp b)) && ((perms a) == (perms b))
-    ((perms a) == (perms b))
+    ((gensIndexed a) == (gensIndexed b))
 
 
 --implementation Show fs => Show PermsIndexed (fs:(FiniteSet s)) where
 implementation Show (PermsIndexed s fs) where
-    --show a = "permsIndexed " ++(show (mp a)) ++ (show (perms a))
-    show a = "permsIndexed " ++ (show (perms a))
+    show a = "permsIndexed " ++ (show (gensIndexed a))
 

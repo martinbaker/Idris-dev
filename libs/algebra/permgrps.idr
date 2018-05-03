@@ -154,54 +154,40 @@ record PermutationGroup set where
 ||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#cosetRep1
 cosetRep1 : (ppt : Nat) -> (do_words : Bool) ->
             (o : (OrbitAndSchreier set fs)) ->
-            (grpv : List PermIndexedElement) ->
+            (grpv : PermsIndexed set fs) ->
             (wordv : List (List Nat)) -> PermIndexedElement
 cosetRep1 ppt do_words o grpv wordv =
   let
-    f: PermIndexedElement = case grpv of
-      Nil => PIE [] [] 0
-      (x::xs) => x
-    degree:Nat = minus (length f) 1
-    xelt:PermIndexedElement = PIE [0..degree] [] 3
-    -- oorb: List Nat= orb o -- does not appear to be used
+    xelt:PermIndexedElement = id grpv
     osvc: List Int = svc o
-    pm: Maybe Int = index' ppt osvc
     -- p is current point in svc
     -- "-2" means not in the orbit, "-1" means base point,
     -- in these cases return identity vector.
-    p:Int = case pm of
-      Nothing => 0
-      Just y => y
+    p:Int = evalSvc o ppt
   in
     if p<0
     then xelt
     else
-      cosetRep' xelt (PIE [] [] 3) grpv osvc ppt (cast p) where
+      cosetRep' xelt grpv o ppt (cast p) where
+        -- @xelt current permutation
+        -- @grpv generators
         cosetRep' : (xelt:PermIndexedElement) ->
-                  (tmpv : PermIndexedElement) ->
-                  (grpv : List PermIndexedElement) ->
-                  (osvc: List Int) ->
+                  (grpv : PermsIndexed set fs) ->
+                  (o : (OrbitAndSchreier set fs)) ->
                   Nat -> Nat -> PermIndexedElement
-        cosetRep' xelt tmpv grpv osvc ppt p =
+        cosetRep' xelt grpv osvc ppt p =
           let
-            xm: Maybe PermIndexedElement = index' p grpv
             -- select generator
-            x: PermIndexedElement = case xm of
-              Nothing => PIE [] [] 0
-              Just y => y
-            tmpv2: PermIndexedElement = x * xelt
+            x: PermIndexedElement = evalv grpv p
+            tmpv: PermIndexedElement = x * xelt
             -- apply permutation to get next point
             ppt:Nat = evalv x ppt
             -- lookup point in Schreier vector
-            pm : Maybe Int = index' ppt osvc
-            p: Int = case pm of
-              Nothing => 0
-              Just y => y
-            -- if starting point then return
+            p:Int = evalSvc o ppt
           in
             if p<0
-            then tmpv2
-            else cosetRep' tmpv2 xelt grpv osvc ppt (cast p)
+            then tmpv
+            else cosetRep' tmpv grpv o ppt (cast p)
             
 ||| Local function used by bsgs1
 ||| If the given element is in group calculate its normal form.
@@ -209,13 +195,12 @@ cosetRep1 ppt do_words o grpv wordv =
 ||| The coset is determined by point: Take point as the first
 ||| point listed in orb and look that up in element.
 ||| Parameters:
-||| @element  V NNI
+||| @element  an element in the group
 ||| @orbit  orbit and Schreier vector
-|||            REC:Record ( orb : L NNI, svc : V I )
-||| @group L V NNI the group generators
+||| @group the group generators
 ||| @words words if used
 ||| Result:
-|||  REC3:Record(elt : V NNI, lst : L NNI)
+|||  element multiplied by its coset representation
 ||| It is hard to describe these functions without diagrams so
 ||| I have put a better explanation here:
 ||| http://www.euclideanspace.com/prog/scratchpad/mycode/discrete/finiteGroup/index.htm#strip1
@@ -234,9 +219,7 @@ strip1 element orbit group words =
       (x::xs) => x
     -- orbp1 is first point in orbit
     point : Nat = evalv element orbp1
-    cr : PermIndexedElement = cosetRep1 point False orbit grpv Nil
-    --cre : List Nat = elt cr
-    --e:PermIndexedElement = PIE element Nil 3
+    cr : PermIndexedElement = cosetRep1 point False orbit group Nil
     cret : PermIndexedElement = cr * element
   in
     cret
@@ -330,27 +313,6 @@ random group maximalNumberOfFactors =
               Just x => x
           in mix2 a numberOfGenerators gp (randomElement * randomElement2)
 
-{-
-    if S has OrderedSet then
-        -- return list of points and also put into information.mp
-        pointList(group : %) : L S ==
-            not(empty?(group.information.mp)) => group.information.mp
-            support : L S := []
-            for perm in group.gens repeat
-                support := merge(sort((listRepresentation perm).preimage),
-                                 support)
-            res :  L S := []
-            empty?(support) => res
-            p0 := first(support)
-            res := [p0]
-            for p in rest(support) repeat
-                p = p0 => "iterate"
-                p0 := p
-                res := cons(p, res)
-            group.information.mp := reverse!(res)
-    else
--}
-
 ||| return list of points that are moved to put into information.mp
 pointList : (Eq set) => (group : (List (Permutation set))) ->
             FiniteSet set ->
@@ -379,6 +341,51 @@ numOfLoops maxLoops =
             newGroup := cons(q, newGroup )
             if wordProblem then words := cons(list ggg, words)
 -}
+
+||| is identity if element at position n is n
+||| for every element
+testIdentity : (List Nat) -> Bool
+testIdentity x =
+  testIdentity' x 0 where
+    testIdentity' : (List Nat) -> Nat -> Bool
+    testIdentity' Nil n = True
+    testIdentity' (x::xs) n =
+      if x==n
+      then testIdentity' xs (S n)
+      else False
+
+||| find generators for stabiliser
+||| used in bsgs1
+||| @j starting value 15
+||| @group original group
+||| @group2In generators so far
+||| @ort orbit and stabiliser
+||| @maxloops maximum length of loops
+findGensForStab : (j:Int) ->
+                  (group:(PermsIndexed Nat mp)) ->
+                  (group2In :List PermIndexedElement) ->
+                  (ort :(OrbitAndSchreier Nat mp)) ->
+                  (maxloops:Nat) ->
+                  Eff (Int,List PermIndexedElement) [RND, SYSTEM]
+findGensForStab j group group2In ort maxloops =
+  if j>0
+  then
+    do
+      ran <- ranelt (gensIndexed group) Nil (cast maxloops)
+      let str : PermIndexedElement = strip1 ran ort group []
+      let el2 : List Nat = elt str
+      let isMem:Bool = (testIdentity el2) || (member group str)
+      let group3In:List PermIndexedElement =
+        if isMem
+        then group2In
+        else (str::group2In)
+      let j2:Int =
+        if isMem
+        then j-1
+        else j-3
+      findGensForStab j2 group group3In ort maxloops
+  else pure (j,group2In)
+
 
 ||| Local function used by bsgs
 ||| Tries to get a good approximation for the base points which
@@ -427,6 +434,25 @@ bsgs1 group number1 words maxLoops gp diff out outword =
     -- find moved point i, that is first point with orbit > 1
     (i,ort1) : (Nat,Maybe (OrbitAndSchreier set fs))
       = firstOrbit group
+    -- genjj : a generator x which moves point i
+    genjj: Maybe PermIndexedElement = firstMover group i
+    -- gpsgs : set of generators where none stabilise point i
+{-    gpsgs :(PermsIndexed Nat mp) = case genjj  of
+      Nothing => group
+      Just x => modifyGens group x i
+-}
+{-  in do
+    (grpv',point',cr',ort',ran',str',g4s) <- run $ do
+      rndNumInit 1
+      --randomInteger' <- rndNum 3
+      let x : (OrbitAndSchreier Nat mp) = case ort1 of
+          Nothing => MkOrbSch Nil Nil
+          Just y => y
+      ------------------------------------------------
+      gens4Stab <- findGensForStab 15 newGroup Nil x 20
+      pure (grpv,point,cr,ort,ran,str,gens4Stab)
+    (number1,out,outword,Nil)
+-}
   in 
     -- find a generator which moves point i
     case ort1 of
@@ -435,6 +461,7 @@ bsgs1 group number1 words maxLoops gp diff out outword =
         let
           x : Maybe PermIndexedElement = firstMover group i
         in (number1,out,outword,Nil)
+
 {-        -- try to get a good approximation for the strong generators and base
         degree := #(first(group))
         gp_info := gp.information
@@ -1253,49 +1280,6 @@ main =
     putStrLn (show v2)
 -}
 
-||| is identity if element at position n is n
-||| for every element
-testIdentity : (List Nat) -> Bool
-testIdentity x =
-  testIdentity' x 0 where
-    testIdentity' : (List Nat) -> Nat -> Bool
-    testIdentity' Nil n = True
-    testIdentity' (x::xs) n =
-      if x==n
-      then testIdentity' xs (S n)
-      else False
-
-||| find generators for stabiliser
-||| used in bsgs1
-||| @j starting value 15
-||| @group original group
-||| @group2In generators so far
-||| @ort orbit and stabiliser
-||| @maxloops maximum length of loops
-findGensForStab : (j:Int) ->
-                  (group:(PermsIndexed Nat mp)) ->
-                  (group2In :List PermIndexedElement) ->
-                  (ort :(OrbitAndSchreier Nat mp)) ->
-                  (maxloops:Nat) ->
-                  Eff (Int,List PermIndexedElement) [RND, SYSTEM]
-findGensForStab j group group2In ort maxloops =
-  if j>0
-  then
-    do
-      ran <- ranelt (gensIndexed group) Nil (cast maxloops)
-      let str : PermIndexedElement = strip1 ran ort group []
-      let el2 : List Nat = elt str
-      let isMem:Bool = (testIdentity el2) || (member group str)
-      let group3In:List PermIndexedElement =
-        if isMem
-        then group2In
-        else (str::group2In)
-      let j2:Int =
-        if isMem
-        then j-1
-        else j-3
-      findGensForStab j2 group group3In ort maxloops
-  else pure (j,group2In)
 
 ||| test bsgs1
 main : IO ()
@@ -1315,6 +1299,7 @@ main =
     -- 'newGroup' holds permutations as vectors as they are
     -- easier to work with.
     newGroup:(PermsIndexed Nat mp) = permToVect mp group
+    -------------- start of bsgs1 ------------------
     degree:Nat = permsIndexed.degree newGroup
     wordProblem : Bool = outword1 /= Nil
     -- find moved point i, that is first point with orbit > 1
@@ -1326,9 +1311,6 @@ main =
     gpsgs :(PermsIndexed Nat mp) = case genjj  of
       Nothing => newGroup
       Just x => modifyGens newGroup x i
-    --a:List Nat = [2,0,1]
-    --b:List Nat = [0,1,2]
-    --c:List Nat = times a b
   in do
     (grpv',point',cr',ort',ran',str',g4s) <- run $ do
       rndNumInit 1
@@ -1357,7 +1339,7 @@ main =
         (x::xs) => x
       -- orbp1 is first point in orbit
       let point : Nat = evalv element orbp1
-      let cr : PermIndexedElement = cosetRep1 point False ort grpv Nil
+      let cr : PermIndexedElement = cosetRep1 point False ort newGroup Nil
       let str : PermIndexedElement = cr * element
       ------- end of inside strip 1 --------------------
       let el2 : List Nat = elt str -- remove this

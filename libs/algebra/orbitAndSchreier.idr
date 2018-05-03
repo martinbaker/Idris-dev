@@ -95,6 +95,32 @@ replaceNth n newVal (x::xs) =
     Z => newVal::xs
     (S a) => x::(replaceNth a newVal xs)
 
+||| eval returns the image of element (el) under the
+||| permutation p.
+||| @p single permutation as a list of indexes
+||| @el element index to be evaluated
+evalOrb : (p : OrbitAndSchreier set fs) -> (el : Nat) -> Nat
+evalOrb p el =
+  let
+    p1:List Nat = orb p
+  in
+    case List.index' el p1 of
+      Nothing => el
+      Just x => x
+
+||| eval returns the image of element (el) under the
+||| permutation p.
+||| @p single permutation as a list of indexes
+||| @el element index to be evaluated
+evalSvc : (p : OrbitAndSchreier set fs) -> (el : Nat) -> Int
+evalSvc p el =
+  let
+    p1:List Int = svc p
+  in
+    case List.index' el p1 of
+      Nothing => -2
+      Just x => x
+
 ||| Local function used by orbitWithSvc which is used by bsgs1
 ||| Given a set of generators and a point this calculates the
 ||| orbit and schreierVector.
@@ -112,8 +138,8 @@ orbitWithSvc1 : (Eq set) => (group :(PermsIndexed set fs)) ->
                (point : Nat) -> (OrbitAndSchreier set fs)
 orbitWithSvc1 group grpinv point =
   let
-    fst : List Nat = case head' (perms group) of
-      Nothing => Nil
+    fst : PermIndexedElement = case head' (gensIndexed group) of
+      Nothing => PIE [] [] 0
       Just b => b
     degree : Nat = length fst
     orbit : List Nat = [ point ]
@@ -132,7 +158,7 @@ orbitWithSvc1 group grpinv point =
                (List Int) -> -- schreierVector
                Nat ->        -- position
                Nat ->        -- i - index of current permutation
-               (List (List Nat)) -> -- remaining inverse permutations
+               (List PermIndexedElement) -> -- remaining inverse permutations
                ((List Nat),(List Nat),Nat,(List Int),Nat)
         mix4 orbit orbitv orbit_size schreierVector position i Nil=
           (orbit,orbitv,orbit_size,schreierVector,position)
@@ -143,9 +169,10 @@ orbitWithSvc1 group grpinv point =
               Nothing => 0
               Just b => b
             -- newPoint set to current point
-            newPoint2 : Nat = case index' newPoint grv of
-              Nothing => 0
-              Just b => b
+            newPoint2 : Nat = evalv grv newPoint
+            --  case index' newPoint grv of
+            --    Nothing => 0
+            --    Just b => b
             -- newPoint set to preimage of current point
             newPoint3 : Int = case index' newPoint2 schreierVector of
               Nothing => 0
@@ -175,7 +202,7 @@ orbitWithSvc1 group grpinv point =
         mix3 orbit orbitv orbit_size schreierVector (S a) =
           let
             (orbit,orbitv,orbit_size,schreierVector,position) =
-              mix4 orbit orbitv orbit_size schreierVector (S a) 0 (perms grpinv)
+              mix4 orbit orbitv orbit_size schreierVector (S a) 0 (gensIndexed grpinv)
           in
             case position of
               Z => MkOrbSch (reverse orbit) schreierVector
@@ -244,8 +271,8 @@ orbitWithSvc1Test : (Eq set) => (group :(PermsIndexed set fs)) ->
                ((List Nat),(List Nat),Nat,(List Int),Nat)
 orbitWithSvc1Test group grpinv point =
   let
-    fst : List Nat = case head' (perms group) of
-      Nothing => Nil
+    fst : PermIndexedElement = case head' (gensIndexed group) of
+      Nothing => PIE [] [] 0
       Just b => b
     degree : Nat = length fst
     orbit : List Nat = [ point ]
@@ -256,14 +283,14 @@ orbitWithSvc1Test group grpinv point =
     schreierVector : List Int = replaceNth point (-1) (replicate degree (-2))
     position : Nat = 1
   in
-    (mix4 orbit orbitv orbit_size schreierVector position 0 (perms grpinv))
+    (mix4 orbit orbitv orbit_size schreierVector position 0 (gensIndexed grpinv))
       where
         mix4 : (List Nat) ->
                (List Nat) ->
                Nat ->
                (List Int) ->
                Nat -> Nat ->
-               (List (List Nat)) ->
+               (List PermIndexedElement) ->
                ((List Nat),(List Nat),Nat,(List Int),Nat)
         mix4 orbit orbitv orbit_size schreierVector position i Nil=
           (orbit,orbitv,orbit_size,schreierVector,position)
@@ -273,9 +300,10 @@ orbitWithSvc1Test group grpinv point =
             newPoint : Nat = case index' ptr orbitv of
               Nothing => 0
               Just b => b
-            newPoint2 : Nat = case index' newPoint grv of
-              Nothing => 0
-              Just b => b
+            newPoint2 : Nat = evalv grv newPoint
+            --  case index' newPoint grv of
+            --    Nothing => 0
+            --    Just b => b
             newPoint3 : Int = case index' newPoint2 schreierVector of
               Nothing => 0
               Just b => b
