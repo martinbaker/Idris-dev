@@ -113,9 +113,34 @@ implementation Show set => Show (GrpInfo set) where
       "groupInfo order=" ++ (show (order a)) ++
       " sgset=" ++ (show (sgset a)) ++
       " gpbase=" ++ (show (gpbase a)) ++
+      " mp=" ++ (show (mp a)) ++
       " orbs=" ++ (show (orbs a)) ++
       " wd=" ++ (show (wd a)) ++ "\n" ++
       " vecRep=" ++ (show (vecRep a))
+
+||| Btfs1Output holds extra information about group in representation
+||| to improve efficiency of some functions.
+record Bsgs1Output set (fs:FiniteSet set) where
+   constructor MkBsgs1Output
+   ||| k
+   pk : Nat
+   ||| out      Reference to stabiliser chain which can be appended
+   |||          by this function. The first value stabilises most
+   |||          points, next value less points and so on.
+   pout : List (PermsIndexed set fs)
+   ||| outword  Reference to words (if used) for stabiliser chain.
+   poutword : List (List (List Nat))
+   ||| gpbase temp may be removed
+   pgpbase : List Nat
+
+--implementation Show set => Show (Bsgs1Output set (fs:FiniteSet set)) where
+implementation Show (Bsgs1Output set fs) where
+    show a = 
+      "Bsgs1Output k=" ++ (show (pk a)) ++
+      " out=" ++ (show (pout a)) ++
+      " outword=" ++ (show (poutword a)) ++
+      " gpbase=" ++ (show (pgpbase a))
+
 
 ||| This type represents the whole group, not an element of the group.
 ||| The 'gens' component completely defines the group as a list
@@ -226,20 +251,20 @@ strip1 element orbit group words =
 
 ||| At start of program Initialise random number generator
 ||| by setting seed to system time.
-rndNumInit : Nat -> Eff Integer [RND, SYSTEM]
+rndNumInit : Nat -> Eff Integer [RND]
 rndNumInit last = do
-    srand !time
+    --srand !time
     rndInt 0 (cast last)
 
 ||| get a random number between 0 and last
-rndNum : Nat -> Eff Integer [RND, SYSTEM]
+rndNum : Nat -> Eff Integer [RND]
 rndNum last = rndInt 0 (cast last)
 
 ||| Local function used by bsgs1 to generate a "random" element.
 ranelt : (group : List PermIndexedElement) ->
          (word : List (List Nat)) ->
          (maxLoops : Integer) ->
-         Eff PermIndexedElement [RND,SYSTEM]
+         Eff PermIndexedElement [RND]
 ranelt group word maxLoops =
   let
     numberOfGenerators:Nat = length group
@@ -261,7 +286,7 @@ ranelt group word maxLoops =
   in 
     mix randomElement numberOfLoops numberOfGenerators doWords
       where
-        mix : PermIndexedElement -> Nat -> Nat -> Bool -> Eff PermIndexedElement [RND,SYSTEM]
+        mix : PermIndexedElement -> Nat -> Nat -> Bool -> Eff PermIndexedElement [RND]
         mix r Z n w = pure r
         mix r (S a) n w =
          let
@@ -286,7 +311,7 @@ ranelt group word maxLoops =
 ||| return a random element (permutation) from a PermutationGroup
 random : Eq set => (group : (PermutationGroup set)) ->
          (maximalNumberOfFactors : Nat) ->
-         Eff (Permutation set) [RND,SYSTEM]
+         Eff (Permutation set) [RND]
 random group maximalNumberOfFactors =
   let
     gp : (List (Permutation set)) = gens group
@@ -302,7 +327,7 @@ random group maximalNumberOfFactors =
       where
         mix2 : Nat -> Nat ->
                (List (Permutation set)) ->
-               (Permutation set) -> Eff (Permutation set) [RND,SYSTEM]
+               (Permutation set) -> Eff (Permutation set) [RND]
         mix2 Z _ _ randomElement = pure randomElement
         mix2 (S a) numberOfGenerators gp randomElement =
           let
@@ -325,12 +350,12 @@ pointList (g::gs) a =
   in pointList gs totalMoved
 
 
-randEle : Nat -> List (List Nat) -> Eff (List Nat) [RND, SYSTEM]
+randEle : Nat -> List (List Nat) -> Eff (List Nat) [RND]
 randEle randomInteger group = case index' randomInteger group of
      Nothing => pure Nil
      Just x => pure x
 
-numOfLoops : Int ->  Eff Nat [RND, SYSTEM]
+numOfLoops : Int ->  Eff Nat [RND]
 numOfLoops maxLoops =
     if maxLoops < 0
     then pure (cast (- maxLoops))
@@ -366,7 +391,7 @@ findGensForStab : (j:Int) ->
                   (group2In :List PermIndexedElement) ->
                   (ort :(OrbitAndSchreier Nat mp)) ->
                   (maxloops:Nat) ->
-                  Eff (Int,List PermIndexedElement) [RND, SYSTEM]
+                  Eff (Int,List PermIndexedElement) [RND]
 findGensForStab j group group2In ort maxloops =
   if j>0
   then
@@ -426,8 +451,8 @@ bsgs1 : (Eq set) => (group :(PermsIndexed set fs)) ->
         (diff : Int) ->
         (out : List (PermsIndexed set fs)) ->
         (outword : List (List (List Nat))) ->
-        (Nat,List (PermsIndexed set fs),List (List (List Nat)),List Nat)
-bsgs1 group number1 words maxLoops gp diff out outword =
+        Eff (Bsgs1Output set fs) [RND]
+bsgs1 {fs} {set} group number1 words maxLoops gp diff out outword =
   let
     degree:Nat = permsIndexed.degree group
     wordProblem : Bool = words /= Nil
@@ -437,10 +462,9 @@ bsgs1 group number1 words maxLoops gp diff out outword =
     -- genjj : a generator x which moves point i
     genjj: Maybe PermIndexedElement = firstMover group i
     -- gpsgs : set of generators where none stabilise point i
-{-    gpsgs :(PermsIndexed Nat mp) = case genjj  of
+    gpsgs :(PermsIndexed set fs) = case genjj  of
       Nothing => group
       Just x => modifyGens group x i
--}
 {-  in do
     (grpv',point',cr',ort',ran',str',g4s) <- run $ do
       rndNumInit 1
@@ -456,11 +480,11 @@ bsgs1 group number1 words maxLoops gp diff out outword =
   in 
     -- find a generator which moves point i
     case ort1 of
-      Nothing => (number1,out,outword,Nil)
+      Nothing => pure (MkBsgs1Output number1 out outword Nil)
       Just ort =>
         let
           x : Maybe PermIndexedElement = firstMover group i
-        in (number1,out,outword,Nil)
+        in pure (MkBsgs1Output number1 out outword Nil)
 
 {-        -- try to get a good approximation for the strong generators and base
         degree := #(first(group))
@@ -560,7 +584,7 @@ bsgs : (Eq set) => (group : (List (Permutation set))) ->
        (wordProblem : Bool) ->
        (maxLoops : Nat) ->
        (diff : Int) ->
-       (GrpInfo set)
+       Eff (GrpInfo set) [RND]
 bsgs {set} group wordProblem maxLoops diff =
   let
     basePoint : Nat = 0
@@ -575,11 +599,13 @@ bsgs {set} group wordProblem maxLoops diff =
     -- put list of points into supp and also put into
     -- information.mp
     -- mp was supp
-    mp : FiniteSet set = pointList group FiniteSet.empty
+    mp:(FiniteSet set) = permsIndexed.movedPointsInPerms group
+    --mpTemp : FiniteSet set = pointList group FiniteSet.empty
     degree : Nat = order mp
   in
+    --pure (MkGrpInfo 1 Nil Nil empty Nil Nil unitv)
     if degree == 0
-    then MkGrpInfo 1 Nil Nil empty Nil Nil unitv
+    then pure (MkGrpInfo 1 Nil Nil empty Nil Nil unitv)
     else
       let
         --tmpv : List Nat = replicate degree 0
@@ -588,23 +614,29 @@ bsgs {set} group wordProblem maxLoops diff =
         sgset : List (List Nat) = Nil
         wd : List (List Nat) = Nil
         -- mp holds set of all points that move
-        mp:(FiniteSet set) = movedPointsInPerms group
         -- 'newGroup' holds permutations as vectors as they are
         -- easier to work with.
         newGroup:(PermsIndexed set mp) = permToVect mp group
         orbs : List (OrbitAndSchreier set mp) = Nil
-        (k1,out1,outword1,gpbase1) = 
+        outEmpty : List (PermsIndexed set mp) = Nil
+        outWordEmpty : List (List (List Nat)) = Nil
+        baseEmpty : List Nat = Nil
           -- try to get the (approximate) base length by pre-calling
           -- bsgs1 with maxloops=20
+        x : (Bsgs1Output set mp) =
           if maxLoops < 1
-          then bsgs1 newGroup 1 Nil 20 group 0 Nil Nil
-          else (maxLoops,Nil,Nil,Nil)
+          then ! (bsgs1 newGroup 1 Nil 20 group 0 outEmpty Nil)
+          else (MkBsgs1Output maxLoops outEmpty outWordEmpty baseEmpty)
+        gpbase1:List Nat = pgpbase x
+        out1 : List (PermsIndexed set mp) = pout x
+        outword1 : List (List (List Nat)) = poutword x
         maxLoops2:Int = cast (length gpbase1)
-        --(Nat,List (PermsIndexed set)),(outword : List (List (List Nat)))) 
-        --(k:Nat,out : List (PermsIndexed set),outword : List (List (List Nat)))) =
-        (k2,out2,outword2,gpbase2) = bsgs1 newGroup 1 Nil maxLoops2 group 0 out1 outword1
+        x2 : (Bsgs1Output set mp) = ! (bsgs1 newGroup 1 Nil 20 group 0 outEmpty Nil)
+        gpbase2:List Nat = pgpbase x2
+        out2 : List (PermsIndexed set mp) = pout x2
+        outword2 : List (List (List Nat)) = poutword x2
       in
-        MkGrpInfo degree sgset gpbase2 mp orbs wd newGroup
+        pure (MkGrpInfo degree sgset gpbase2 mp orbs wd newGroup)
 
 {-        -- If bsgs1 has not yet been called first call it with base
         -- length of 20 then call it again with more accurate base
@@ -732,7 +764,7 @@ bsgs {set} group wordProblem maxLoops diff =
 initializeGroupForWordProblem : (Eq set) => (gp : (List (Permutation set))) ->
                                 (maxLoops:Nat) ->
                                 (diff:Int) ->
-                                (GrpInfo set)
+                                Eff (GrpInfo set) [RND]
 initializeGroupForWordProblem gp maxLoops diff =
   bsgs gp True maxLoops diff
 
@@ -747,9 +779,25 @@ permutationGroup : (Eq set) => (gp : (List (Permutation set))) ->
                     (PermutationGroup set)
 permutationGroup gp =
   let
-    information : GrpInfo set = initializeGroupForWordProblem gp 0 1
+    x:GrpInfo set = runPure (initializeGroupForWordProblem gp 0 1)
   in
-    PermGrp gp information
+    PermGrp gp x
+
+{-permutationGroup gp =
+  let
+    x:GrpInfo set = runPure (initializeGroupForWordProblem gp 0 1) [RND]
+  in
+    PermGrp gp x
+-}
+{-permutationGroup : (Eq set) => (gp : (List (Permutation set))) ->
+                    (PermutationGroup set)
+permutationGroup gp =
+  PermGrp gp (runPure (
+     do
+        rndNumInit 1
+        initializeGroupForWordProblem gp 0 1
+    ) [RND] )
+-}
 
 implementation Show set => Show (PermutationGroup set) where
     show a = "permutationGroup" ++(show (gens a)) ++
@@ -1195,7 +1243,7 @@ youngGroup' l =
 
 {-
 main : IO ()
-main = 
+main =
   let
     c1 : PermutationGroup Nat = cyclicGroup 1
     c2 : PermutationGroup Nat = cyclicGroup 2
@@ -1283,7 +1331,7 @@ main =
 
 ||| test bsgs1
 main : IO ()
-main = 
+main =
   let
     --group : (PermutationGroup Nat) = dihedralGroup 3
     p : Permutation Nat =permSetFromList [1,2,3] [2,3,1]

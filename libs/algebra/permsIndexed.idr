@@ -189,7 +189,7 @@ movedPointsInPerms (p::ps) = union (preimage p) (movedPointsInPerms ps)
 ||| @p preimage-image instance of permutation to be converted
 permToVect : Eq s => (mp:(FiniteSet s)) ->
                      (p : List (Permutation s)) ->
-                     PermsIndexed s fs
+                     PermsIndexed s mp
 permToVect mp p = 
   let
     --pPreIm :(FiniteSet s) = movedPointsInPerms p
