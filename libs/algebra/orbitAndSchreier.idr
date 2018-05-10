@@ -228,10 +228,12 @@ orbitWithSvc group point =
 ||| first point which has an orbit length longer than 1
 ||| @group    holds permutations as vectors as they are easier to
 |||           work with.
+||| @i        index of point
 firstOrbit : (Eq set) => (group :(PermsIndexed set fs)) ->
+                         (i : Nat) ->
                          (Nat,Maybe (OrbitAndSchreier set fs),Nat)
-firstOrbit group =
-  firstOrbit1 group 0
+firstOrbit group i =
+  firstOrbit1 group i
   where
     firstOrbit1 : (Eq set) => (group :(PermsIndexed set fs)) ->
                          Nat ->

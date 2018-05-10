@@ -393,13 +393,13 @@ findGensForStab : (j:Int) ->
                   (maxloops:Nat) ->
                   Eff (Int,List PermIndexedElement) [RND]
 findGensForStab j group group2In ort maxloops =
-  if j>0
+  if j>0 && ((isEmpty group)==False)
   then
     do
       ran <- ranelt (gensIndexed group) Nil (cast maxloops)
       let str : PermIndexedElement = strip1 ran ort group []
       let el2 : List Nat = elt str
-      let isMem:Bool = (testIdentity el2) || (member group str)
+      let isMem:Bool = (testIdentity el2) || (elem str group2In)
       let group3In:List PermIndexedElement =
         if isMem
         then group2In
@@ -437,7 +437,6 @@ findGensForStab j group group2In ort maxloops =
 ||| @words
 ||| @maxLoops if zero then calculate from the (approximate)
 |||           base length
-||| @gp       is this instance.
 ||| @diff     if word problem then subtract this from maxLoops.
 ||| @out      Reference to stabiliser chain which can be appended
 |||           by this function. The first value stabilises most
@@ -447,18 +446,17 @@ bsgs1 : (Eq set) => (group :(PermsIndexed set fs)) ->
         (number1 : Nat) ->
         (words: List (List Nat)) ->
         (maxLoops:  Int) ->
-        (gp: (List (Permutation set))) ->
         (diff : Int) ->
         (out : List (PermsIndexed set fs)) ->
         (outword : List (List (List Nat))) ->
         Eff (Bsgs1Output set fs) [RND]
-bsgs1 {fs} {set} group number1 words maxLoops gp diff out outword =
+bsgs1 {fs} {set} group number1 words maxLoops diff out outword =
   let
     degree:Nat = permsIndexed.degree group
     wordProblem : Bool = words /= Nil
     -- find moved point i, that is first point with orbit > 1
     (i,ort1,k1) : (Nat,Maybe (OrbitAndSchreier set fs),Nat)
-      = firstOrbit group
+      = firstOrbit group number1
     -- genjj : a generator x which moves point i
     genjj: Maybe PermIndexedElement = firstMover group i
     -- gpsgs : set of generators where none stabilise point i
@@ -474,15 +472,15 @@ bsgs1 {fs} {set} group number1 words maxLoops gp diff out outword =
   in 
     if (isEmpty group2) || (maxLoops < 0)
     then
-      pure (MkBsgs1Output number1 out outword Nil)
+      pure (MkBsgs1Output k1 [gpsgs] outword Nil)
     else
       let
         subgp : (Bsgs1Output set fs) =
-          ! (bsgs1 group2 (i+1) words maxLoops gp diff out outword)
+          ! (bsgs1 group2 (i+1) words (maxLoops-diff) diff [gpsgs] outword)
         k2 : Nat = pk subgp
         sizeOfGroup : Nat = k1 * k2
       in
-        pure (MkBsgs1Output number1 out outword Nil)
+        pure (MkBsgs1Output sizeOfGroup (out ++ [gpsgs]) outword Nil)
 
 ||| This is a local function to initialise base and strong
 ||| generators and other values in group:%.
@@ -549,13 +547,13 @@ bsgs {set} group wordProblem maxLoops diff =
           -- bsgs1 with maxloops=20
         x : (Bsgs1Output set mp) =
           if maxLoops < 1
-          then ! (bsgs1 newGroup 1 Nil 20 group 0 outEmpty Nil)
+          then ! (bsgs1 newGroup 1 Nil 20 0 outEmpty Nil)
           else (MkBsgs1Output maxLoops outEmpty outWordEmpty baseEmpty)
         gpbase1:List Nat = pgpbase x
         out1 : List (PermsIndexed set mp) = pout x
         outword1 : List (List (List Nat)) = poutword x
         maxLoops2:Int = cast (length gpbase1)
-        x2 : (Bsgs1Output set mp) = ! (bsgs1 newGroup 1 Nil 20 group 0 outEmpty Nil)
+        x2 : (Bsgs1Output set mp) = ! (bsgs1 newGroup 1 Nil 20 0 outEmpty Nil)
         gpbase2:List Nat = pgpbase x2
         out2 : List (PermsIndexed set mp) = pout x2
         outword2 : List (List (List Nat)) = poutword x2
@@ -1260,8 +1258,8 @@ main =
     --group : (PermutationGroup Nat) = dihedralGroup 3
     p : Permutation Nat =permSetFromList [1,2,3] [2,3,1]
     p2 : Permutation Nat =permSetFromList [1,3] [3,1]
-    group : List (Permutation Nat) = [p,p2]
-    mp:(FiniteSet Nat) = movedPointsInPerms group
+    gp : List (Permutation Nat) = [p,p2]
+    mp:(FiniteSet Nat) = movedPointsInPerms gp
     out1 : List (PermsIndexed Nat mp) = Nil
     -- out will hold stabiliser chain
     outword1 : List (List (List Nat)) = Nil
@@ -1270,13 +1268,43 @@ main =
     outwordr : List (List (List Nat)) = Nil
     -- 'newGroup' holds permutations as vectors as they are
     -- easier to work with.
-    newGroup:(PermsIndexed Nat mp) = permToVect mp group
-    
+    group:(PermsIndexed Nat mp) = permToVect mp gp
+    ------------------------------------------
+    -- bsgs1 code
+    ------------------------------------------
+    degree:Nat = permsIndexed.degree group
+    -- find moved point i, that is first point with orbit > 1
+    (i,ort1,k1) : (Nat,Maybe (OrbitAndSchreier Nat mp),Nat)
+      = firstOrbit group 1
+    -- genjj : a generator x which moves point i
+    genjj: Maybe PermIndexedElement = firstMover group i
+    -- gpsgs : set of generators where none stabilise point i
+    gpsgs :(PermsIndexed Nat mp) = case genjj  of
+      Nothing => group
+      Just x => modifyGens group x i
+    ort1': (OrbitAndSchreier Nat mp) = case ort1 of
+          Nothing => MkOrbSch Nil Nil
+          Just y => y
+    gens4Stab : (Int,List PermIndexedElement) =
+      runPure (findGensForStab 15 group Nil ort1' 20)
+    group2 : (PermsIndexed Nat mp) = MkPermsIndex (snd gens4Stab)
+    -------------------------------------------------
     b : Bsgs1Output Nat mp =
-      runPure (bsgs1 newGroup 1 Nil 20 group 0 out1 outword1)
+      runPure (bsgs1 group 1 Nil 20 0 out1 outword1)
   in do
-    putStrLn ("group=" ++ (show newGroup))
+    putStrLn ("p=" ++ (show p))
+    putStrLn ("group=" ++ (show group))
+    putStrLn ("degree=" ++ (show degree))
+    putStrLn ("i=" ++ (show i))
+    putStrLn ("ort1=" ++ (show ort1))
+    putStrLn ("k1=" ++ (show k1))
+    putStrLn ("genjj=" ++ (show genjj))
+    putStrLn ("gpsgs=" ++ (show gpsgs))
+    putStrLn ("ort1'=" ++ (show ort1'))
+    putStrLn ("gens4Stab=" ++ (show gens4Stab))
+    putStrLn ("group2=" ++ (show group2))
     putStrLn ("b=" ++ (show b))
+    --putStrLn ("b=" ++ (show b))
 
 {-    -------------------------------------------------
     -------------- start of bsgs1 ------------------
