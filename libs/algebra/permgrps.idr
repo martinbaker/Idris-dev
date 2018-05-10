@@ -387,9 +387,9 @@ testIdentity x =
 ||| @ort orbit and stabiliser
 ||| @maxloops maximum length of loops
 findGensForStab : (j:Int) ->
-                  (group:(PermsIndexed Nat mp)) ->
+                  (group:(PermsIndexed str mp)) ->
                   (group2In :List PermIndexedElement) ->
-                  (ort :(OrbitAndSchreier Nat mp)) ->
+                  (ort :(OrbitAndSchreier str mp)) ->
                   (maxloops:Nat) ->
                   Eff (Int,List PermIndexedElement) [RND]
 findGensForStab j group group2In ort maxloops =
@@ -457,7 +457,7 @@ bsgs1 {fs} {set} group number1 words maxLoops gp diff out outword =
     degree:Nat = permsIndexed.degree group
     wordProblem : Bool = words /= Nil
     -- find moved point i, that is first point with orbit > 1
-    (i,ort1) : (Nat,Maybe (OrbitAndSchreier set fs))
+    (i,ort1,k1) : (Nat,Maybe (OrbitAndSchreier set fs),Nat)
       = firstOrbit group
     -- genjj : a generator x which moves point i
     genjj: Maybe PermIndexedElement = firstMover group i
@@ -465,100 +465,24 @@ bsgs1 {fs} {set} group number1 words maxLoops gp diff out outword =
     gpsgs :(PermsIndexed set fs) = case genjj  of
       Nothing => group
       Just x => modifyGens group x i
-{-  in do
-    (grpv',point',cr',ort',ran',str',g4s) <- run $ do
-      rndNumInit 1
-      --randomInteger' <- rndNum 3
-      let x : (OrbitAndSchreier Nat mp) = case ort1 of
+    ort1': (OrbitAndSchreier set fs) = case ort1 of
           Nothing => MkOrbSch Nil Nil
           Just y => y
-      ------------------------------------------------
-      gens4Stab <- findGensForStab 15 newGroup Nil x 20
-      pure (grpv,point,cr,ort,ran,str,gens4Stab)
-    (number1,out,outword,Nil)
--}
+    gens4Stab : (Int,List PermIndexedElement) =
+      ! (findGensForStab 15 group Nil ort1' 20)
+    group2 : (PermsIndexed set fs) = MkPermsIndex (snd gens4Stab)
   in 
-    -- find a generator which moves point i
-    case ort1 of
-      Nothing => pure (MkBsgs1Output number1 out outword Nil)
-      Just ort =>
-        let
-          x : Maybe PermIndexedElement = firstMover group i
-        in pure (MkBsgs1Output number1 out outword Nil)
-
-{-        -- try to get a good approximation for the strong generators and base
-        degree := #(first(group))
-        gp_info := gp.information
-        wordProblem : Boolean := not(empty?(words))
-        -- find moved point i, that is first point with orbit > 1
-        for i in number1..degree repeat
-            -- Given a group and a point in the group this calculates
-            -- the orbit and schreierVector.
-            ort := orbitWithSvc(group, i)
-            k   := ort.orb
-            k1  := # k
-            -- if size of orbit not 1 then break
-            if k1 ~= 1 then break
-        -- ort is set to first orbit with more than 1 element
-        -- 'i' will be the fist element in this orbit
-        gpsgs := []$(PermsIndexed set)
-        words2 := []$(List (List Nat))
-        gplength : Nat := #group
-        -- set jj to be nontrivial element
-        for jj in 1..gplength repeat if (group.jj).i ~= i then break
-        for k in 1..gplength repeat
-            el2 := group.k
-            -- if stab(i) then multiply by first non-trivial generator
-            if el2.i ~= i then
-                gpsgs := cons(el2, gpsgs)
-                if wordProblem then words2 := cons(words.k, words2)
-            else
-                gpsgs := cons(times(group.jj, el2), gpsgs)
-                if wordProblem then
-                      words2 := cons(append(words.jj, words.k), words2)
-        -- gpsgs now contains a list of the permutations in vector
-        -- form.
-        group2 := []$(PermsIndexed set)
-        -- group2 will hold the representative elements (one per coset)
-        words3 := []$(List (List Nat))
-        j : I  := 15
-        while j > 0 repeat
-            -- find generators for the stabilizer
-            -- ranelt generates a "random" element as an element
-            --   and word: Record(elt : V Nat, lst : List Nat)
-            ran := ranelt(group, words, maxLoops)
-            str := strip1(ran.elt, ort, group, words)
-            el2 := str.elt
-            if not testIdentity el2 then
-                if not member?(el2, group2) then
-                    group2 := cons ( el2, group2 )
-                    if wordProblem then
-                        help : List Nat := append(reverse str.lst, ran.lst)
-                        help         := shortenWord(help, gp)
-                        words3       := cons(help, words3)
-                    j := j - 2
-            j := j - 1
-        -- group2 now holds the representative elements (one per coset)
-        -- this is for word length control
-        if wordProblem then maxLoops    := maxLoops - diff
-        -- If no subgroups then return size=k1
-        if empty?(group2) or (maxLoops < 0) then
-            gp_info.gpbase := [i]
-            setref(out, [gpsgs])
-            setref(outword, [words2])
-            return k1
-        -- If we get here there are subgroups so call recursively
-        -- and multiply together to get total size.
-        k2 := bsgs1(group2, i + 1, words3, maxLoops, gp, diff,
-                    out, outword)
-        sizeOfGroup : Nat := k1 * k2
-        setref(out, append(deref(out), [gpsgs]))
-        setref(outword, append(deref(outword), [words2]))
-        gp_info.gpbase := cons(i, gp_info.gpbase)
-        sizeOfGroup
--}
-
-
+    if (isEmpty group2) || (maxLoops < 0)
+    then
+      pure (MkBsgs1Output number1 out outword Nil)
+    else
+      let
+        subgp : (Bsgs1Output set fs) =
+          ! (bsgs1 group2 (i+1) words maxLoops gp diff out outword)
+        k2 : Nat = pk subgp
+        sizeOfGroup : Nat = k1 * k2
+      in
+        pure (MkBsgs1Output number1 out outword Nil)
 
 ||| This is a local function to initialise base and strong
 ||| generators and other values in group:%.
@@ -1347,6 +1271,14 @@ main =
     -- 'newGroup' holds permutations as vectors as they are
     -- easier to work with.
     newGroup:(PermsIndexed Nat mp) = permToVect mp group
+    
+    b : Bsgs1Output Nat mp =
+      runPure (bsgs1 newGroup 1 Nil 20 group 0 out1 outword1)
+  in do
+    putStrLn ("group=" ++ (show newGroup))
+    putStrLn ("b=" ++ (show b))
+
+{-    -------------------------------------------------
     -------------- start of bsgs1 ------------------
     degree:Nat = permsIndexed.degree newGroup
     wordProblem : Bool = outword1 /= Nil
@@ -1419,3 +1351,4 @@ main =
     putStrLn ("cr=" ++ (show cr'))
     putStrLn ("str=" ++ (show str'))
     --putStrLn ("a=" ++ (show a) ++" b=" ++ (show b) ++" c=" ++ (show c))
+-}

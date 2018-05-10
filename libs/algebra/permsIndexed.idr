@@ -92,8 +92,13 @@ evalv p el =
     Nothing => PIE [] [] 0
     Just x => x
 
+||| extact set of points from type
 getPoints : {fs:(FiniteSet set)} -> (PermsIndexed set fs) -> (FiniteSet set)
 getPoints y = fs
+
+||| returns true if group has no (non-identity) elements
+isEmpty : (PermsIndexed set fs) -> Bool
+isEmpty p = isNil (gensIndexed p)
 
 {-
 ||| Multiplcation of permutations represents composition.

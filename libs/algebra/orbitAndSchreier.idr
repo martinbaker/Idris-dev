@@ -229,13 +229,13 @@ orbitWithSvc group point =
 ||| @group    holds permutations as vectors as they are easier to
 |||           work with.
 firstOrbit : (Eq set) => (group :(PermsIndexed set fs)) ->
-                         (Nat,Maybe (OrbitAndSchreier set fs))
+                         (Nat,Maybe (OrbitAndSchreier set fs),Nat)
 firstOrbit group =
   firstOrbit1 group 0
   where
     firstOrbit1 : (Eq set) => (group :(PermsIndexed set fs)) ->
                          Nat ->
-                         (Nat,Maybe (OrbitAndSchreier set fs))
+                         (Nat,Maybe (OrbitAndSchreier set fs),Nat)
     firstOrbit1 group point =
       let
         ort : OrbitAndSchreier set fs = orbitWithSvc group point
@@ -248,9 +248,9 @@ firstOrbit group =
           then
             firstOrbit1 group (S point)
           else
-            (point,Nothing)
+            (point,Nothing,k1)
         else
-          (point,Just ort)
+          (point,Just ort,k1)
 
 ||| Return True if maps are the same but they can
 ||| be reordered and still be True provided mp and map are
