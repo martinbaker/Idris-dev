@@ -5,7 +5,7 @@ Description : Convert core TT back into high level syntax, primarily for display
 License     : BSD3
 Maintainer  : The Idris Community.
 -}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE CPP, PatternGuards #-}
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
 module Idris.Delaborate (
     annName, bugaddr, delab, delabWithEnv, delabDirect, delab', delabMV, delabSugared
@@ -21,7 +21,11 @@ import Idris.ErrReverse
 
 import Util.Pretty
 
+#if (MIN_VERSION_base(4,11,0))
+import Prelude hiding ((<$>), (<>))
+#else
 import Prelude hiding ((<$>))
+#endif
 
 import Control.Applicative (Alternative((<|>)))
 import Control.Monad.State
@@ -460,12 +464,6 @@ pprintErr' i (IncompleteTerm t)
    getMissing hs env (App _ f a)
        = getMissing hs env f ++ getMissing hs env a
    getMissing hs env _ = []
-pprintErr' i (NoEliminator s t)
-  = text "No " <> text s <> text " for type " <+>
-       annTm t (pprintTerm i (delabSugared i t)) <$>
-    text "Please note that 'induction' is experimental." <$>
-    text "Only types declared with '%elim' can be used." <$>
-    text "Consider writing a pattern matching definition instead."
 pprintErr' i (UniverseError fc uexp old new suspects) =
   text "Universe inconsistency." <>
   (indented . vsep) [ text "Working on:" <+> text (show uexp)

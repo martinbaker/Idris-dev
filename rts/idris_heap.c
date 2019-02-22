@@ -55,7 +55,7 @@ void c_heap_insert_if_needed(VM * vm, CHeap * heap, CHeapItem * item)
     heap->first = item;
 
     // at this point, links are done; let's calculate sizes
-    
+
     heap->size += item->size;
     if (heap->size >= heap->gc_trigger_size)
     {
@@ -110,12 +110,14 @@ void c_heap_destroy(CHeap * heap)
 void alloc_heap(Heap * h, size_t heap_size, size_t growth, char * old)
 {
     char * mem = malloc(heap_size);
+
     if (mem == NULL) {
         fprintf(stderr,
                 "RTS ERROR: Unable to allocate heap. Requested %zd bytes.\n",
                 heap_size);
         exit(EXIT_FAILURE);
     }
+    memset(mem, 0, heap_size);
 
     h->heap = mem;
     h->next = aligned_heap_pointer(h->heap);
@@ -186,16 +188,17 @@ void heap_check_pointers(Heap * heap) {
 
     size_t item_size = 0;
     for(scan = heap->heap; scan < heap->next; scan += item_size) {
-       item_size = *((size_t*)scan);
-       VAL heap_item = (VAL)(scan + sizeof(size_t));
+       VAL heap_item = (VAL)scan;
+       item_size = aligned(valSize(heap_item));
 
        switch(GETTY(heap_item)) {
        case CT_CON:
            {
-             int ar = ARITY(heap_item);
-             int i = 0;
+	     Con * c = (Con*)heap_item;
+             size_t ar = CARITY(c);
+             size_t i;
              for(i = 0; i < ar; ++i) {
-                 VAL ptr = heap_item->info.c.args[i];
+                 VAL ptr = c->args[i];
 
                  if (is_valid_ref(ptr)) {
                      // Check for closure.

@@ -22,10 +22,10 @@ TT is the core language of Idris. The language has:
    * We have a simple collection of tactics which we use to elaborate source
      programs with implicit syntax into fully explicit terms.
 -}
-{-# LANGUAGE DeriveDataTypeable, DeriveFoldable, DeriveFunctor, DeriveGeneric,
-             DeriveTraversable, FlexibleContexts, FlexibleInstances,
-             FunctionalDependencies, MultiParamTypeClasses, PatternGuards,
-             TypeSynonymInstances #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, DeriveFoldable, DeriveFunctor,
+             DeriveGeneric, DeriveTraversable, FlexibleContexts,
+             FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
+             PatternGuards, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
 module Idris.Core.TT(
     AppStatus(..), ArithTy(..), Binder(..), Const(..), Ctxt(..)
@@ -62,6 +62,10 @@ import Prelude (Bool(..), Double, Enum(..), Eq(..), FilePath, Functor(..), Int,
                 Integer, Maybe(..), Monad(..), Monoid(..), Num(..), Ord(..),
                 Ordering(..), Show(..), String, div, error, fst, max, min, mod,
                 not, otherwise, read, snd, ($), (&&), (.), (||))
+
+#if (MIN_VERSION_base(4,11,0))
+import qualified Prelude as S (Semigroup(..))
+#endif
 
 import Control.Applicative (Alternative, Applicative(..))
 import qualified Control.Applicative as A (Alternative(..))
@@ -116,6 +120,11 @@ fc_end :: FC -> (Int, Int)
 fc_end (FC _ _ end) = end
 fc_end NoFC = (0, 0)
 fc_end (FileFC f) = (0, 0)
+
+#if (MIN_VERSION_base(4,11,0))
+instance S.Semigroup FC where
+    (<>) = mappend
+#endif
 
 instance Monoid FC where
   mempty = NoFC
@@ -188,10 +197,10 @@ instance Show FC where
     show (FileFC f) = f
 
 -- | Output annotation for pretty-printed name - decides colour
-data NameOutput = TypeOutput | FunOutput | DataOutput | MetavarOutput | PostulateOutput deriving (Show, Eq, Generic)
+data NameOutput = TypeOutput | FunOutput | DataOutput | MetavarOutput | PostulateOutput deriving (Show, Eq, Ord, Generic)
 
 -- | Text formatting output
-data TextFormatting = BoldText | ItalicText | UnderlineText deriving (Show, Eq, Generic)
+data TextFormatting = BoldText | ItalicText | UnderlineText deriving (Show, Eq, Ord, Generic)
 
 -- | Output annotations for pretty-printing
 data OutputAnnotation = AnnName Name (Maybe NameOutput) (Maybe String) (Maybe String)
@@ -218,7 +227,7 @@ data OutputAnnotation = AnnName Name (Maybe NameOutput) (Maybe String) (Maybe St
                       | AnnQuasiquote
                       | AnnAntiquote
                       | AnnSyntax String -- ^ type of syntax element: backslash or braces etc.
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Ord)
 
 -- | Used for error reflection
 data ErrorReportPart = TextPart String
@@ -273,7 +282,6 @@ data Err' t
           | CantResolveAlts [Name]
           | NoValidAlts [Name]
           | IncompleteTerm t
-          | NoEliminator String t
           | UniverseError FC UExp (Int, Int) (Int, Int) [ConstraintFC]
             -- ^ Location, bad universe, old domain, new domain, suspects
           | UniqueError Universe Name
@@ -485,7 +493,6 @@ data SpecialName = WhereN !Int !Name !Name
                  | ParentN !Name !T.Text
                  | MethodN !Name
                  | CaseN !FC' !Name
-                 | ElimN !Name
                  | ImplementationCtorN !Name
                  | MetaN !Name !Name
   deriving (Eq, Ord, Data, Generic, Typeable)
@@ -530,7 +537,6 @@ instance Show SpecialName where
     show (ParentN p c) = show p ++ "#" ++ T.unpack c
     show (CaseN fc n) = "case block in " ++ show n ++
                         if fc == FC' emptyFC then "" else " at " ++ show fc
-    show (ElimN n) = "<<" ++ show n ++ " eliminator>>"
     show (ImplementationCtorN n) = "constructor of " ++ show n
     show (MetaN parent meta) = "<<" ++ show parent ++ " " ++ show meta ++ ">>"
 
@@ -547,7 +553,6 @@ showCG (SN s) = showCG' s
         showCG' (MethodN m) = '!':showCG m
         showCG' (ParentN p c) = showCG p ++ "#" ++ show c
         showCG' (CaseN fc c) = showCG c ++ showFC' fc ++ "_case"
-        showCG' (ElimN sn) = showCG sn ++ "_elim"
         showCG' (ImplementationCtorN n) = showCG n ++ "_ictor"
         showCG' (MetaN parent meta) = showCG parent ++ "_meta_" ++ showCG meta
         showFC' (FC' NoFC) = ""
@@ -1090,8 +1095,6 @@ data Datatype n = Data { d_typename :: n,
 
 -- | Data declaration options
 data DataOpt = Codata -- ^ Set if the the data-type is coinductive
-             | DefaultEliminator -- ^ Set if an eliminator should be generated for data type
-             | DefaultCaseFun -- ^ Set if a case function should be generated for data type
              | DataErrRev
     deriving (Show, Eq, Generic)
 
@@ -1512,7 +1515,6 @@ nextName (SN x) = SN (nextName' x)
     nextName' (ImplementationN n ns) = ImplementationN (nextName n) ns
     nextName' (ParentN n ns) = ParentN (nextName n) ns
     nextName' (CaseN fc n) = CaseN fc (nextName n)
-    nextName' (ElimN n) = ElimN (nextName n)
     nextName' (MethodN n) = MethodN (nextName n)
     nextName' (ImplementationCtorN n) = ImplementationCtorN (nextName n)
     nextName' (MetaN parent meta) = MetaN parent (nextName meta)

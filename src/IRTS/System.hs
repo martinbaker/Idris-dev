@@ -25,6 +25,7 @@ import Target_idris
 #else
 import Paths_idris
 #endif
+import BuildFlags_idris
 
 import Control.Applicative ((<$>))
 import Data.List.Split
@@ -60,7 +61,13 @@ overrideIdrisSubDirWith fp envVar = do
     Just ddir -> return ddir
 
 getCC :: IO String
-getCC = fromMaybe "gcc" <$> lookupEnv "IDRIS_CC"
+getCC = fromMaybe cc <$> lookupEnv "IDRIS_CC"
+  where
+#ifdef mingw32_HOST_OS
+    cc = "gcc"
+#else
+    cc = "cc"
+#endif
 
 getEnvFlags :: IO [String]
 getEnvFlags = maybe [] (splitOn " ") <$> lookupEnv "IDRIS_CFLAGS"
@@ -76,14 +83,19 @@ extraInclude = []
 #endif
 
 #ifdef IDRIS_GMP
-gmpLib = ["-lgmp"]
+gmpLib = ["-lgmp", "-DIDRIS_GMP"]
 #else
 gmpLib = []
 #endif
 
+extraLibFlags = map ("-L" ++) extraLibDirs
+
 getLibFlags = do dir <- getIdrisCRTSDir
-                 return $ ["-L" ++ dropTrailingPathSeparator dir,
-                           "-lidris_rts"] ++ extraLib ++ gmpLib ++ ["-lpthread"]
+                 return $ extraLibFlags
+                   ++ extraLib
+                   ++ ["-L" ++ dropTrailingPathSeparator dir, "-lidris_rts"]
+                   ++ gmpLib
+                   ++ ["-lpthread"]
 
 getIdrisLibDir = addTrailingPathSeparator <$> overrideIdrisSubDirWith "libs" "IDRIS_LIBRARY_PATH"
 

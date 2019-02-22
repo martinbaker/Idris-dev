@@ -12,7 +12,12 @@ modules = CFFI
         , Control.Algebra.VectorSpace
 
         , Control.Delayed
+
+        , Control.Isomorphism.Extra
+        , Control.Isomorphism.Fin
         , Control.Isomorphism.Primitives
+        , Control.Isomorphism.Vect
+
         , Control.Monad.Syntax
         , Control.Partial
         , Control.Pipeline
@@ -25,6 +30,7 @@ modules = CFFI
 
         , Data.Bool.Extra
         , Data.BoundedList
+        , Data.Chain
         , Data.CoList
         , Data.Combinators
         , Data.Combinators.Applicative
@@ -36,18 +42,22 @@ modules = CFFI
         , Data.Heap
         , Data.IOArray
         , Data.List.Zipper
+        , Data.List.Extra
 
         , Data.Matrix
         , Data.Matrix.Algebraic
         , Data.Matrix.Numeric
 
+        , Data.Nat
         , Data.Nat.Parity
         , Data.Nat.DivMod
         , Data.Nat.DivMod.IteratedSubtraction
 
         , Data.Pairs.Implicit
+        , Data.PosNat
         , Data.Rel
         , Data.Sign
+        , Data.SortedBag
         , Data.SortedMap
         , Data.SortedSet
         , Data.Storable
@@ -60,6 +70,7 @@ modules = CFFI
 
         , Interfaces.Correlative
         , Interfaces.Verified
+        , Interfaces.Proposition
 
         , Language.JSON
         , Language.JSON.Data

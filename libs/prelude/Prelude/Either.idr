@@ -11,7 +11,7 @@ import Prelude.List
 %access public export
 
 ||| A sum type
-%elim data Either : (a, b : Type) -> Type where
+data Either : (a, b : Type) -> Type where
   ||| One possibility of the sum, conventionally used to represent errors
   Left : (l : a) -> Either a b
   ||| The other possibility, conventionally used to represent success
@@ -87,6 +87,10 @@ maybeToEither : (def : Lazy e) -> Maybe a -> Either e a
 maybeToEither def (Just j) = Right j
 maybeToEither def Nothing  = Left  def
 
+||| Convert an Either to a Maybe from Right injection
+eitherToMaybe : Either e a -> Maybe a
+eitherToMaybe (Left _) = Nothing
+eitherToMaybe (Right x) = Just x
 
 --------------------------------------------------------------------------------
 -- Implementations

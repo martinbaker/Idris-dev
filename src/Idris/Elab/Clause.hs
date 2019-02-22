@@ -44,6 +44,7 @@ import qualified Control.Monad.State.Lazy as LState
 import Control.Monad.State.Strict as State
 import Data.List
 import Data.Maybe
+import qualified Data.Set as S
 import Data.Word
 import Debug.Trace
 import Numeric
@@ -659,11 +660,13 @@ elabClause info opts (cnum, PClause fc fname lhs_in_as withs rhs_in_as wherebloc
         i <- getIState
         inf <- isTyInferred fname
 
-        -- Check if we have "with" patterns outside of "with" block
-        when (isOutsideWith lhs_in && (not $ null withs)) $
+        -- Check if we have extra "with" patterns
+        when (not $ null withs) $
             ierror (At (fromMaybe NoFC $ highestFC lhs_in_as)
                        (Elaborating "left hand side of " fname Nothing
-                        (Msg "unexpected patterns outside of \"with\" block")))
+                        (Msg $ if isOutsideWith lhs_in
+                               then "unexpected patterns outside of \"with\" block"
+                               else "unexpected extra \"with\" patterns")))
 
         -- get the parameters first, to pass through to any where block
         let fn_ty = case lookupTy fname ctxt of
@@ -719,12 +722,9 @@ elabClause info opts (cnum, PClause fc fname lhs_in_as withs rhs_in_as wherebloc
                                                        [] (constraintNS info) fc id [] lhs_tm
                                else return (lhs_tm, lhs_ty)
         let clhs = normalise ctxt [] clhs_c
-        let borrowed = borrowedNames [] clhs
-
         -- These are the names we're not allowed to use on the RHS, because
         -- they're UniqueTypes and borrowed from another function.
-        when (not (null borrowed)) $
-          logElab 5 ("Borrowed names on LHS: " ++ show borrowed)
+        let borrowed = borrowedNames [] clhs
 
         logElab 3 ("Normalised LHS: " ++ showTmImpls (delabMV i clhs))
 
@@ -1028,7 +1028,7 @@ elabClause info opts (_, PWith fc fname lhs_in withs wval_in pn_in withblock)
                        Just (n, nfc) -> Just (uniqueName n (map fst bargs))
 
         -- Highlight explicit proofs
-        sendHighlighting [(fc, AnnBoundName n False) | (n, fc) <- maybeToList pn_in]
+        sendHighlighting $ S.fromList [(FC' fc, AnnBoundName n False) | (n, fc) <- maybeToList pn_in]
 
         logElab 10 ("With type " ++ show (getRetTy cwvaltyN) ++
                   " depends on " ++ show pdeps ++ " from " ++ show pvars)

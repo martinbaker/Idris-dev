@@ -222,8 +222,8 @@ parseFlags = many $
 
   <|> flag' DumpHighlights (long "highlight" <> help "Emit source code highlighting")
 
-  <|> flag' NoElimDeprecationWarnings      (long "no-elim-deprecation-warnings"   <> help "Disable deprecation warnings for %elim")
   <|> flag' NoOldTacticDeprecationWarnings (long "no-tactic-deprecation-warnings" <> help "Disable deprecation warnings for the old tactic sublanguage")
+  <|> flag' AllowCapitalizedPatternVariables (long "allow-capitalized-pattern-variables" <> help "Allow pattern variables to be capitalized")
 
     where
       getExt :: String -> LanguageExt

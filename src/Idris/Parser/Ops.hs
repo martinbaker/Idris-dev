@@ -17,26 +17,34 @@ import Prelude hiding (pi)
 
 import Control.Applicative
 import Control.Monad
+import qualified Control.Monad.Combinators.Expr as P
 import Control.Monad.State.Strict
 import Data.Char (isAlpha)
 import Data.List
 import Data.List.NonEmpty (fromList)
 import Text.Megaparsec ((<?>))
 import qualified Text.Megaparsec as P
-import qualified Text.Megaparsec.Char as P
-import qualified Text.Megaparsec.Expr as P
 
 -- | Creates table for fixity declarations to build expression parser
 -- using pre-build and user-defined operator/fixity declarations
 table :: [FixDecl] -> [[P.Operator IdrisParser PTerm]]
 table fixes
-   = [[prefix "-" (\fc x -> PApp fc (PRef fc [fc] (sUN "negate")) [pexp x])]] ++
+   = [[prefix "-" negateExpr]] ++
       toTable (reverse fixes) ++
      [[noFixityBacktickOperator],
       [binary "$" P.InfixR $ \fc _ x y -> flatten $ PApp fc x [pexp y]],
       [binary "=" P.InfixL $ \fc _ x y -> PApp fc (PRef fc [fc] eqTy) [pexp x, pexp y]],
       [noFixityOperator]]
   where
+
+    negateExpr                               :: FC -> PTerm -> PTerm
+    negateExpr _  (PConstant fc (I int))     = PConstant fc $ I $ negate int
+    negateExpr _  (PConstant fc (BI bigInt)) = PConstant fc $ BI $ negate bigInt
+    negateExpr _  (PConstant fc (Fl dbl))    = PConstant fc $ Fl $ negate dbl
+    negateExpr _  (PConstSugar fc term)      = negateExpr fc term
+    negateExpr fc (PAlternative ns tp terms) = PAlternative ns tp $ map (negateExpr fc) terms
+    negateExpr fc x                          = PApp fc (PRef fc [fc] (sUN "negate")) [pexp x]
+
     flatten                            :: PTerm -> PTerm -- flatten application
     flatten (PApp fc (PApp _ f as) bs) = flatten (PApp fc f (as ++ bs))
     flatten t                          = t

@@ -3,7 +3,7 @@ Type Providers in Idris
 ***********************
 
 `Type providers in Idris
-<http://www.itu.dk/people/drc/pubs/dependent-type-providers.pdf>`__
+<http://www.davidchristiansen.dk/pubs/dependent-type-providers.pdf>`__
 are simple enough, but there are a few caveats to using them that it
 would be worthwhile to go through the basic steps. We also go over
 foreign functions, because these will often be used with type
@@ -200,6 +200,7 @@ Next, an Idris file to define our providers:
     module Providers
 
     %dynamic "./stattypes.so"
+    %access export
 
     sizeOfDevT : IO Int
     sizeOfDevT = foreign FFI_C "sizeof_dev_t" (IO Int)
@@ -207,9 +208,10 @@ Next, an Idris file to define our providers:
 
     -- Indicates how many bits are used to represent various system
     -- stat types.
+    public export
     data BitWidth = B8 | B16 | B32 | B64
 
-    implementation Show BitWidth where
+    Show BitWidth where
       show B8 = "8 bits"
       show B16 = "16 bits"
       show B32 = "32 bits"

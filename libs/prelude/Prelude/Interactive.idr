@@ -81,7 +81,7 @@ getLine = getLine'
 putChar : Char -> IO ()
 putChar c = foreign FFI_C "putchar" (Int -> IO ()) (cast c)
 
-||| Write a singel character to stdout, with a trailing newline
+||| Write a single character to stdout, with a trailing newline
 putCharLn : Char -> IO ()
 putCharLn c = putStrLn (singleton c)
 
@@ -160,12 +160,14 @@ partial
 replWith : (state : a) -> (prompt : String) ->
            (onInput : a -> String -> Maybe (String, a)) -> IO ()
 replWith acc prompt fn
-   = do putStr prompt
-        x <- getLine
-        case fn acc x of
-             Just (out, acc') => do putStr out
-                                    replWith acc' prompt fn
-             Nothing => pure ()
+   = if !(fEOF stdin)
+        then pure ()
+        else do putStr prompt
+                x <- getLine
+                case fn acc x of
+                     Just (out, acc') => do putStr out
+                                            replWith acc' prompt fn
+                     Nothing => pure ()
 
 ||| A basic read-eval-print loop
 ||| @ prompt the prompt to show

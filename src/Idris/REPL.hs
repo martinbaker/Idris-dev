@@ -5,7 +5,7 @@ License     : BSD3
 Maintainer  : The Idris Community.
 -}
 
-{-# LANGUAGE FlexibleContexts, PatternGuards #-}
+{-# LANGUAGE CPP, FlexibleContexts, PatternGuards #-}
 -- FIXME: {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
 {-# OPTIONS_GHC -fwarn-unused-imports #-}
 
@@ -81,8 +81,12 @@ import Idris.TypeSearch (searchByType)
 import Idris.WhoCalls
 import IRTS.CodegenCommon
 import IRTS.Compiler
-import Network
+import Network.Socket hiding (defaultPort)
+#if (MIN_VERSION_base(4,11,0))
+import Prelude hiding (id, (.), (<$>), (<>))
+#else
 import Prelude hiding (id, (.), (<$>))
+#endif
 import System.Console.Haskeline as H
 import System.Directory
 import System.Environment
@@ -162,7 +166,8 @@ startServer port orig fn_in = do tid <- runIO $ forkIO (serverLoop port)
         fn = fromMaybe "" (listToMaybe fn_in)
 
         loop fn ist sock
-            = do (h,_,_) <- accept sock
+            = do (s, _) <- accept sock
+                 h <- socketToHandle s ReadWriteMode
                  hSetEncoding h utf8
                  cmd <- hGetLine h
                  let isth = case idris_outputmode ist of
@@ -214,9 +219,11 @@ processNetCmd orig i h fn cmd
 runClient :: Maybe PortNumber -> String -> IO ()
 runClient port str = withSocketsDo $ do
               let port' = fromMaybe defaultPort port
-              res <- X.try (connectTo "localhost" $ PortNumber port')
+              s <- socket AF_INET Stream defaultProtocol
+              res <- X.try (connect s (SockAddrInet port' $ tupleToHostAddress (127,0,0,1)))
               case res of
-                Right h -> do
+                Right () -> do
+                  h <- socketToHandle s ReadWriteMode
                   hSetEncoding h utf8
                   hPutStrLn h str
                   resp <- hGetResp "" h
@@ -241,7 +248,8 @@ initIdemodeSocket :: IO Handle
 initIdemodeSocket = do
   (sock, port) <- listenOnLocalhostAnyPort
   putStrLn $ show port
-  (h, _, _) <- accept sock
+  (s, _) <- accept sock
+  h <- socketToHandle s ReadWriteMode
   hSetEncoding h utf8
   return h
 
@@ -1225,8 +1233,8 @@ process fn (Prove mode n')
           let metavars = mapMaybe (\n -> do c <- lookup n (idris_metavars ist); return (n, c)) ns
           n <- case metavars of
               [] -> ierror (Msg $ "Cannot find metavariable " ++ show n')
-              [(n, (_,_,_,False,_))] -> return n
-              [(_, (_,_,_,_,False))]  -> ierror (Msg "Can't prove this hole as it depends on other holes")
+              [(n, (_,_,_,False,_))] -> return n
+              [(_, (_,_,_,_,False))] -> ierror (Msg "Can't prove this hole as it depends on other holes")
               [(_, (_,_,_,True,_))]  -> ierror (Msg "Declarations not solvable using prover")
               ns -> ierror (CantResolveAlts (map fst ns))
           prover (toplevelWith fn) mode (lit fn) n

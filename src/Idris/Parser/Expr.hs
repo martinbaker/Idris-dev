@@ -20,6 +20,7 @@ import Prelude hiding (pi)
 import Control.Applicative
 import Control.Arrow (left)
 import Control.Monad
+import qualified Control.Monad.Combinators.Expr as P
 import Control.Monad.State.Strict
 import Data.Function (on)
 import Data.List
@@ -27,7 +28,6 @@ import Data.Maybe
 import Text.Megaparsec ((<?>))
 import qualified Text.Megaparsec as P
 import qualified Text.Megaparsec.Char as P
-import qualified Text.Megaparsec.Expr as P
 
 -- | Allow implicit type declarations
 allowImp :: SyntaxInfo -> SyntaxInfo
@@ -391,7 +391,6 @@ simpleExpr syn =
         <|> do lchar '%'; fc <- extent $ reserved "instance"
                parserWarning fc Nothing $ Msg "The use of %instance is deprecated, use %implementation instead."
                return (PResolveTC fc)
-        <|> do reserved "elim_for"; (t, fc) <- withExtent $ fnName; return (PRef fc [] (SN $ ElimN t))
         <|> proofExpr syn
         <|> tacticsExpr syn
         <|> P.try (do fc <- extent (reserved "Type*"); return $ PUniverse fc AllTypes)
@@ -1407,7 +1406,7 @@ VerbatimString_t ::=
  -}
 verbatimStringLiteral :: Parsing m => m String
 verbatimStringLiteral = token $ do P.try $ string "\"\"\""
-                                   str <- P.manyTill P.anyChar $ P.try (string "\"\"\"")
+                                   str <- P.manyTill P.anySingle $ P.try (string "\"\"\"")
                                    moreQuotes <- P.many $ P.char '"'
                                    return $ str ++ moreQuotes
 
@@ -1491,8 +1490,6 @@ tactics =
        do n <- spaced fnName
           return $ MatchRefine n)
   , expressionTactic ["rewrite"] Rewrite
-  , expressionTactic ["case"] CaseTac
-  , expressionTactic ["induction"] Induction
   , expressionTactic ["equiv"] Equiv
   , (["let"], Nothing, \syn -> -- FIXME syntax for let
        do n <- (indentGt *> name)

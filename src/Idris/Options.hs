@@ -93,8 +93,8 @@ data Opt = Filename String
          | UseConsoleWidth ConsoleWidth
          | DumpHighlights
          | DesugarNats
-         | NoElimDeprecationWarnings      -- ^ Don't show deprecation warnings for %elim
          | NoOldTacticDeprecationWarnings -- ^ Don't show deprecation warnings for old-style tactics
+         | AllowCapitalizedPatternVariables -- ^ Allow pattern variables to be capitalized
     deriving (Show, Eq, Generic)
 
 

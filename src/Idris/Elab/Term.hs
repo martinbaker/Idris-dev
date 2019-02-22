@@ -56,7 +56,7 @@ data ElabResult = ElabResult {
     -- | Meta-info about the new type declarations
   , resultTyDecls :: [RDeclInstructions]
     -- | Saved highlights from elaboration
-  , resultHighlighting :: [(FC, OutputAnnotation)]
+  , resultHighlighting :: S.Set (FC', OutputAnnotation)
     -- | The new global name counter
   , resultName :: Int
   }
@@ -448,7 +448,7 @@ elab ist info emode opts fn tm
              -- the full set.
              uns <- get_usedns
              let as' = map (mkUniqueNames (uns ++ map snd ms) ms) as_pruned
-             (h : hs) <- get_holes
+             ~(h : hs) <- get_holes
              ty <- goal
              case as' of
                   [] -> do hds <- mapM showHd as
@@ -984,7 +984,7 @@ elab ist info emode opts fn tm
                                             (elab' ina fc Placeholder)
                                             (show f)
     elab' ina fc Placeholder
-        = do (h : hs) <- get_holes
+        = do ~(h : hs) <- get_holes
              movelast h
     elab' ina fc (PMetavar nfc n) =
           do ptm <- get_term
@@ -1251,7 +1251,7 @@ elab ist info emode opts fn tm
     elab' ina fc (PHidden t)
       | reflection = elab' ina fc t
       | otherwise
-        = do (h : hs) <- get_holes
+        = do ~(h : hs) <- get_holes
              -- Dotting a hole means that either the hole or any outer
              -- hole (a hole outside any occurrence of it)
              -- must be solvable by unification as well as being filled
@@ -1259,7 +1259,7 @@ elab ist info emode opts fn tm
              -- Delay dotted things to the end, then when we elaborate them
              -- we can check the result against what was inferred
              movelast h
-             (h' : hs) <- get_holes
+             ~(h' : hs) <- get_holes
              -- If we're at the end anyway, do it now
              if h == h' then elabHidden h
                         else delayElab 10 $ elabHidden h
@@ -1749,24 +1749,6 @@ collectDeferred top casenames ctxt tm = cd [] tm
                                         (cd env a)
     cd env t = return t
 
-case_ :: Bool -> Bool -> IState -> Name -> PTerm -> ElabD ()
-case_ ind autoSolve ist fn tm = do
-  attack
-  tyn <- getNameFrom (sMN 0 "ity")
-  claim tyn RType
-  valn <- getNameFrom (sMN 0 "ival")
-  claim valn (Var tyn)
-  letn <- getNameFrom (sMN 0 "irule")
-  letbind letn RigW (Var tyn) (Var valn)
-  focus valn
-  elab ist toplevel ERHS [] (sMN 0 "tac") tm
-  env <- get_env
-  let (Just binding) = lookupBinder letn env
-  let val = binderVal binding
-  if ind then induction (forget val)
-         else casetac (forget val)
-  when autoSolve solveAll
-
 -- | Compute the appropriate name for a top-level metavariable
 metavarName :: [String] -> Name -> Name
 metavarName _          n@(NS _ _) = n
@@ -2044,6 +2026,14 @@ runElabAction info ist fc env tm ns = do tm' <- eval tm
            first' <- eval first
            alt' <- eval alt
            try' (runTacTm first') (runTacTm alt') True
+      | n == tacN "Prim__TryCatch"
+      = do ~[_a, first, f] <- tacTmArgs 3 tac args
+           first' <- eval first
+           f' <- eval f
+           tryCatch (runTacTm first') $ \err ->
+             do (err', _) <- checkClosed (reflectErr err)
+                f' <- eval (App Complete f err')
+                runTacTm f'
       | n == tacN "Prim__Fill"
       = do ~[raw] <- tacTmArgs 1 tac args
            raw' <- reifyRaw =<< eval raw
@@ -2416,10 +2406,6 @@ runTac autoSolve ist perhapsFC fn tac
                    elab ist toplevel ERHS [] (sMN 0 "tac") tm
                    rewrite (Var letn)
                    when autoSolve solveAll
-    runT (Induction tm) -- let bind tm, similar to the others
-              = case_ True autoSolve ist fn tm
-    runT (CaseTac tm)
-              = case_ False autoSolve ist fn tm
     runT (LetTac n tm)
               = do attack
                    tyn <- getNameFrom (sMN 0 "letty")

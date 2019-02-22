@@ -197,7 +197,6 @@ showCaseTrees = showSep "\n\n" . map showCT . sortBy (comparing defnRank)
     snRank (ParentN n s) = "3" ++ nameRank n ++ show s
     snRank (MethodN n) = "4" ++ nameRank n
     snRank (CaseN _ n) = "5" ++ nameRank n
-    snRank (ElimN n) = "6" ++ nameRank n
     snRank (ImplementationCtorN n) = "7" ++ nameRank n
     snRank (WithN i n) = "8" ++ nameRank n ++ show i
 
@@ -534,7 +533,7 @@ irTree top args tree = do
 
 irSC :: Name -> Vars -> SC -> Idris LExp
 irSC top vs (STerm t) = irTerm top vs [] t
-irSC top vs (UnmatchedCase str) = return $ LLazyExp $ LError str
+irSC top vs (UnmatchedCase str) = return $ LError str
 
 irSC top vs (ProjCase tm alts) = do
     tm'   <- irTerm top vs [] tm

@@ -19,7 +19,7 @@ infix 5 \\
 infixr 7 ::,++
 
 ||| Generic lists
-%elim data List : (elem : Type) -> Type where
+data List : (elem : Type) -> Type where
   ||| Empty list
   Nil : List elem
   ||| A non-empty list, consisting of a head element and the rest of
@@ -394,13 +394,14 @@ scanl1 f (x::xs) = scanl f x xs
 -- Transformations
 --------------------------------------------------------------------------------
 
+||| Reverse a list onto an existing tail.
+reverseOnto : List a -> List a -> List a
+reverseOnto acc [] = acc
+reverseOnto acc (x::xs) = reverseOnto (x::acc) xs
+
 ||| Return the elements of a list in reverse order.
 reverse : List a -> List a
-reverse = reverse' []
-  where
-    reverse' : List a -> List a -> List a
-    reverse' acc []      = acc
-    reverse' acc (x::xs) = reverse' (x::acc) xs
+reverse = reverseOnto []
 
 ||| Insert some separator between the elements of a list.
 |||
@@ -435,12 +436,12 @@ intercalate sep xss = concat $ intersperse sep xss
 |||
 |||     transpose [[], [1, 2]] = [[1], [2]]
 |||     transpose (transpose [[], [1, 2]]) = [[1, 2]]
-|||
-||| TODO: Solution which satisfies the totality checker?
 transpose : List (List a) -> List (List a)
 transpose [] = []
-transpose ([] :: xss) = transpose xss
-transpose ((x::xs) :: xss) = assert_total $ (x :: (mapMaybe head' xss)) :: (transpose (xs :: (map (drop 1) xss)))
+transpose (heads :: tails) = spreadHeads heads (transpose tails) where
+  spreadHeads []              tails           = tails
+  spreadHeads (head :: heads) []              = [head] :: spreadHeads heads []
+  spreadHeads (head :: heads) (tail :: tails) = (head :: tail) :: spreadHeads heads tails
 
 --------------------------------------------------------------------------------
 -- Membership tests
@@ -674,13 +675,18 @@ split p xs =
     (chunk, [])          => [chunk]
     (chunk, (c :: rest)) => chunk :: split p (assert_smaller xs rest)
 
-||| A tuple where the first element is a List of the n first elements and
-||| the second element is a List of the remaining elements of the list
-||| It is equivalent to (take n xs, drop n xs)
+||| A tuple where the first element is a `List` of the `n` first elements and
+||| the second element is a `List` of the remaining elements of the original.
+||| It is equivalent to `(take n xs, drop n xs)` (`splitAtTakeDrop`),
+||| but is more efficient.
+|||
 ||| @ n   the index to split at
-||| @ xs  the list to split in two
+||| @ xs  the `List` to split in two
 splitAt : (n : Nat) -> (xs : List a) -> (List a, List a)
-splitAt n xs = (take n xs, drop n xs)
+splitAt Z xs = ([], xs)
+splitAt (S k) [] = ([], [])
+splitAt (S k) (x :: xs) with (splitAt k xs)
+  | (tk, dr) = (x :: tk, dr)
 
 ||| The partition function takes a predicate a list and returns the pair of
 ||| lists of elements which do and do not satisfy the predicate, respectively;
@@ -855,9 +861,39 @@ catMaybes (x::xs) =
 -- Properties
 --------------------------------------------------------------------------------
 
+Uninhabited ([] = _ :: _) where
+  uninhabited Refl impossible
+
+Uninhabited (_ :: _ = []) where
+  uninhabited Refl impossible
+
 ||| (::) is injective
-consInjective : (x :: xs) = (y :: ys) -> (x = y, xs = ys)
+consInjective : {x : a} -> {xs : List a} -> {y : b} -> {ys : List b} ->
+                (x :: xs) = (y :: ys) -> (x = y, xs = ys)
 consInjective Refl = (Refl, Refl)
+
+||| Two lists are equal, if their heads are equal and their tails are equal.
+consCong2 : {x : a} -> {xs : List a} -> {y : b} -> {ys : List b} ->
+            x = y -> xs = ys -> x :: xs = y :: ys
+consCong2 Refl Refl = Refl
+
+||| Appending pairwise equal lists gives equal lists
+appendCong2 : {x1 : List a} -> {x2 : List a} ->
+              {y1 : List b} -> {y2 : List b} ->
+              x1 = y1 -> x2 = y2 -> x1 ++ x2 = y1 ++ y2
+appendCong2 {x1=[]} {y1=(_ :: _)} Refl _ impossible
+appendCong2 {x1=(_ :: _)} {y1=[]} Refl _ impossible
+appendCong2 {x1=[]} {y1=[]} _ eq2 = eq2
+appendCong2 {x1=(_ :: _)} {y1=(_ :: _)} eq1 eq2 =
+  consCong2
+    (fst $ consInjective eq1)
+    (appendCong2 (snd $ consInjective eq1) eq2)
+
+||| List.map is distributive over appending.
+mapAppendDistributive : (f : a -> b) -> (x : List a) -> (y : List a) ->
+                        map f (x ++ y) = map f x ++ map f y
+mapAppendDistributive _ [] _ = Refl
+mapAppendDistributive f (_ :: xs) y = cong $ mapAppendDistributive f xs y
 
 ||| The empty list is a right identity for append.
 appendNilRightNeutral : (l : List a) ->
@@ -930,3 +966,12 @@ foldlAsFoldr f z t = foldr (flip (.) . flip f) id t z
 foldlMatchesFoldr : (f : b -> a -> b) -> (q : b) -> (xs : List a) -> foldl f q xs = foldlAsFoldr f q xs
 foldlMatchesFoldr f q [] = Refl
 foldlMatchesFoldr f q (x :: xs) = foldlMatchesFoldr f (f q x) xs
+
+splitAtTakeDrop : (n : Nat) -> (xs : List a) -> splitAt n xs = (take n xs, drop n xs)
+splitAtTakeDrop Z xs = Refl
+splitAtTakeDrop (S k) [] = Refl
+splitAtTakeDrop (S k) (x :: xs) with (splitAt k xs) proof p
+  | (tk, dr) = let prf = trans p (splitAtTakeDrop k xs)
+                in aux (cong {f=(x ::) . fst} prf) (cong {f=snd} prf)
+  where aux : {a, b : Type} -> {w, x : a} -> {y, z : b} -> w = x -> y = z -> (w, y) = (x, z)
+        aux Refl Refl = Refl

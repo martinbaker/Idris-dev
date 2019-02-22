@@ -1,6 +1,7 @@
 module Data.BoundedList
 
 import Data.Fin
+import Data.Vect
 
 %access public export
 %default total
@@ -51,6 +52,20 @@ fromList [] = []
 fromList (x :: xs) = x :: fromList xs
 
 --------------------------------------------------------------------------------
+-- Conversions to and from vector
+--------------------------------------------------------------------------------
+
+||| Convert bounded list to vector.
+toVect : (xs : BoundedList n a) -> Vect (finToNat (length xs)) a
+toVect [] = []
+toVect (x :: xs) = x :: toVect xs
+
+||| Convert vector to bounded list.
+fromVect : (xs : Vect n a) -> BoundedList n a
+fromVect [] = []
+fromVect (x :: xs) = x :: fromVect xs
+
+--------------------------------------------------------------------------------
 -- Building (bigger) bounded lists
 --------------------------------------------------------------------------------
 
@@ -75,6 +90,20 @@ implementation Foldable (BoundedList n) where
 implementation Functor (BoundedList n) where
   map f [] = []
   map f (x :: xs) = f x :: map f xs
+
+--------------------------------------------------------------------------------
+-- Monoid
+--------------------------------------------------------------------------------
+
+implementation Semigroup a => Semigroup (BoundedList n a) where
+  (x :: xs) <+> (y :: ys) = (x <+> y) :: (xs <+> ys)
+  xs <+> [] = xs
+  [] <+> ys = ys
+
+-- The Semigroup constraint is only needed because that's how we make a
+-- semigroup from BoundedList, not used in this implementation.
+implementation Semigroup a => Monoid (BoundedList n a) where
+  neutral = []
 
 --------------------------------------------------------------------------------
 -- Misc

@@ -249,6 +249,11 @@ export
 values : SortedMap k v -> List v
 values = map snd . toList
 
+export
+null : SortedMap k v -> Bool
+null Empty = True
+null (M _ _) = False
+
 treeMap : (a -> b) -> Tree n k a o -> Tree n k b o
 treeMap f (Leaf k v) = Leaf k (f v)
 treeMap f (Branch2 t1 k t2) = Branch2 (treeMap f t1) k (treeMap f t2)
@@ -281,6 +286,10 @@ merge = mergeWith (<+>)
 export
 mergeLeft : SortedMap k v -> SortedMap k v -> SortedMap k v
 mergeLeft = mergeWith const
+
+export
+(Show k, Show v) => Show (SortedMap k v) where
+   show m = "fromList " ++ (show $ toList m)
 
 -- TODO: is this the right variant of merge to use for this? I think it is, but
 -- I could also see the advantages of using `mergeLeft`. The current approach is

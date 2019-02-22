@@ -1,7 +1,39 @@
-# New in 1.2.*
+# New in next version
 
+## Tool updates
++ Modules no longer require building if imports have changed but all
+  interfaces (i.e. types for names declared `export` and definitions of names
+  declared `public export`) are unchanged.
+
+# New in 1.3.1
+
+## Tool updates
++ Fixes for building with GHC 8.6
++ Fix for megaparsec update
++ Some fixes for memory allocation issues in the C back end
+
+# New in 1.3.0
+
+## Language updates
++ Old 'induction' tactics and eliminator generation functionality ('%elim', '%case', 'elim_for') is no longer supported.
+  Please, rely on the ones provided by Pruviloj and elaborator reflection instead.
+
+## Library updates
+
++ Changed rndInt in Effect.Random so that it does not alternate between odd
+  and even.
++ Additions to `contrib`:
+  * `Data.SortedBag`: Bag (or Multiset) implemention based on `Data.SortedMap`.
+  * `Data.PosNat`: A `Nat` paired with a proof that it is positive.
+  * `Data.Chain`: A function with an arbitrary number of arguments, plus
+    combinators for working with them.
+
+## Tool updates
++ Added a switch `--allow-capitalized-pattern-variables` to optionally allow capitalized pattern variables after they were prohibited in 1.2.0.
 + REPL now prints an error message if program compiled by `:exec` terminates
   abnormally.
++ Idris now builds with GHC 8.4.
++ In the C backend, the representation of Idris values at runtime has been reworked.
 
 # New in 1.2.0
 
@@ -37,7 +69,7 @@
 + C FFI now supports pasting in any expression by prefixing it with '#', e.g.
   ```idris
   intMax : IO Int
-  intMax = foreign FFI_C "#INT_MAX" (IO Int) 
+  intMax = foreign FFI_C "#INT_MAX" (IO Int)
   ```
 + The deprecated keywords `%assert_total`, `abstract`, and `[static]` have
   been removed as well as the use of "public" instead of "public export" to
@@ -88,7 +120,7 @@
 + Removed several deprecated items from the libraries shipped with Idris.
 + Moved `abs` from the `Neg` interface into its own `Abs` interface.  `Nat`
   implements `Abs` with `abs = id`.
-+ Added `Control.ST.File`, an ST based implementation of the same behaviour 
++ Added `Control.ST.File`, an ST based implementation of the same behaviour
   implemented by `Effect.File` in the effects package.
 
 ## Tool Updates
