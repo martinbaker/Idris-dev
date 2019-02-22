@@ -332,6 +332,6 @@ implementation Eq (PermsIndexed s fs) where
 
 
 --implementation Show fs => Show PermsIndexed (fs:(FiniteSet s)) where
-implementation Show (PermsIndexed s fs) where
+implementation Show (PermsIndexed set fs) where
     show a = "permsIndexed " ++ (show (gensIndexed a))
 

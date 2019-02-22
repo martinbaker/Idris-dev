@@ -1250,16 +1250,16 @@ main =
     putStrLn (show v2)
 -}
 
-
 ||| test bsgs1
 main : IO ()
 main =
   let
     --group : (PermutationGroup Nat) = dihedralGroup 3
     p : Permutation Nat =permSetFromList [1,2,3] [2,3,1]
-    p2 : Permutation Nat =permSetFromList [1,3] [3,1]
+    p2 : Permutation Nat =permSetFromList [1,2,3] [2,1,3]
     gp : List (Permutation Nat) = [p,p2]
-    mp:(FiniteSet Nat) = movedPointsInPerms gp
+    --mp:(FiniteSet Nat) = movedPointsInPerms gp
+    mp:(FiniteSet Nat) = fromList [1,2,3]
     out1 : List (PermsIndexed Nat mp) = Nil
     -- out will hold stabiliser chain
     outword1 : List (List (List Nat)) = Nil
@@ -1269,17 +1269,23 @@ main =
     -- 'newGroup' holds permutations as vectors as they are
     -- easier to work with.
     group:(PermsIndexed Nat mp) = permToVect mp gp
+    number1 : Nat = 0
+    words: List (List Nat) = Nil
+    maxLoops: Int = 20
+    diff : Int = 0
+    out : List (PermsIndexed Nat mp) = out1
+    outword : List (List (List Nat)) = outword1
     ------------------------------------------
-    -- bsgs1 code
+    -- bsgs1 group number1 words maxLoops diff out outword
     ------------------------------------------
     degree:Nat = permsIndexed.degree group
     -- find moved point i, that is first point with orbit > 1
     (i,ort1,k1) : (Nat,Maybe (OrbitAndSchreier Nat mp),Nat)
-      = firstOrbit group 1
+      = firstOrbit group number1
     -- genjj : a generator x which moves point i
     genjj: Maybe PermIndexedElement = firstMover group i
     -- gpsgs : set of generators where none stabilise point i
-    gpsgs :(PermsIndexed Nat mp) = case genjj  of
+    gpsgs :(PermsIndexed Nat mp) = case genjj of
       Nothing => group
       Just x => modifyGens group x i
     ort1': (OrbitAndSchreier Nat mp) = case ort1 of
@@ -1288,12 +1294,20 @@ main =
     gens4Stab : (Int,List PermIndexedElement) =
       runPure (findGensForStab 15 group Nil ort1' 20)
     group2 : (PermsIndexed Nat mp) = MkPermsIndex (snd gens4Stab)
+    lgpsgs :List (PermsIndexed Nat mp) = [gpsgs]
+    number2 : Nat = i+1
+    maxLoops2: Int = maxLoops-diff
     -------------------------------------------------
-    b : Bsgs1Output Nat mp =
-      runPure (bsgs1 group 1 Nil 20 0 out1 outword1)
+--    b : Bsgs1Output Nat mp =
+--      runPure (bsgs1 group 1 Nil 20 0 out1 outword1)
   in do
-    putStrLn ("p=" ++ (show p))
-    putStrLn ("group=" ++ (show group))
+    putStrLn ("gp=" ++ (show gp))
+    putStrLn ("mp=" ++ (show mp))
+    putStr ("bsgs1 " ++ (show group))
+    putStr (" " ++ (show number1))
+    putStrLn (" " ++ (show words)++ " " ++ (show maxLoops))
+    putStr (" "  ++ (show diff) )
+    putStrLn (" " ++ (show out) ++ " " ++ (show outword))
     putStrLn ("degree=" ++ (show degree))
     putStrLn ("i=" ++ (show i))
     putStrLn ("ort1=" ++ (show ort1))
@@ -1301,9 +1315,13 @@ main =
     putStrLn ("genjj=" ++ (show genjj))
     putStrLn ("gpsgs=" ++ (show gpsgs))
     putStrLn ("ort1'=" ++ (show ort1'))
-    putStrLn ("gens4Stab=" ++ (show gens4Stab))
-    putStrLn ("group2=" ++ (show group2))
-    putStrLn ("b=" ++ (show b))
+    -- prining gens4Stab causes loop
+--    putStrLn ("gens4Stab=" ++ (show gens4Stab))
+--    putStr ("bsgs1 " ++ (show group2))
+--    putStr (" " ++ (show number2)++ " " ++ (show words))
+--    putStrLn (" " ++ (show maxLoops2))
+--    putStr (" "  ++ (show diff) ++ " " ++ (show lgpsgs))
+--    putStrLn ( " " ++ (show outword))
     --putStrLn ("b=" ++ (show b))
 
 {-    -------------------------------------------------
@@ -1380,3 +1398,4 @@ main =
     putStrLn ("str=" ++ (show str'))
     --putStrLn ("a=" ++ (show a) ++" b=" ++ (show b) ++" c=" ++ (show c))
 -}
+ 
