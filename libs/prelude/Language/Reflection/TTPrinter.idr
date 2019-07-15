@@ -1,14 +1,20 @@
 %language ElabReflection
 
 implementation Show TTName where
-  show (UN s) = "`{{"++s++"}}"
-  show (NS t a) = "{"++(show t)++"."++(show a)++"}"
-  show (MN i s) = "{"++s++"_"++(show i)++"}"
+  -- UN=A user-provided name
+  show (UN s) = s
+  -- NS=A name in some namespace
+  show (NS t a) = (show t)++"."++(show a)
+  -- MN=Machine-chosen names
+  show (MN i s) = s++"_"++(show i)
+  -- SN=Special name
   show (SN sn) = "TTName special name"
 
 implementation Show TTUExp where
-  show (UVar s i) = "ext="++s++"#"++(show i)
-  show (UVal i) = "U"++(show i)
+  -- Universe variable
+  show (UVar s i) = "U=("++(show i)++":"++s++")"
+  -- Explicit universe level
+  show (UVal i) = "U="++(show i)
 
 -- You must turn on the UniquenessTypes extension to use UniqueType or AnyType
 --implementation Show Universe where
@@ -34,22 +40,28 @@ implementation Show Const where
   show TheWorld = "TheWorld"
 
 implementation Show NameType where
-  show Bound = "NameType just bound by intro"
-  show Ref = "NameType de Bruijn indexed"
-  show (DCon i1 i2) = "{NameType data constructor i1="++(show i1)++" i2"++(show i2)++"}"
-  show (TCon i1 i2) = "{type const tag="++(show i1)++","++(show i2)++"}"
+  show Bound = "bound"
+  show Ref = "de Bruijn"
+  -- Data constructor with tag and number
+  show (DCon i1 i2) = "{data constructor tag="++(show i1)++" number="++(show i2)++"}"
+  -- Type constructor with tag and number
+  show (TCon i1 i2) = "{type constructor tag="++(show i1)++" number="++(show i2)++"}"
 
 mutual
  implementation Show TT where
-  show (P ty nm tt) = "{TT:Parameter name ref<br/> NameType=" ++ (show ty)++
-                      "<br/> TTName="++ (show nm)++"<br/> TT="++ (show tt)++"<br/>}"
+  -- A reference to some name (P for Parameter) P NameType TTName TT
+  show (P ty nm tt) = "{name ref" ++ (show ty)++
+                      (show nm)++":"++ (show tt)++"<br/>}"
+  -- Local variable uses de Bruijn index.
   show (V i) = "{TT:de Bruijn index="++ (show i)++"}"
-  show (Bind ttn b tt) = "{TT:Bind<br/> name=" ++ (show ttn)++"<br/> binder=" ++
-                         (show b)++"<br/> tt=" ++ (show tt)++"<br/>}"
+  -- Bind a variable. ttn:TTName. b:Binder TT. tt:TT
+  show (Bind ttn b tt) = (show ttn)++":(" ++
+                         (show b)++"." ++ (show tt)++")<br/>}"
   show (App tt1 tt2) = "{TT:App<br/> tt1=" ++ (show tt1)++"<br/> tt2=" ++ (show tt2)++"<br/>}"
   show (TConst c) = "{TT:TConst c=" ++ (show c)++"}"
   show Erased = "{TT:Erased}"
-  show (TType t) = "{TT:TType<br/> tt="++ (show t)++"<br/>}"
+  -- The type of types along (with universe constraints)
+  show (TType ttuexp) = "Type<sub>"++ (show ttuexp)++"</sub>"
   show UType = "{TT:UType}"
 
 
@@ -65,8 +77,8 @@ mutual
   show (Pi ty kind) =
     let
       s : String = case ty of
-        P typ nm tt => "{Π ("++(show nm)++":"++(show typ)++
-                       ")."++(show tt)++"<br/>}"
+        P typ nm tt => (show nm)++":"++(show typ)++
+                       "."++(show tt)++"->"
         _ => "{Binder Pi:<br/> arg type="++(show ty)++"<br/> kind="++(show kind)++"<br/>}"
     in
       s
@@ -76,11 +88,11 @@ mutual
 
 idNat : Nat -> Nat
 idNat = %runElab (do
+         intro `{{x}}
+         fill (Var `{{x}})
          debugMessage [TextPart ("getEnv=" ++show (!getEnv)++
                                  "<br/><br/>getGoal="++show (!getGoal)++
                                  "<br/><br/>getHoles="++show (!getHoles))] {a = ()}
-         intro `{{x}}
-         fill (Var `{{x}})
          --debugMessage [TextPart (show (!getGuess))]
          solve
          debugMessage [TextPart ("getEnv=" ++show (!getEnv)++
