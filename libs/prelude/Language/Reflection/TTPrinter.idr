@@ -40,8 +40,8 @@ implementation Show Const where
   show TheWorld = "TheWorld"
 
 implementation Show NameType where
-  show Bound = "bound"
-  show Ref = "de Bruijn"
+  show Bound = "bound "
+  show Ref = "de Bruijn "
   -- Data constructor with tag and number
   show (DCon i1 i2) = "{data constructor tag="++(show i1)++" number="++(show i2)++"}"
   -- Type constructor with tag and number
@@ -50,7 +50,7 @@ implementation Show NameType where
 mutual
  implementation Show TT where
   -- A reference to some name (P for Parameter) P NameType TTName TT
-  show (P ty nm tt) = "{name ref" ++ (show ty)++
+  show (P ty nm tt) = "{name ref " ++ (show ty)++
                       (show nm)++":"++ (show tt)++"<br/>}"
   -- Local variable uses de Bruijn index.
   show (V i) = "{TT:de Bruijn index="++ (show i)++"}"
@@ -90,13 +90,10 @@ idNat : Nat -> Nat
 idNat = %runElab (do
          intro `{{x}}
          fill (Var `{{x}})
-         debugMessage [TextPart ("getEnv=" ++show (!getEnv)++
-                                 "<br/><br/>getGoal="++show (!getGoal)++
-                                 "<br/><br/>getHoles="++show (!getHoles))] {a = ()}
-         --debugMessage [TextPart (show (!getGuess))]
          solve
-         debugMessage [TextPart ("getEnv=" ++show (!getEnv)++
-                                 "<br/><br/>getGoal="++show (!getGoal)++
-                                 "<br/><br/>getHoles="++show (!getHoles))]
+         --debugMessage [TextPart ("getEnv=" ++show (!getEnv)++
+         --                        "<br/><br/>getGoal="++show (!getGoal)++
+         --                        "<br/><br/>getHoles="++show (!getHoles))] {a = ()}
+         debugMessage [TextPart (show (!getGuess))] {a = ()}
          )
 
