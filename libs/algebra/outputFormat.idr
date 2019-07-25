@@ -50,7 +50,6 @@ getWidth : CharRectangle -> Nat
 getWidth [] = 0
 getWidth (c::cs) = length c
 
-{-
 ||| pad with spaces to make rectangle a given height
 ||| try to pad equally at the top and bottom so that the content
 ||| remains in the middle. if this can't be done evenly then put
@@ -59,10 +58,26 @@ vpad : CharRectangle -> Nat -> CharRectangle
 vpad a requiredHeight =
   -- if requiredHeight is already equal or greater than that
   -- required then return without changing
-  if (getHeight(a) >= requiredHeight)
-  then a
-  else
-    let
+  let delta = minus requiredHeight (getHeight a)
+      topPadCount = divNat delta 2
+      bottomPadCount = topPadCount
+      topPadOdd = modNat delta 2
+      topPadCount = if (isZero topPadOdd) then topPadCount else topPadCount+1
+      width = getWidth a
+  in
+    if isZero delta
+    then a
+    else reverse (padLineNTimes bottomPadCount width (reverse (padLineNTimes topPadCount width a)))
+  where
+      padLine : Nat -> (List Char) -> (List Char)
+      padLine Z chars = chars
+      padLine (S w) chars = ' ' ::  (padLine w chars)
+
+      padLineNTimes : Nat -> Nat -> CharRectangle -> CharRectangle
+      padLineNTimes Z w chars = chars
+      padLineNTimes (S h) w chars = (padLine w []) :: (padLineNTimes h w chars)
+
+{-
       -- work out ammount to padded
       deltaU:Union(NNI,"failed") := subtractIfCan(requiredHeight,getHeight(a))
       if deltaU case "failed" then return a
