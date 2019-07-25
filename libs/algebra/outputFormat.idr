@@ -18,11 +18,11 @@ module outputForm
 CharRectangle : Type
 CharRectangle = List (List Char)
 
-||| constructor to create single line rectangle
+||| Constructor to create single line rectangle
 charRectangle : String -> CharRectangle
 charRectangle a = [unpack a]
 
-||| constructor to create rectangle with an array of empty spaces.
+||| Constructor to create rectangle with an array of empty spaces.
 paddedRectangle : Nat -> Nat -> CharRectangle
 paddedRectangle height width
   = let row = padRow width [] in
@@ -42,7 +42,15 @@ getHeight : CharRectangle -> Nat
 getHeight [] = 0
 getHeight (c::cs) = 1 + (getHeight cs)
 
-||| widths are measured in number of characters, This is designed for
+||| get maximum height from a list of rectangles
+getMaxHeight : (List CharRectangle) -> Nat -> Nat
+getMaxHeight [] runningMax = runningMax
+getMaxHeight (c::cs) runningMax  =
+  if (getHeight c) > runningMax
+  then getMaxHeight cs (getHeight c)
+  else getMaxHeight cs runningMax
+
+||| Widths are measured in number of characters, This is designed for
 ||| monospaced (fixed width) fonts so every character is the same
 ||| width and offsets of fractions of a character width are not
 ||| possible
@@ -50,14 +58,14 @@ getWidth : CharRectangle -> Nat
 getWidth [] = 0
 getWidth (c::cs) = length c
 
-||| pad with spaces to make rectangle a given height
+||| Pad with spaces to make rectangle a given height
 ||| try to pad equally at the top and bottom so that the content
 ||| remains in the middle. if this can't be done evenly then put
 ||| extra line at the top.
+||| If requiredHeight is already equal or greater than that
+||| required then return without changing.
 vpad : CharRectangle -> Nat -> CharRectangle
 vpad a requiredHeight =
-  -- if requiredHeight is already equal or greater than that
-  -- required then return without changing
   let delta = minus requiredHeight (getHeight a)
       topPadCount = divNat delta 2
       bottomPadCount = topPadCount
@@ -77,29 +85,63 @@ vpad a requiredHeight =
       padLineNTimes Z w chars = chars
       padLineNTimes (S h) w chars = (padLine w []) :: (padLineNTimes h w chars)
 
-{-
-      -- work out ammount to padded
-      deltaU:Union(NNI,"failed") := subtractIfCan(requiredHeight,getHeight(a))
-      if deltaU case "failed" then return a
-      delta:NNI := deltaU::NNI
-      dR:Record(quotient:NNI,remainder:NNI) := divide(delta::NNI,2::NNI)$NNI
-      topPadCount:NNI := dR.quotient
-      if dR.remainder > 0 then topPadCount := topPadCount + 1
-      bottomPadCount:NNI := dR.quotient
-      paddedLine:List Character := [char(" ")]
-      for x in 1..(getWidth(a)) repeat
-        if x=1 then paddedLine := [char(" ")]
-        else paddedLine := concat(paddedLine,char(" "))$List(Character)
-      -- can I replace above 'for' loop with list comprehension?
-      -- paddedLine:List Character := [char(" ") for x in [1..(getWidth(a)::NNI)]]
-      newRectangle:List List Character := [paddedLine]
-      for i in 1..topPadCount repeat
-        if i=1 then newRectangle:= [paddedLine]
-        else newRectangle := concat(newRectangle,paddedLine)$List(List(Character))
-      for b in a repeat
-        newRectangle := concat(newRectangle,b)$List(List(Character))
-      for i in 1..bottomPadCount repeat
-        newRectangle := concat(newRectangle,paddedLine)$List(List(Character))
-      newRectangle::%
--}
+||| Pad with spaces to make rectangle a given width
+||| try to pad equally on the left and right so that the content
+||| remains in the middle. if this can't be done evenly then put
+||| extra line on the right.
+||| If requiredWidth is already equal or greater than that
+||| required then return without changing.
+hpad : CharRectangle -> Nat -> CharRectangle
+hpad a requiredWidth =
+  let delta = minus requiredWidth (getWidth a)
+      rightPadCount = divNat delta 2
+      leftPadCount = rightPadCount
+      topPadOdd = modNat delta 2
+      rightPadCount = if (isZero topPadOdd) then rightPadCount else rightPadCount+1
+      hight = getHeight a
+  in
+    if isZero delta
+    then a
+    else padLines leftPadCount rightPadCount a []
+  where
+      padPartLine : Nat -> (List Char)
+      padPartLine Z = []
+      padPartLine (S n) = ' ' :: (padPartLine n)
 
+      padLine : Nat -> Nat -> (List Char) -> (List Char)
+      padLine nleft nright lin = (padPartLine nleft) ++ lin ++ (padPartLine nright)
+
+      padLines : Nat -> Nat -> CharRectangle -> CharRectangle -> CharRectangle
+      padLines nleft nright [] res = []
+      padLines nleft nright (lin :: lins) res = (padLine nleft nright lin)::res
+
+{-
+||| vertical concatination of rectangles produces a new rectangle
+||| consisting of all the supplied rectangles, one above the other.
+||| The order of the list is assumed to be top to bottom.
+||| Concatinated rectangles don't have to match in either width or
+||| height. The values will all be increased to the value of the
+||| biggest and padded so that they are centred.
+vconcat : (List CharRectangle) -> CharRectangle
+vconcat a =
+  -- first we calculate the maximum width and height of all then
+  -- rectangles to be concatinated.
+  let maxWidth = 
+      maxWidth:NNI := 0
+      maxHeight:NNI := 0
+      for x in a repeat
+        w := getWidth(x)
+        h := getHeight(x)
+        if w > maxWidth then maxWidth:= w
+        if h > maxHeight then maxHeight:= h
+      res:List List Character := empty()$List(List(Character))
+      -- go through each input rectangle and pad them out to
+      -- the same width
+      -- put all the rows on after the other.
+      for x in a repeat
+        paddedIn:% := hpad(x,maxWidth)
+        for y in paddedIn repeat -- 'y' is a row
+          -- so 'res' contains the rows in all the inputs
+          res := concat(res,y)$List(List(Character))
+      res::%
+-}
