@@ -58,6 +58,14 @@ getWidth : CharRectangle -> Nat
 getWidth [] = 0
 getWidth (c::cs) = length c
 
+||| get maximum width from a list of rectangles
+getMaxWidth : (List CharRectangle) -> Nat -> Nat
+getMaxWidth [] runningMax = runningMax
+getMaxWidth (c::cs) runningMax  =
+  if (getWidth c) > runningMax
+  then getMaxWidth cs (getWidth c)
+  else getMaxWidth cs runningMax
+
 ||| Pad with spaces to make rectangle a given height
 ||| try to pad equally at the top and bottom so that the content
 ||| remains in the middle. if this can't be done evenly then put
@@ -115,7 +123,6 @@ hpad a requiredWidth =
       padLines nleft nright [] res = []
       padLines nleft nright (lin :: lins) res = (padLine nleft nright lin)::res
 
-{-
 ||| vertical concatination of rectangles produces a new rectangle
 ||| consisting of all the supplied rectangles, one above the other.
 ||| The order of the list is assumed to be top to bottom.
@@ -126,22 +133,12 @@ vconcat : (List CharRectangle) -> CharRectangle
 vconcat a =
   -- first we calculate the maximum width and height of all then
   -- rectangles to be concatinated.
-  let maxWidth = 
-      maxWidth:NNI := 0
-      maxHeight:NNI := 0
-      for x in a repeat
-        w := getWidth(x)
-        h := getHeight(x)
-        if w > maxWidth then maxWidth:= w
-        if h > maxHeight then maxHeight:= h
-      res:List List Character := empty()$List(List(Character))
-      -- go through each input rectangle and pad them out to
-      -- the same width
-      -- put all the rows on after the other.
-      for x in a repeat
-        paddedIn:% := hpad(x,maxWidth)
-        for y in paddedIn repeat -- 'y' is a row
-          -- so 'res' contains the rows in all the inputs
-          res := concat(res,y)$List(List(Character))
-      res::%
--}
+  let maxWidth = getMaxWidth a Z
+  in
+      mergeIn a maxWidth []
+  where
+      mergeIn : (List CharRectangle) -> Nat -> CharRectangle -> CharRectangle
+      mergeIn [] width cr = cr
+      mergeIn (c::cs) width cr = mergeIn cs width (cr ++ (hpad c width))
+
+
