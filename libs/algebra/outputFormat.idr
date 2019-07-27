@@ -66,6 +66,13 @@ getMaxWidth (c::cs) runningMax  =
   then getMaxWidth cs (getWidth c)
   else getMaxWidth cs runningMax
 
+||| For a grid produce a list of the width of each column.
+getMaxWidths : (List (List CharRectangle)) -> (List Nat)
+getMaxWidths grid = reverse (gmw (transpose grid) []) where
+    gmw : (List (List CharRectangle)) -> (List Nat) -> (List Nat)
+    gmw [] wl = wl
+    gmw (g::gs) wl = gmw gs ((getMaxWidth g Z)::wl)
+
 ||| Pad with spaces to make rectangle a given height
 ||| try to pad equally at the top and bottom so that the content
 ||| remains in the middle. if this can't be done evenly then put
@@ -123,16 +130,15 @@ hpad a requiredWidth =
       padLines nleft nright [] res = []
       padLines nleft nright (lin :: lins) res = (padLine nleft nright lin)::res
 
-||| vertical concatination of rectangles produces a new rectangle
-||| consisting of all the supplied rectangles, one above the other.
+||| vertical concatenation of rectangles produces a new rectangle
+||| consisting of all the supplied rectangles above each other.
 ||| The order of the list is assumed to be top to bottom.
-||| Concatinated rectangles don't have to match in either width or
+||| Concatenated rectangles don't have to match in either width or
 ||| height. The values will all be increased to the value of the
 ||| biggest and padded so that they are centred.
-vconcat : (List CharRectangle) -> CharRectangle
-vconcat a =
-  -- first we calculate the maximum width and height of all then
-  -- rectangles to be concatinated.
+vConcat : (List CharRectangle) -> CharRectangle
+vConcat a =
+  -- first we calculate the maximum width of all
   let maxWidth = getMaxWidth a Z
   in
       mergeIn a maxWidth []
@@ -141,4 +147,82 @@ vconcat a =
       mergeIn [] width cr = cr
       mergeIn (c::cs) width cr = mergeIn cs width (cr ++ (hpad c width))
 
+||| horizontal concatenation of rectangles produces a new rectangle
+||| consisting of all the supplied rectangles, side by side.
+||| The order of the list is assumed to be left to right.
+||| Concatenated rectangles don't have to match in either width or
+||| height. The values will all be increased to the value of the
+||| biggest and padded so that they are centred.
+hConcat : (List CharRectangle) -> CharRectangle
+hConcat a =
+  -- first we calculate the maximum height of all.
+  let maxHeight = getMaxHeight a Z
+  in
+    mergeIn a maxHeight []
+  where
+    sideBySide : CharRectangle -> CharRectangle -> CharRectangle -> CharRectangle
+    sideBySide [] [] c = c
+    sideBySide [] (right::rights) c = sideBySide [] rights (right :: c)
+    sideBySide (left::lefts) [] c = sideBySide lefts [] (left :: c)
+    sideBySide (left::lefts) (right::rights) c =
+      sideBySide lefts rights ((left ++ (' '::right)) :: c)
 
+    mergeIn : (List CharRectangle) -> Nat -> CharRectangle -> CharRectangle
+    mergeIn [] height cr = cr
+    mergeIn (c::cs) height cr = mergeIn cs height (reverse (sideBySide cr (vpad c height) []))
+
+||| Grid concatenation.
+||| Building an array of rectangles can't always be done by doing
+||| vConcat first and then hConcat, or the other way round,
+||| because they will be aligned vertically but not horizontally
+||| or aligned horizontally but not vertically. So we need this
+||| when we want to align in both dimensions simultaneously.
+||| The valid modes are:
+|||   "PLAIN"::Symbol no boundary
+|||   "MATRIX"::Symbol boundary of 1 and left+right brackets
+gridConcat : (List (List CharRectangle)) -> CharRectangle
+gridConcat a =
+  -- first we calculate a list of the width of each column
+  let maxWidths = getMaxWidths a
+  in
+    gc a maxWidths []
+  where
+    sideBySide : CharRectangle -> CharRectangle -> CharRectangle -> CharRectangle
+    sideBySide [] [] c = c
+    sideBySide [] (right::rights) c = sideBySide [] rights (right :: c)
+    sideBySide (left::lefts) [] c = sideBySide lefts [] (left :: c)
+    sideBySide (left::lefts) (right::rights) c =
+      sideBySide lefts rights ((left ++ (' '::right)) :: c)
+
+    mergeInRow : (List CharRectangle) -> Nat -> (List Nat) -> CharRectangle -> CharRectangle
+    mergeInRow [] height widths cr = cr
+    mergeInRow (c::cs) height [] cr =
+      mergeInRow cs height [] (reverse (sideBySide cr (vpad c height) []))
+    mergeInRow (c::cs) height (w::ws) cr =
+      mergeInRow cs height ws (reverse (sideBySide cr (hpad (vpad c height) w) []))
+
+    gc : (List (List CharRectangle)) -> (List Nat) -> CharRectangle -> CharRectangle
+    gc [] mw res = res
+    gc (g::gs) mw res = res ++ (gc gs mw (mergeInRow g (getMaxHeight g Z) mw []))
+
+||| temp test code
+test : CharRectangle
+test =
+  let a = charRectangle "a"
+      bcdef =charRectangle "bcdef"
+      ghi =charRectangle "ghi"
+      left = vConcat [a,bcdef,ghi]
+      right = charRectangle "xyz"
+  in
+    hConcat [left,right]
+
+||| temp test code
+test2 : CharRectangle
+test2 =
+  let a = charRectangle "a"
+      bcdefg =charRectangle "bcdefg"
+      ghi =charRectangle "ghi"
+      left = vConcat [a,bcdefg,ghi]
+      right = charRectangle "xyz"
+  in
+    gridConcat [[a,right],[ghi,left]]
