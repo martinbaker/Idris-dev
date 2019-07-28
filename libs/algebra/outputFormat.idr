@@ -205,6 +205,90 @@ gridConcat a =
     gc [] mw res = res
     gc (g::gs) mw res = res ++ (gc gs mw (mergeInRow g (getMaxHeight g Z) mw []))
 
+||| Overwrite a character in a given coordinate of a CharRectangle.
+seteltChar : CharRectangle -> Char -> Nat -> Nat -> CharRectangle
+seteltChar a c offsetx offsety = setLine a c offsetx offsety Z [] where
+  setEle : (List Char) -> Char -> Nat -> Nat -> (List Char) -> (List Char)
+  setEle [] c offsetx n res = reverse res
+  setEle (ele::eles) c offsetx n res =
+    if n==offsetx
+    then setEle eles c offsetx (S n) (c::res)
+    else setEle eles c offsetx (S n) (ele::res)
+
+  setLine : CharRectangle -> Char -> Nat -> Nat -> Nat -> CharRectangle -> CharRectangle
+  setLine [] c offsetx offsety n res = reverse res
+  setLine (cr::crs) c offsetx offsety n res =
+    if n==offsety
+    then setLine crs c offsetx offsety (S n) ((setEle cr c offsetx Z [])::res)
+    else setLine crs c offsetx offsety (S n) (cr::res)
+
+||| Embed b into a offset by the given coordinates
+||| replacing whatever is there.
+||| a=input rectangle
+||| b=replacement rectangle
+||| minx = x coordinate of replacement in input
+||| miny = y coordinate of replacement in input
+setSubRectangle : CharRectangle -> CharRectangle -> Nat -> Nat -> CharRectangle
+setSubRectangle a b minx miny =
+  let maxx = minx + (getWidth b)
+      maxy = miny + (getHeight b)
+  in
+    setLine a b minx maxx miny maxy Z Z []
+  where
+    -- @ input row
+    -- @ replacement row
+    -- @ minx in input
+    -- @ maxx in input
+    -- @ n=position in input
+    -- @ m=position in replacement
+    -- @ res=result being built up
+    setEle : (List Char) -> (List Char) -> Nat -> Nat -> Nat -> Nat -> (List Char) -> (List Char)
+    setEle [] c minx maxx n m res = reverse res
+    setEle (ele::eles) c minx maxx n m res =
+      let mnewEle = if (n == minx) then (index' Z c) else (index' m c)
+          newEle = case mnewEle of
+            Just x => x
+            Nothing => 'e'
+      in
+        if (n == minx)
+        then setEle eles c minx maxx (S n) 1 (newEle::res)
+        else
+          if (n >= minx) && (n < maxx)
+          then setEle eles c minx maxx (S n) (S m) (newEle::res)
+          else setEle eles c minx maxx (S n) (S m) (ele::res)
+
+    -- @ input rectangle
+    -- @ replacement rectangle
+    -- @ minx in input
+    -- @ maxx in input
+    -- @ miny in input
+    -- @ maxy in input
+    -- @ n=row number in input
+    -- @ m=row number in replacement
+    -- @ res=result being built up
+    setLine : CharRectangle -> CharRectangle -> Nat -> Nat ->
+              Nat -> Nat -> Nat -> Nat -> CharRectangle -> CharRectangle
+    setLine [] b minx maxx miny maxy n m res = reverse res
+    setLine (cr::crs) b minx maxx miny maxy n m res =
+      let mnewLine = if (n == miny) then index' Z b else index' m b
+          newLine = case mnewLine of
+            Just x => x
+            Nothing => ['f']
+      in
+        if (n == miny)
+        then setLine crs b minx maxx miny maxy (S n) 1 ((setEle cr newLine minx maxx Z Z [])::res)
+        else
+          if (n >= miny) && (n < maxy)
+          then setLine crs b minx maxx miny maxy (S n) (S m) ((setEle cr newLine minx maxx Z Z [])::res)
+          else setLine crs b minx maxx miny maxy (S n) (S m) (cr::res)
+
+||| generates a string for each line. Trailing spaces are stripped
+||| off the end of each line.
+stringise : CharRectangle -> (List String)
+stringise [] = []
+stringise (a::as) =
+  (reverse (ltrim (reverse (pack a)))) :: (stringise as)
+
 ||| temp test code
 test : CharRectangle
 test =
@@ -226,3 +310,8 @@ test2 =
       right = charRectangle "xyz"
   in
     gridConcat [[a,right],[ghi,left]]
+
+||| temp test code
+test3 : CharRectangle
+test3 = setSubRectangle test2 (charRectangle "pqr") 2 2
+
