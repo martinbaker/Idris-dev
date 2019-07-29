@@ -224,11 +224,12 @@ seteltChar a c offsetx offsety = setLine a c offsetx offsety Z [] where
 
 ||| Embed b into a offset by the given coordinates
 ||| replacing whatever is there.
-||| a=input rectangle
-||| b=replacement rectangle
-||| minx = x coordinate of replacement in input
-||| miny = y coordinate of replacement in input
-setSubRectangle : CharRectangle -> CharRectangle -> Nat -> Nat -> CharRectangle
+||| @a input rectangle
+||| @b replacement rectangle
+||| @minx x coordinate of replacement in input
+||| @miny y coordinate of replacement in input
+setSubRectangle : (a:CharRectangle) -> (b:CharRectangle) ->
+                  (minx:Nat) -> (miny:Nat) -> CharRectangle
 setSubRectangle a b minx miny =
   let maxx = minx + (getWidth b)
       maxy = miny + (getHeight b)
@@ -288,6 +289,79 @@ stringise : CharRectangle -> (List String)
 stringise [] = []
 stringise (a::as) =
   (reverse (ltrim (reverse (pack a)))) :: (stringise as)
+
+||| Output a rectangle to console
+output : CharRectangle -> IO ()
+output [] = putStrLn ""
+output (cr::crs) = do
+  putStrLn (pack cr)
+  output crs
+
+-- test with :exec output test2
+
+------------------------------------------------------------------------------------
+
+--interface OutputFormatExpression where
+
+||| This holds only enough information about the expression to display it.
+||| Semantic and type information is dropped to make it general enough to be
+||| output in many forms.
+data OutputFormat : Type where
+  ||| integer number
+  OFInt : Integer -> OutputFormat
+  ||| floating point (real) number
+  OFFloat : Double -> OutputFormat
+  ||| text without quotation marks
+  OFSymbol : String -> OutputFormat
+  ||| text with quotation marks
+  OFString : String -> OutputFormat
+  ||| a unary operation (prefix or postfix)
+  OFUnaryOp : String -> OutputFormat -> OutputFormat
+  ||| a binary operation
+  OFBinaryOp : String -> OutputFormat -> OutputFormat -> OutputFormat
+  ||| vertically separated expressions
+  OFVConcat : (List OutputFormat) -> OutputFormat
+  ||| horizontally separated expressions
+  OFHConcat : (List OutputFormat) -> OutputFormat
+  ||| a 2D grid of expressions
+  OFGrid : (List (List OutputFormat)) -> OutputFormat
+
+------------------------------------------------------------------------------------
+
+display : OutputFormat -> IO ()
+display f = output (dispMono f) where
+  dispMono : OutputFormat -> CharRectangle
+  dispMono (OFInt i) = charRectangle (show i)
+  dispMono (OFFloat d) = charRectangle (show d)
+  dispMono (OFSymbol s) = [unpack s]
+  dispMono (OFString s) = [unpack ("\"" ++ s ++ "\"")]
+  dispMono (OFUnaryOp s f) = hConcat [charRectangle s, charRectangle " ",dispMono f]
+  dispMono (OFBinaryOp s f1 f2) = hConcat [dispMono f1, charRectangle " ",charRectangle s,
+                                           charRectangle " ",dispMono f2]
+  dispMono (OFVConcat lst) = vConcat (map dispMono lst)
+  dispMono (OFHConcat lst) = hConcat (map dispMono lst)
+  dispMono (OFGrid lst2) = gridConcat (opf2cd lst2) where
+    opf2cd : (List (List OutputFormat)) -> (List (List CharRectangle))
+    opf2cd [] = []
+    opf2cd (lst::lsts) = (map dispMono lst)::(opf2cd lsts)
+
+-- run using: :exec test5
+test5 : IO ()
+test5 =
+  let a = OFSymbol "a"
+      bcdef =OFSymbol "bcdef"
+      ghi =OFSymbol "ghi"
+      left = OFVConcat [a,bcdef,ghi]
+      right = OFSymbol "xyz"
+  in
+    display (OFHConcat [left,right])
+
+
+
+
+
+
+------------------------------------------------------------------------------------
 
 ||| temp test code
 test : CharRectangle
