@@ -283,6 +283,51 @@ setSubRectangle a b minx miny =
           then setLine crs b minx maxx miny maxy (S n) (S m) ((setEle cr newLine minx maxx Z Z [])::res)
           else setLine crs b minx maxx miny maxy (S n) (S m) (cr::res)
 
+||| Draw vertical line of given height
+vLine : Nat -> Bool -> CharRectangle
+vLine Z first = []
+vLine (S n) first = if (n==Z) || first
+              then ['+'] :: (vLine n False)
+              else ['|'] :: (vLine n False)
+
+||| Draw horizontal line of given width
+hLine : Nat -> (List Char)
+hLine Z = []
+hLine (S n) = '-' :: (hLine n)
+
+
+||| Draw a line to left, right, top and/or bottom given rectangle
+line : CharRectangle -> Bool -> Bool -> Bool -> Bool -> CharRectangle
+line cr left right top bottom =
+  if (left || right) && (top || bottom)
+  then lineLR (lineTB cr top bottom) left right
+  else
+    if (left || right)
+    then lineLR cr left right
+    else lineTB cr top bottom
+      where
+        ||| Draw a line to left, right or both of given rectangle
+        lineLR : CharRectangle -> Bool -> Bool -> CharRectangle
+        lineLR cr left right =
+          let height = getHeight cr
+              hl = vLine height True
+          in if (left && right)
+             then hConcat [hl,cr,hl]
+             else if left
+                  then hConcat [hl,cr]
+                  else hConcat [cr,hl]
+
+        ||| Draw a line to top, bottom or both of given rectangle
+        lineTB : CharRectangle -> Bool -> Bool -> CharRectangle
+        lineTB cr top bottom =
+          let width = getWidth cr
+              vl = [hLine width]
+          in if (top && bottom)
+             then vConcat [vl,cr,vl]
+             else if top
+                  then vConcat [vl,cr]
+                  else vConcat [cr,vl]
+
 ||| generates a string for each line. Trailing spaces are stripped
 ||| off the end of each line.
 stringise : CharRectangle -> (List String)
@@ -325,6 +370,8 @@ data OutputFormat : Type where
   OFHConcat : (List OutputFormat) -> OutputFormat
   ||| a 2D grid of expressions
   OFGrid : (List (List OutputFormat)) -> OutputFormat
+  ||| draw a line on left,right,top or bottom of given rectangle
+  OFLine : OutputFormat -> Bool -> Bool -> Bool -> Bool -> OutputFormat
 
 ------------------------------------------------------------------------------------
 
@@ -338,6 +385,7 @@ display f = output (dispMono f) where
   dispMono (OFUnaryOp s f) = hConcat [charRectangle s, charRectangle " ",dispMono f]
   dispMono (OFBinaryOp s f1 f2) = hConcat [dispMono f1, charRectangle " ",charRectangle s,
                                            charRectangle " ",dispMono f2]
+  dispMono (OFLine f l r t b) = line (dispMono f) l r t b
   dispMono (OFVConcat lst) = vConcat (map dispMono lst)
   dispMono (OFHConcat lst) = hConcat (map dispMono lst)
   dispMono (OFGrid lst2) = gridConcat (opf2cd lst2) where
@@ -354,7 +402,7 @@ test5 =
       left = OFVConcat [a,bcdef,ghi]
       right = OFSymbol "xyz"
   in
-    display (OFHConcat [left,right])
+    display (OFLine (OFHConcat [left,right]) True True False False)
 
 
 
