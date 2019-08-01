@@ -1,7 +1,8 @@
 ||| outputs mathematical structures in more human readible way.
 module outputForm
 
--- import public ???
+--import public Data.Vect -- from base package
+--import public Data.Matrix -- from contrib package
 
 %access public export
 
@@ -405,9 +406,78 @@ test5 =
     display (OFLine (OFHConcat [left,right]) True True False False)
 
 
+------------------------------------------------------------------------------------
+{-
+mutual
+  data Symbol : Type where
+    Var : String -> Symbol
+    Exp : MyExpression -> Symbol
 
+  ||| An expression which can hold both numeric and symbolic values.
+  ||| Initially needs to support ring interface, that is, at least '+' and '*'
+  ||| Really I would want this to be a very general expression like 'PTerm'
+  ||| in Idris-dev/src/Idris/AbsSyntaxTree.hs but with ability to have
+  ||| ring, field or group interfaces and to support custom appearance of
+  ||| types (example a + i b for complex types).
+  data MyExpression : Type where
+    Val : Num n => n -> MyExpression
+    (+) : MyExpression -> MyExpression -> MyExpression
+    (*) : MyExpression -> MyExpression -> MyExpression
 
+  implementation Show Symbol where
+    show (Var s) = s
+    show (Exp e) = show e
 
+  interface MyNum ty where
+    (+) : ty -> ty -> ty
+    (*) : ty -> ty -> ty
+    fromInteger : Integer -> ty
+
+  implementation MyNum Symbol where
+    --(+) a b = Var ((show a) ++ "+" ++ (show b))
+    --(*) a b = Var ((show a) ++ "*" ++ (show b))
+    --fromInteger i = Var (show i)
+    (+) (Var a) (Var b) = Var (a ++ "+" ++ b)
+    (+) (Var a) (Exp b) = Exp ((Val (Var a)) + b)
+    (+) (Exp a) (Var b) = Exp (a + (Val (Var b)))
+    (+) (Exp a) (Exp b) = Exp (a + b)
+    (*) (Var a) (Var b) = Var (a ++ "*" ++ b)
+    (*) (Var a) (Exp b) = Exp ((Val (Var a)) * b)
+    (*) (Exp a) (Var b) = Exp (a * (Val (Var b)))
+    (*) (Exp a) (Exp b) = Exp (a * b)
+    fromInteger i = Var (show i)
+
+  implementation Show MyExpression where
+    show (Val n) = "a" --show n
+    show (a + b) = (show a) ++ "+" ++ (show b)
+    show (a * b) = (show a) ++ "*" ++ (show b)
+-}
+
+||| An expression which can hold both numeric and symbolic values.
+||| Initially needs to support ring interface, that is, at least '+' and '*'
+||| Really I would want this to be a very general expression like 'PTerm'
+||| in Idris-dev/src/Idris/AbsSyntaxTree.hs but with ability to have
+||| ring, field or group interfaces and to support custom appearance of
+||| types (example a + i b for complex types).
+data MyExpression : Type where
+  MyVar : String -> MyExpression
+  MyInt : Integer -> MyExpression
+  MyFloat : Double -> MyExpression
+  (<+>) : MyExpression -> MyExpression -> MyExpression
+  (<*>) : MyExpression -> MyExpression -> MyExpression
+
+||| Need to implement parenthesis based on precedence
+implementation Show MyExpression where
+  show (MyVar s) = s
+  show (MyInt n) = show n
+  show (MyFloat n) = show n
+  show (a <+> b) = (show a) ++ "+" ++ (show b)
+  show (a <*> b) = (show a) ++ "*" ++ (show b)
+
+implementation Num MyExpression where
+  (+) a b = a <+> b
+  (*) a b = a <*> b
+  fromInteger i = MyInt i
 
 ------------------------------------------------------------------------------------
 
