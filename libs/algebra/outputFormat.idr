@@ -1,8 +1,8 @@
 ||| outputs mathematical structures in more human readible way.
 module outputForm
 
---import public Data.Vect -- from base package
---import public Data.Matrix -- from contrib package
+import public Data.Vect -- from base package
+import public Data.Matrix -- from contrib package
 
 %access public export
 
@@ -405,53 +405,7 @@ test5 =
   in
     display (OFLine (OFHConcat [left,right]) True True False False)
 
-
 ------------------------------------------------------------------------------------
-{-
-mutual
-  data Symbol : Type where
-    Var : String -> Symbol
-    Exp : MyExpression -> Symbol
-
-  ||| An expression which can hold both numeric and symbolic values.
-  ||| Initially needs to support ring interface, that is, at least '+' and '*'
-  ||| Really I would want this to be a very general expression like 'PTerm'
-  ||| in Idris-dev/src/Idris/AbsSyntaxTree.hs but with ability to have
-  ||| ring, field or group interfaces and to support custom appearance of
-  ||| types (example a + i b for complex types).
-  data MyExpression : Type where
-    Val : Num n => n -> MyExpression
-    (+) : MyExpression -> MyExpression -> MyExpression
-    (*) : MyExpression -> MyExpression -> MyExpression
-
-  implementation Show Symbol where
-    show (Var s) = s
-    show (Exp e) = show e
-
-  interface MyNum ty where
-    (+) : ty -> ty -> ty
-    (*) : ty -> ty -> ty
-    fromInteger : Integer -> ty
-
-  implementation MyNum Symbol where
-    --(+) a b = Var ((show a) ++ "+" ++ (show b))
-    --(*) a b = Var ((show a) ++ "*" ++ (show b))
-    --fromInteger i = Var (show i)
-    (+) (Var a) (Var b) = Var (a ++ "+" ++ b)
-    (+) (Var a) (Exp b) = Exp ((Val (Var a)) + b)
-    (+) (Exp a) (Var b) = Exp (a + (Val (Var b)))
-    (+) (Exp a) (Exp b) = Exp (a + b)
-    (*) (Var a) (Var b) = Var (a ++ "*" ++ b)
-    (*) (Var a) (Exp b) = Exp ((Val (Var a)) * b)
-    (*) (Exp a) (Var b) = Exp (a * (Val (Var b)))
-    (*) (Exp a) (Exp b) = Exp (a * b)
-    fromInteger i = Var (show i)
-
-  implementation Show MyExpression where
-    show (Val n) = "a" --show n
-    show (a + b) = (show a) ++ "+" ++ (show b)
-    show (a * b) = (show a) ++ "*" ++ (show b)
--}
 
 ||| An expression which can hold both numeric and symbolic values.
 ||| Initially needs to support ring interface, that is, at least '+' and '*'
@@ -478,6 +432,47 @@ implementation Num MyExpression where
   (+) a b = a <+> b
   (*) a b = a <*> b
   fromInteger i = MyInt i
+
+------------------------------------------------------------------------------------
+
+||| Construct a matrix from a list of lists without knowing,
+||| in advance, the dimensions of the matrix.
+matrix : (List (List ty)) -> (n ** (m ** Matrix n m ty))
+matrix a =
+  let h = length a
+      w = arrayWidth a
+  in (h ** (w ** (matrix' h w (myMap a w)))) where
+    ||| Assume all inner lists are the same length
+    ||| so just get the width of the first
+    arrayWidth : (List (List ty)) -> Nat
+    arrayWidth [] = Z
+    arrayWidth (w::ws) = length w
+
+    ||| A type that depends on a number
+    p1: Nat -> Type
+    p1 m = Vect m ty
+
+    ||| proof that m=(length x)
+    p2 : (m : Nat) -> (x : (List ty)) -> m=(length x)
+    p2 m x = believe_me (m=(length x))
+
+    ||| convert the inner list to vectors
+    myMap : List (List ty) -> (m:Nat) -> List (Vect m ty)
+    myMap [] m = []
+    myMap (x::xs) m =
+      if (length x) == m
+      then
+        let
+          v:Vect m ty = rewrite__impl p1 (p2 m x) (fromList x)
+        in
+          (v :: (myMap xs m))
+      else
+          (myMap xs m)
+
+    matrix' : (n:Nat) -> (m:Nat) -> (List (Vect m ty)) -> (Matrix n m ty)
+    matrix' Z m [] = the (Vect Z (Vect m ty)) Nil
+    matrix' (S n) m (v::vs) =
+      (v::(matrix' n m vs))
 
 ------------------------------------------------------------------------------------
 
