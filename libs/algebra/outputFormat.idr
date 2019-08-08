@@ -436,6 +436,31 @@ implementation Num MyExpression where
 ------------------------------------------------------------------------------------
 ||| Construct a matrix from a list of lists without knowing,
 ||| in advance, the dimensions of the matrix.
+||| any inner lists which are a different length from the
+||| first inner list will be ignored.
+matrix : (List (List ty)) -> (n ** (m ** Matrix n m ty))
+matrix a =
+  let w = arrayWidth a
+  in (matrix' w a) where
+    ||| Assume all inner lists are the same length
+    ||| so just get the width of the first
+    arrayWidth : (List (List ty)) -> Nat
+    arrayWidth [] = Z
+    arrayWidth (w::ws) = length w
+
+    ||| recurse through outer list, changing from List to Vect
+    ||| @ w array width, which is length of inner lists, already calculated.
+    matrix' : (w:Nat) -> (List (List ty)) -> (n ** (m ** (Matrix n m ty)))
+    matrix' w [] = (_ ** (w ** Vect.Nil))
+    matrix' w (v::vs) with (matrix' w vs)
+      | (n ** (m ** vs')) =
+         case exactLength m (fromList v) of
+           Nothing => (n ** (m ** vs'))
+           Just vin => ((S n) ** (m ** (vin::vs')))
+
+{-
+||| Construct a matrix from a list of lists without knowing,
+||| in advance, the dimensions of the matrix.
 ||| Needs to be improved, handles the situation
 ||| where inner lists are different lengths badly.
 ||| Can this be properly typechecked.
@@ -466,7 +491,7 @@ matrix a =
     matrix' Z m [] = the (Vect Z (Vect m ty)) Nil
     matrix' (S n) m (v::vs) =
       (v::(matrix' n m vs))
-
+-}
 ------------------------------------------------------------------------------------
 
 ||| temp test code
