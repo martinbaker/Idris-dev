@@ -434,9 +434,11 @@ implementation Num MyExpression where
   fromInteger i = MyInt i
 
 ------------------------------------------------------------------------------------
-
 ||| Construct a matrix from a list of lists without knowing,
 ||| in advance, the dimensions of the matrix.
+||| Needs to be improved, handles the situation
+||| where inner lists are different lengths badly.
+||| Can this be properly typechecked.
 matrix : (List (List ty)) -> (n ** (m ** Matrix n m ty))
 matrix a =
   let h = length a
@@ -448,27 +450,18 @@ matrix a =
     arrayWidth [] = Z
     arrayWidth (w::ws) = length w
 
-    ||| A type that depends on a number
-    p1: Nat -> Type
-    p1 m = Vect m ty
-
-    ||| proof that m=(length x)
-    p2 : (m : Nat) -> (x : (List ty)) -> m=(length x)
-    p2 m x = believe_me (m=(length x))
-
     ||| convert the inner list to vectors
     myMap : List (List ty) -> (m:Nat) -> List (Vect m ty)
     myMap [] m = []
     myMap (x::xs) m =
-      if (length x) == m
-      then
-        let
-          v:Vect m ty = rewrite__impl p1 (p2 m x) (fromList x)
-        in
-          (v :: (myMap xs m))
-      else
-          (myMap xs m)
+      case exactLength m (fromList x) of
+        Nothing => (myMap xs m)
+        Just v => (v :: (myMap xs m))
 
+    ||| convert the outer list to vectors
+    ||| inner list has already been converted by myMap
+    ||| @ n number of rows
+    ||| @ m number of columns
     matrix' : (n:Nat) -> (m:Nat) -> (List (Vect m ty)) -> (Matrix n m ty)
     matrix' Z m [] = the (Vect Z (Vect m ty)) Nil
     matrix' (S n) m (v::vs) =
