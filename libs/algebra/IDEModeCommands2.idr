@@ -1,15 +1,142 @@
 module IDEModeCommands2
 
---import Core.Core
+import Core2
 --import Core.Name
 --import public Idris.REPLOpts
+
+import ParserLexer2
+import Support2
+
+-------------------------------------------------------
+
+-- following from Core.FC
+
+public export
+FilePos : Type
+FilePos = (Int, Int)
+
+showPos : FilePos -> String
+showPos (l, c) = show (l + 1) ++ ":" ++ show (c + 1)
+
+public export
+FileName : Type
+FileName = String
+
+public export
+data FC = MkFC FileName FilePos FilePos
+        | EmptyFC
+
+-------------------------------------------------------
+-- following from  Core.Env
+
+-- Environment containing types and values of local variables
+public export
+data Env : (tm : List Name -> Type) -> List Name -> Type where
+     Nil : Env tm []
+     (::) : Binder (tm vars) -> Env tm vars -> Env tm (x :: vars)
+
+-------------------------------------------------------
+-- following from Core/TT.idr
+
+public export
+data IsVar : Name -> Nat -> List Name -> Type where
+     First : IsVar n Z (n :: ns)
+     Later : IsVar n i ns -> IsVar n (S i) (m :: ns)
+
+-- Typechecked terms
+-- These are guaranteed to be well-scoped wrt local variables, because they are
+-- indexed by the names of local variables in scope
+public export
+data LazyReason = LInf | LLazy | LUnknown
+
+public export
+data Term : List Name -> Type where
+     Local : {name : _} ->
+             FC -> Maybe Bool -> 
+             (idx : Nat) -> .(IsVar name idx vars) -> Term vars
+     Ref : FC -> NameType -> (name : Name) -> Term vars
+     -- Metavariables and the scope they are applied to
+     Meta : FC -> Name -> Int -> List (Term vars) -> Term vars
+     Bind : FC -> (x : Name) -> 
+            (b : Binder (Term vars)) -> 
+            (scope : Term (x :: vars)) -> Term vars
+     App : FC -> (fn : Term vars) -> (arg : Term vars) -> Term vars
+     -- as patterns; since we check LHS patterns as terms before turning
+     -- them into patterns, this helps us get it right. When normalising,
+     -- we just reduce the inner term and ignore the 'as' part
+     -- The 'as' part should really be a Name rather than a Term, but it's
+     -- easier this way since it gives us the ability to work with unresolved
+     -- names (Ref) and resolved names (Local) without having to define a
+     -- special purpose thing. (But it'd be nice to tidy that up, nevertheless)
+     As : FC -> (as : Term vars) -> (pat : Term vars) -> Term vars
+     -- Typed laziness annotations
+     TDelayed : FC -> LazyReason -> Term vars -> Term vars
+     TDelay : FC -> LazyReason -> (ty : Term vars) -> (arg : Term vars) -> Term vars
+     TForce : FC -> Term vars -> Term vars
+     PrimVal : FC -> (c : Constant) -> Term vars
+     Erased : FC -> Term vars
+     TType : FC -> Term vars
+
+public export
+data Covering 
+       = IsCovering
+       | MissingCases (List (Term []))
+       | NonCoveringCall (List Name)
+
+public export
+data PartialReason 
+       = NotStrictlyPositive 
+       | BadCall (List Name)
+       | RecPath (List Name)
+
+export
+Show PartialReason where
+  show NotStrictlyPositive = "not strictly positive"
+  show (BadCall [n]) 
+	   = "not terminating due to call to " ++ show n
+  show (BadCall ns) 
+	   = "not terminating due to calls to " ++ showSep ", " (map show ns) 
+  show (RecPath ns) 
+	   = "not terminating due to recursive path " ++ showSep " -> " (map show ns) 
+
+public export
+data RigCount = Rig0 | Rig1 | RigW
+
+public export
+data Visibility = Private | Export | Public
+
+export
+Show Visibility where
+  show Private = "private"
+  show Export = "export"
+  show Public = "public export"
+
+public export
+data CaseError = DifferingArgNumbers
+               | DifferingTypes
+               | MatchErased (vars ** (Env Term vars, Term vars))
+               | UnknownType
+
+public export
+data TTCErrorMsg
+    = FormatOlder
+    | FormatNewer
+    | EndOfBuffer String
+    | Corrupt String
+
+export
+Show TTCErrorMsg where
+  show FormatOlder = "TTC data is in an older format"
+  show FormatNewer = "TTC data is in a newer format"
+  show (EndOfBuffer when) = "End of buffer when reading " ++ when
+  show (Corrupt ty) = "Corrupt TTC data for " ++ ty
 
 -------------------------------------------------------
 -- All possible errors, carrying a location
 public export
 data Error 
     = Fatal Error -- flag as unrecoverable (so don't postpone awaiting further info)
-{-    | CantConvert FC (Env Term vars) (Term vars) (Term vars)
+    | CantConvert FC (Env Term vars) (Term vars) (Term vars)
     | CantSolveEq FC (Env Term vars) (Term vars) (Term vars)
     | PatternVariableUnifies FC (Env Term vars) Name (Term vars)
     | CyclicMeta FC Name
@@ -67,7 +194,7 @@ data Error
     | InCon FC Name Error
     | InLHS FC Name Error
     | InRHS FC Name Error
--}
+
 
 -- Core is a wrapper around IO that is specialised for efficiency.
 export
@@ -93,32 +220,7 @@ data Constant
     | DoubleType
     | WorldType
 
--- from Idris2 Core.Name
-public export
-data Name : Type where
-     NS : List String -> Name -> Name -- in a namespace
-     UN : String -> Name -- user defined name
-     MN : String -> Int -> Name -- machine generated name
-     PV : Name -> Int -> Name -- pattern variable name; int is the resolved function id
-     DN : String -> Name -> Name -- a name and how to display it
-     Nested : Int -> Name -> Name -- nested function name
-     CaseBlock : Int -> Int -> Name -- case block nested in (resolved) name
-     WithBlock : Int -> Int -> Name -- with block nested in (resolved) name
-     Resolved : Int -> Name -- resolved, index into context
-
-export Show Name where
-  show (NS ns n) = "fix me" --showSep "." (reverse ns) ++ "." ++ show n
-  show (UN x) = x
-  show (MN x y) = "{" ++ x ++ ":" ++ show y ++ "}"
-  show (PV n d) = "{P:" ++ show n ++ ":" ++ show d ++ "}"
-  show (DN str n) = str
-  show (Nested outer inner) = show outer ++ ":" ++ show inner
-  show (CaseBlock outer i) = "case block in " ++ show outer
-  show (WithBlock outer i) = "with block in " ++ show outer
-  show (Resolved x) = "$resolved" ++ show x
-
 -------------------------------------------------------
-
 
 %default covering
 
@@ -141,7 +243,7 @@ data IDECommand
      | MakeLemma Integer String
      | MakeCase Integer String
      | MakeWith Integer String
-    
+
 readHints : List SExp -> Maybe (List String)
 readHints [] = Just []
 readHints (StringAtom s :: rest)

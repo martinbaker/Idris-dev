@@ -249,7 +249,9 @@ data Constant
     | DoubleType
     | WorldType
 
+-------------------------------------------------------
 -- from Idris2 Core.Name
+
 public export
 data Name : Type where
      NS : List String -> Name -> Name -- in a namespace
@@ -262,6 +264,23 @@ data Name : Type where
      WithBlock : Int -> Int -> Name -- with block nested in (resolved) name
      Resolved : Int -> Name -- resolved, index into context
 
+export
+showSep : String -> List String -> String
+showSep sep [] = ""
+showSep sep [x] = x
+showSep sep (x :: xs) = x ++ sep ++ showSep sep xs
+
+
+export Show Name where
+  show (NS ns n) = showSep "." (reverse ns) ++ "." ++ show n
+  show (UN x) = x
+  show (MN x y) = "{" ++ x ++ ":" ++ show y ++ "}"
+  show (PV n d) = "{P:" ++ show n ++ ":" ++ show d ++ "}"
+  show (DN str n) = str
+  show (Nested outer inner) = show outer ++ ":" ++ show inner
+  show (CaseBlock outer i) = "case block in " ++ show outer
+  show (WithBlock outer i) = "with block in " ++ show outer
+  show (Resolved x) = "$resolved" ++ show x
 -------------------------------------------------------
 export
 constant : Rule Constant
