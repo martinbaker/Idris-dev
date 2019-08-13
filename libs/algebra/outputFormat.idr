@@ -436,7 +436,7 @@ implementation Num MyExpression where
 ------------------------------------------------------------------------------------
 ||| Construct a matrix from a list of lists without knowing,
 ||| in advance, the dimensions of the matrix.
-||| any inner lists which are a different length from the
+||| Any inner lists which are a different length from the
 ||| first inner list will be ignored.
 matrix : (List (List ty)) -> (n ** (m ** Matrix n m ty))
 matrix a =
@@ -458,40 +458,6 @@ matrix a =
            Nothing => (n ** (m ** vs'))
            Just vin => ((S n) ** (m ** (vin::vs')))
 
-{-
-||| Construct a matrix from a list of lists without knowing,
-||| in advance, the dimensions of the matrix.
-||| Needs to be improved, handles the situation
-||| where inner lists are different lengths badly.
-||| Can this be properly typechecked.
-matrix : (List (List ty)) -> (n ** (m ** Matrix n m ty))
-matrix a =
-  let h = length a
-      w = arrayWidth a
-  in (h ** (w ** (matrix' h w (myMap a w)))) where
-    ||| Assume all inner lists are the same length
-    ||| so just get the width of the first
-    arrayWidth : (List (List ty)) -> Nat
-    arrayWidth [] = Z
-    arrayWidth (w::ws) = length w
-
-    ||| convert the inner list to vectors
-    myMap : List (List ty) -> (m:Nat) -> List (Vect m ty)
-    myMap [] m = []
-    myMap (x::xs) m =
-      case exactLength m (fromList x) of
-        Nothing => (myMap xs m)
-        Just v => (v :: (myMap xs m))
-
-    ||| convert the outer list to vectors
-    ||| inner list has already been converted by myMap
-    ||| @ n number of rows
-    ||| @ m number of columns
-    matrix' : (n:Nat) -> (m:Nat) -> (List (Vect m ty)) -> (Matrix n m ty)
-    matrix' Z m [] = the (Vect Z (Vect m ty)) Nil
-    matrix' (S n) m (v::vs) =
-      (v::(matrix' n m vs))
--}
 ------------------------------------------------------------------------------------
 
 ||| temp test code
