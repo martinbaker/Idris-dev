@@ -4,11 +4,12 @@ import Data.Bool.Extra
 
 import public ParserCore2
 import public Quantity2
-import public Token2
+--import public Token2
 
 %access export
 %default total
 
+{-
 ||| Parse a terminal based on a kind of token.
 match : (Eq k, TokenKind k) =>
         (kind : k) ->
@@ -17,6 +18,7 @@ match kind = terminal "Unrecognised input" $
   \(Tok kind' text) => if kind' == kind
                           then Just $ tokValue kind text
                           else Nothing
+-}
 
 ||| Optionally parse a thing, with a default value if the grammar doesn't
 ||| match. May match the empty input.

@@ -4,13 +4,13 @@ import Data.Bool.Extra
 
 import public Core2
 import public Quantity2
-import public Token2
+--import public Token2
 
 %access export
 %default total
 
-toTokenMap : List (Lexer, k) -> TokenMap (Token k)
-toTokenMap = map $ \(l, kind) => (l, Tok kind)
+--toTokenMap : List (Lexer, k) -> TokenMap (Token k)
+--toTokenMap = map $ \(l, kind) => (l, Tok kind)
 
 ||| Recognise any character.
 ||| /./
