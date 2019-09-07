@@ -14,6 +14,11 @@ just cut & pasted the following data types:
 -}
 %default total
 
+{-
+For REPL we dont have line numbers
+but tokenData is built in to rules so need to adapt
+-}
+
 public export
 Rule : Type -> Type
 Rule ty = Grammar (TokenData Token) True ty
@@ -36,6 +41,11 @@ Show ParseError where
       = "Lex error at " ++ show (c, l) ++ " input: " ++ str
   show (FileFail err)
       = "File error: " ++ show err
+
+{-
+For REPL we dont have line numbers
+but tokenData is built in to rules so need to adapt
+-}
 
 export
 eoi : EmptyRule ()
@@ -72,7 +82,6 @@ parseFile fn p
     = do Right str <- readFile fn
              | Left err => pure (Left (FileFail err))
          pure (runParser str p)
-
 
 -- Some basic parsers used by all the intermediate forms
 

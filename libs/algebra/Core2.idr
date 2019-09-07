@@ -1,7 +1,6 @@
 module Core2
 
 import Data.Bool.Extra
-
 import public Control.Delayed
 
 %default total
@@ -129,6 +128,11 @@ takeToken lex str
 public export
 TokenMap : (tokenType : Type) -> Type
 TokenMap tokenType = List (Lexer, String -> tokenType)
+
+{-
+For REPL we dont have line numbers
+but tokenData is built in to rules so need to adapt
+-}
 
 ||| A token, and the line and column where it was in the input
 public export

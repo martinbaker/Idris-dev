@@ -39,9 +39,14 @@ Show Token where
   show (CGDirective x) = "CGDirective " ++ x
   show EndInput = "end of input"
 
+{-
+For REPL we dont have line numbers
+but tokenData is built in to rules so need to adapt
+-}
+
 export
 Show (TokenData Token) where
-  show t = show (line t, col t, tok t)
+  show t = show (line t) ++ ":" ++ show (col t) ++":" ++ show (tok t)
 
 comment : Lexer
 comment = is '-' <+> is '-' <+> many (isNot '\n')
@@ -62,6 +67,7 @@ blockComment = is '{' <+> is '-' <+> toEndComment 1
 docComment : Lexer
 docComment = is '|' <+> is '|' <+> is '|' <+> many (isNot '\n')
 
+-- An identifier starts with alpha character followed by alpha-numeric
 ident : Lexer
 ident = pred startIdent <+> many (pred validIdent)
   where
@@ -152,6 +158,7 @@ rawTokens =
      (digits, \x => Literal (cast x)),
      (stringLit, \x => StrLit (stripQuotes x)),
      (charLit, \x => CharLit (stripQuotes x)),
+     -- An identifier starts with alpha character followed by alpha-numeric
      (ident, \x => if x `elem` keywords then Keyword x else Ident x),
      (space, Comment),
      (validSymbol, Symbol),
@@ -160,6 +167,11 @@ rawTokens =
     stripQuotes : String -> String
     -- ASSUMPTION! Only total because we know we're getting quoted strings.
     stripQuotes = assert_total (strTail . reverse . strTail . reverse)
+
+{-
+For REPL we dont have line numbers
+but tokenData is built in to rules so need to adapt
+-}
 
 export
 lexTo : (TokenData Token -> Bool) ->
@@ -181,3 +193,4 @@ lexTo pred str
 export
 lex : String -> Either (Int, Int, String) (List (TokenData Token))
 lex = lexTo (const False)
+

@@ -16,6 +16,7 @@ import Lexer2
 symbols : List String
 symbols = ["(", ":", ")"]
 
+-- An identifier starts with alpha character followed by alpha-numeric
 ident : Lexer
 ident = pred startIdent <+> many (pred validIdent)
   where
@@ -42,7 +43,7 @@ ideTokens =
     stripQuotes = assert_total (strTail . reverse . strTail . reverse)
 
 idelex : String -> Either (Int, Int, String) (List (TokenData Token))
-idelex str 
+idelex str
     = case lex ideTokens str of
            -- Add the EndInput token so that we'll have a line and column
            -- number to read when storing spans in the file
@@ -89,3 +90,12 @@ export
 parseSExp : String -> Either ParseError SExp
 parseSExp inp
     = ideParser inp (do c <- sexp; eoi; pure c)
+
+||| show list of tokens for given string
+||| Used for debuging
+export
+lexAlgebra : String -> String
+lexAlgebra str
+    = case idelex str of
+           Left err => "lex error " ++ (show err)
+           Right toks => show toks
