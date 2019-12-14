@@ -12,7 +12,7 @@ import public Control.Delayed
 ||| of tokens, and the `consumes` flag is True if the language is guaranteed
 ||| to be non-empty - that is, successfully parsing the language is guaranteed
 ||| to consume some input.
-export
+public export
 data Grammar : (tok : Type) -> (consumes : Bool) -> Type -> Type where
      Empty : (val : ty) -> Grammar tok False ty
      Terminal : String -> (tok -> Maybe a) -> Grammar tok True a

@@ -146,6 +146,7 @@ reservedSymbols
 symbolChar : Char -> Bool
 symbolChar c = c `elem` unpack opChars
 
+export
 rawTokens : TokenMap Token
 rawTokens = 
     [(comment, Comment),
@@ -176,7 +177,8 @@ but tokenData is built in to rules so need to adapt
 export
 lexTo : (TokenData Token -> Bool) ->
         String -> Either (Int, Int, String) (List (TokenData Token))
-lexTo pred str 
+lexTo pred str
+    -- calls lexTo in Idris2/src/Text/Lexer/Core.idr (not calling itself)
     = case lexTo pred rawTokens str of
            -- Add the EndInput token so that we'll have a line and column
            -- number to read when storing spans in the file

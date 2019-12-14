@@ -8,13 +8,14 @@ import public Control.Delayed
 ||| A language of token recognisers.
 ||| @ consumes If `True`, this recogniser is guaranteed to consume at
 |||            least one character of input when it succeeds.
-export
+public export
 data Recognise : (consumes : Bool) -> Type where
      Empty : Recognise False
      Fail : Recognise c
      Lookahead : (positive : Bool) -> Recognise c -> Recognise False
      Pred : (Char -> Bool) -> Recognise True
      SeqEat : Recognise True -> Inf (Recognise e) -> Recognise True
+     --SeqEat : Recognise True -> (Recognise e) -> Recognise True
      SeqEmpty : Recognise e1 -> Recognise e2 -> Recognise (e1 || e2)
      Alt : Recognise e1 -> Recognise e2 -> Recognise (e1 && e2)
 
@@ -25,9 +26,11 @@ Lexer = Recognise True
 
 ||| Sequence two recognisers. If either consumes a character, the sequence
 ||| is guaranteed to consume a character.
-export %inline
+export
+--export %inline
 (<+>) : {c1 : Bool} ->
         Recognise c1 -> inf c1 (Recognise c2) -> Recognise (c1 || c2)
+        --Recognise c1 -> (Recognise c2) -> Recognise (c1 || c2)
 (<+>) {c1 = False} = SeqEmpty
 (<+>) {c1 = True} = SeqEat
 
@@ -73,24 +76,30 @@ concatMap {c} f (x :: xs) = rewrite andTrueNeutral c in
                             rewrite sym (orSameAndRightNeutral c (isCons xs)) in
                                     SeqEmpty (f x) (concatMap f xs)
 
+public export -- temporary to help debuging
 data StrLen : Type where
      MkStrLen : String -> Nat -> StrLen
 
+public export -- temporary to help debuging
 getString : StrLen -> String
 getString (MkStrLen str n) = str
 
+public export -- temporary to help debuging
 strIndex : StrLen -> Nat -> Maybe Char
 strIndex (MkStrLen str len) i
     = if cast {to = Integer} i >= cast len then Nothing
                   else Just (assert_total (prim__strIndex str (cast i)))
 
+public export -- temporary to help debuging
 mkStr : String -> StrLen
 mkStr str = MkStrLen str (length str)
 
+public export -- temporary to help debuging
 strTail : Nat -> StrLen -> StrLen
 strTail start (MkStrLen str len)
     = MkStrLen (substr start len str) (minus len start)
 
+public export -- temporary to help debuging
 -- If the string is recognised, returns the index at which the token
 -- ends
 scan : Recognise c -> Nat -> StrLen -> Maybe Nat
@@ -116,6 +125,7 @@ scan (SeqEmpty r1 r2) idx str
 scan (Alt r1 r2) idx str
     = maybe (scan r2 idx str) Just (scan r1 idx str)
 
+public export -- temporary to help debuging
 takeToken : Lexer -> StrLen -> Maybe (String, StrLen)
 takeToken lex str
     = do i <- scan lex 0 str -- i must be > 0 if successful
@@ -142,7 +152,7 @@ record TokenData a where
   col : Int
   tok : a
 
-fspanEnd : Nat -> (Char -> Bool) -> String -> (Nat, String)
+{- fspanEnd : Nat -> (Char -> Bool) -> String -> (Nat, String)
 fspanEnd k p "" = (k, "")
 fspanEnd k p xxs
     = assert_total $
@@ -153,10 +163,12 @@ fspanEnd k p xxs
 
 -- Faster version of 'span' from the prelude (avoids unpacking)
 export
+-- *** this code seems to produce lazy output so I have just used span***
 fspan : (Char -> Bool) -> String -> (String, String)
 fspan p xs
     = let (end, rest) = fspanEnd 0 p xs in
           (substr 0 end xs, rest)
+-}
 
 tokenise : (TokenData a -> Bool) ->
            (line : Int) -> (col : Int) ->
@@ -176,7 +188,8 @@ tokenise pred line col acc tmap str
 
     getCols : String -> Int -> Int
     getCols x c
-         = case fspan (/= '\n') (reverse x) of
+         -- changed for fspan to span because fspan seems to produce lazy output
+         = case span (/= '\n') (reverse x) of
                 (incol, "") => c + cast (length incol)
                 (incol, _) => cast (length incol)
 
@@ -186,7 +199,8 @@ tokenise pred line col acc tmap str
         = case takeToken lex str of
                Just (tok, rest) => Just (MkToken line col (fn tok),
                                          line + cast (countNLs (unpack tok)),
-                                         getCols tok col, rest)
+                                         getCols tok col,
+                                         rest)
                Nothing => getFirstToken ts str
 
 ||| Given a mapping from lexers to token generating functions (the
@@ -195,7 +209,7 @@ tokenise pred line col acc tmap str
 ||| string where there are no recognised tokens.
 export
 lex : TokenMap a -> String -> (List (TokenData a), (Int, Int, String))
-lex tmap str 
+lex tmap str
    = let (ts, (l, c, str')) = tokenise (const False) 0 0 [] tmap (mkStr str) in
          (ts, (l, c, getString str'))
 
