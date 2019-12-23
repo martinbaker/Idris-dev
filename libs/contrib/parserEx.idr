@@ -1,15 +1,35 @@
 module ParserExample
 
-import Text/Lexer
+import Text.Lexer
 
 {-
+to run:
+
+cd Idris-dev/libs/contrib
+idris -p contrib parserEx.idr
+     ____    __     _
+    /  _/___/ /____(_)____
+    / // __  / ___/ / ___/     Version 1.3.2
+  _/ // /_/ / /  / (__  )      http://www.idris-lang.org/
+ /___/\__,_/_/  /_/____/       Type :? for help
+
+Idris is free software with ABSOLUTELY NO WARRANTY.
+For details type :warranty.
+Type checking ./Text/Token.idr
+Type checking ./Text/Quantity.idr
+Type checking ./Control/Delayed.idr
+Type checking ./Data/Bool/Extra.idr
+Type checking ./Text/Lexer/Core.idr
+Type checking ./Text/Lexer.idr
+Type checking ./parserEx.idr
+*parserEx> 
 
 -}
 
 %default total
 
 public export
-data Token = Number Integer
+data Token = Number String --Integer
            | Operator String
            | Symbol String
            | OParen
@@ -25,14 +45,7 @@ Show Token where
   show CParen = ")"
   show EndInput = "end of input"
 
-{-
--- Special symbols - things which can't be a prefix of another symbol, and
--- don't match 'validSymbol'
-export
-operators : List String
-operators 
-    = ["+","-", "*", "/"]
-
+-- arithmetic operators plus, minus, multiply and divide.
 export
 opChars : String
 opChars = "+-*/"
@@ -40,21 +53,11 @@ opChars = "+-*/"
 operator : Lexer
 operator = some (oneOf opChars)
 
-
 rawTokens : TokenMap Token
 rawTokens =
-    [(comment, Comment),
-     (blockComment, Comment),
-     (docComment, DocComment),
-     (cgDirective, mkDirective),
-     (holeIdent, \x => HoleIdent (assert_total (strTail x)))] ++
-    map (\x => (exact x, Symbol)) symbols ++
-    [(doubleLit, \x => DoubleLit (cast x)),
-     (digits, \x => Literal (cast x)),
-     (stringLit, \x => StrLit (stripQuotes x)),
-     (charLit, \x => CharLit (stripQuotes x)),
-     (ident, \x => if x `elem` keywords then Keyword x else Ident x),
-     (space, Comment),
-     (validSymbol, Symbol),
-     (symbol, Unrecognised)]
--}
+    [(digits, \x => Number x),
+     (operator, \x => Operator x),
+     (symbol, \x => Symbol x),
+     (is '(' ,\x => OParen),
+     (is ')' ,\x => CParen)]
+
