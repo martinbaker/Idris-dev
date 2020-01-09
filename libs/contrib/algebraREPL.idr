@@ -58,7 +58,7 @@ expressionTokens =
      (operator, \x => Operator x),
      (is '(' ,\x => OParen),
      (is ')' ,\x => CParen),
-     (space, Comment),
+     (spaces, Comment),
      (comment, Comment)]
 
 -- parser
