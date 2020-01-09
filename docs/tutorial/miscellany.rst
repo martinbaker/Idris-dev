@@ -131,7 +131,7 @@ an extension of ``.lidr`` then it is assumed to be a literate file. In
 literate programs, everything is assumed to be a comment unless the line
 begins with a greater than sign ``>``, for example:
 
-.. code-block:: idris
+.. code-block:: literate-idris
 
     > module literate
 
@@ -242,7 +242,7 @@ through the following directives:
 Testing foreign function calls
 ------------------------------
 
-Normally, the Idris interpreter (used for typechecking and at the REPL)
+Normally, the Idris interpreter (used for typechecking and as the REPL)
 will not perform IO actions. Additionally, as it neither generates C
 code nor compiles to machine code, the ``%lib``, ``%include`` and
 ``%link`` directives have no effect. IO actions and FFI calls can be
@@ -560,7 +560,7 @@ But what about the type of ``Type``? If we ask Idris it reports:
     Type : Type 1
 
 If ``Type`` were its own type, it would lead to an inconsistency due to
-`Girard’s paradox <http://www.cs.cmu.edu/afs/cs.cmu.edu/user/kw/www/scans/girard72thesis.pdf>`_,
+`Girard’s paradox <https://www.cs.cmu.edu/afs/cs.cmu.edu/user/kw/www/scans/girard72thesis.pdf>`_,
 so internally there is a *hierarchy* of types (or *universes*):
 
 .. code-block:: idris

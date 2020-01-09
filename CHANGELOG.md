@@ -1,9 +1,21 @@
-# New in next version
+# New in 1.3.2
++ Documentation added to proof section
+
+## Library updates
++ `openFile` opens the file in binary mode on Windows.
++ Added library functions `clockTime` and `fRemove`
 
 ## Tool updates
 + Modules no longer require building if imports have changed but all
   interfaces (i.e. types for names declared `export` and definitions of names
   declared `public export`) are unchanged.
++ The result of calling `:doc` now details the accessbility of items as well as their totality.
+
+## Miscellaneous updates
++ Compiler flag `--optimise-nat-like-types` enables compilation
+  of `Nat`-like type families to big integers. A type family
+  is `Nat`-like if, after erasure, it has two constructors,
+  one nullary, the other one with exactly one recursive field.
 
 # New in 1.3.1
 

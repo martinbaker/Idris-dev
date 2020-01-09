@@ -71,7 +71,7 @@ runArgParser = do opts <- execParser $ info parser
                                         PP.empty,
                                         PP.text "More details over Idris can be found online here:",
                                         PP.empty,
-                                        PP.indent 4 (PP.text "http://www.idris-lang.org/")]
+                                        PP.indent 4 (PP.text "https://www.idris-lang.org/")]
 
 execArgParserPure :: [String] -> ParserResult [Opt]
 execArgParserPure args = preProcOpts <$> execParserPure (prefs idm) (info parser idm) args
@@ -208,6 +208,17 @@ parseFlags = many $
 
   <|> flag' (AddOpt PETransform) (long "partial-eval")
   <|> flag' (RemoveOpt PETransform) (long "no-partial-eval" <> help "Switch off partial evaluation, mainly for debugging purposes")
+
+  <|> flag' (AddOpt GeneralisedNatHack) (
+    long "optimise-nat-like-types"
+    <> long "optimize-nat-like-types"
+    <> help "Enable compilation of Nat-like types to bigints"
+  )
+  <|> flag' (RemoveOpt GeneralisedNatHack) (
+    long "no-optimise-nat-like-types"
+    <> long "no-optimize-nat-like-types"
+    <> help "Disable compilation of Nat-like types to bigints"
+  )
 
   <|> OptLevel <$> option auto (short 'O' <> long "level")
 

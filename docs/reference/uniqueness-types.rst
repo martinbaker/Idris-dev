@@ -13,7 +13,7 @@ ideally while giving up as little high level conveniences as possible.
 
 They are inspired by linear types, `Uniqueness Types
 <https://en.wikipedia.org/wiki/Uniqueness_type>`__ in the `Clean
-<http://wiki.clean.cs.ru.nl/Clean>`__ programming language, and
+<https://wiki.clean.cs.ru.nl/Clean>`__ programming language, and
 ownership types and borrowed pointers in the `Rust
 <https://www.rust-lang.org/>`__ programming language.
 
@@ -199,7 +199,7 @@ return it in exactly the condition in which it was received!
 The restriction is that when a ``Borrowed`` type is matched, any
 pattern variables under the ``Read`` which have a unique type may not
 be referred to at all on the right hand side (unless they are
-themselves ``lent`` to another function).
+themselves lent to another function).
 
 Uniqueness information is stored in the type, and in particular in
 function types. Once we're in a unique context, any new function which

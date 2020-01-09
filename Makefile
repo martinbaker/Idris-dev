@@ -15,14 +15,14 @@ endif
 endif
 
 install:
-	$(CABAL) install $(CABALFLAGS)
+	$(CABAL) v1-install $(CABALFLAGS)
 
 pinstall: CABALFLAGS += --enable-executable-profiling
 pinstall: dist/setup-config
-	$(CABAL) install $(CABALFLAGS)
+	$(CABAL) v1-install $(CABALFLAGS)
 
 build: dist/setup-config
-	$(CABAL) build $(CABALFLAGS)
+	$(CABAL) v1-build $(CABALFLAGS)
 
 test: doc test_c stylize
 
@@ -49,14 +49,14 @@ lib_clean:
 	$(MAKE) -C libs IDRIS=../../dist/build/idris/idris RTS=../../dist/build/rts/libidris_rts clean
 
 relib: lib_clean
-	$(CABAL) install $(CABALFLAGS)
+	$(CABAL) v1-install $(CABALFLAGS)
 
 linecount:
 	wc -l src/Idris/*.hs src/Idris/Elab/*.hs src/Idris/Core/*.hs src/IRTS/*.hs src/Pkg/*.hs src/Util/*.hs
 
 #Note: this doesn't yet link to Hackage properly
 doc: dist/setup-config
-	$(CABAL) haddock --hyperlink-source --html --hoogle --html-location="http://hackage.haskell.org/packages/archive/\$$pkg/latest/doc/html" --haddock-options="--title Idris"
+	$(CABAL) haddock --hyperlink-source --html --hoogle --html-location="https://hackage.haskell.org/packages/archive/\$$pkg/latest/doc/html" --haddock-options="--title Idris"
 
 lib_doc:
 	$(MAKE) -C libs IDRIS=../../dist/build/idris/idris doc
@@ -76,7 +76,7 @@ user_doc_pdf:
 	$(MAKE) -C docs latexpdf
 
 fast:
-	$(CABAL) install $(CABALFLAGS) --ghc-option=-O0
+	$(CABAL) v1-install $(CABALFLAGS) --ghc-option=-O0
 
 dist/setup-config:
-	$(CABAL) configure $(CABALFLAGS)
+	$(CABAL) v1-configure $(CABALFLAGS)

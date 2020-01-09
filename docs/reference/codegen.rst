@@ -1,3 +1,5 @@
+.. _code-generation-targets:
+
 ************************
 Code Generation Targets
 ************************
@@ -15,6 +17,13 @@ Official Backends
 
 C Language
 ----------
+
+The default target of Idris is C. In order to view the generated C code, compile via:
+
+::
+
+    $ idris hello.idr -S -o hello.c
+
 
 Javascript
 ----------

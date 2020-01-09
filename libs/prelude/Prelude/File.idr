@@ -3,6 +3,7 @@ module Prelude.File
 import Builtins
 import Prelude.List
 import Prelude.Maybe
+import Prelude.Functor
 import Prelude.Monad
 import Prelude.Chars
 import Prelude.Strings
@@ -13,6 +14,7 @@ import Prelude.Basics
 import Prelude.Interfaces
 import Prelude.Either
 import Prelude.Show
+
 import IO
 
 %access public export
@@ -79,7 +81,7 @@ do_ferror h = foreign FFI_C "fileError" (Ptr -> IO Int) h
 export
 ferror : File -> IO Bool
 ferror (FHandle h) = do err <- do_ferror h
-                        pure (not (err == 0))
+                        pure (err /= 0)
 
 ||| Call the RTS's file opening function
 private
@@ -94,26 +96,24 @@ export
 fopen : (f : String) -> (m : String) -> IO (Either FileError File)
 fopen f m = do h <- do_fopen f m
                if !(nullPtr h)
-                  then do err <- getFileError
-                          pure (Left err)
+                  then Left <$> getFileError
                   else pure (Right (FHandle h))
 
 ||| Check whether a file handle is actually a null pointer
 export
 validFile : File -> IO Bool
-validFile (FHandle h) = do x <- nullPtr h
-                           pure (not x)
+validFile (FHandle h) = not <$> nullPtr h
 
 ||| Modes for opening files
 data Mode = Read | WriteTruncate | Append | ReadWrite | ReadWriteTruncate | ReadAppend
 
 modeStr : Mode -> String
-modeStr Read              = "r"
-modeStr WriteTruncate     = "w"
-modeStr Append            = "a"
-modeStr ReadWrite         = "r+"
-modeStr ReadWriteTruncate = "w+"
-modeStr ReadAppend        = "a+"
+modeStr Read              = "rb"
+modeStr WriteTruncate     = "wb"
+modeStr Append            = "ab"
+modeStr ReadWrite         = "rb+"
+modeStr ReadWriteTruncate = "wb+"
+modeStr ReadAppend        = "ab+"
 
 ||| Open a file
 ||| @ f the filename
@@ -168,8 +168,7 @@ fileSize : File -> IO (Either FileError Int)
 fileSize (FHandle h) 
     = do s <- do_getFileSize h
          if (s < 0)
-            then do err <- getFileError
-                    pure (Left err)
+            then Left <$> getFileError
             else pure (Right s)
 
 export
@@ -177,8 +176,7 @@ fileModifiedTime : File -> IO (Either FileError Integer)
 fileModifiedTime (FHandle h)
     = do s <- do_getFileModifiedTime h
          if (s < 0)
-            then do err <- getFileError
-                    pure (Left err)
+            then Left <$> getFileError
             else pure (Right s)
 
 export
@@ -186,8 +184,7 @@ fileAccessTime : File -> IO (Either FileError Integer)
 fileAccessTime (FHandle h)
     = do s <- do_getFileAccessTime h
          if (s < 0)
-            then do err <- getFileError
-                    pure (Left err)
+            then Left <$> getFileError
             else pure (Right s)
 
 export
@@ -195,10 +192,8 @@ fileStatusTime : File -> IO (Either FileError Integer)
 fileStatusTime (FHandle h)
     = do s <- do_getFileStatusTime h
          if (s < 0)
-            then do err <- getFileError
-                    pure (Left err)
+            then Left <$> getFileError
             else pure (Right s)
-
 
 private
 do_fread : Ptr -> IO' l String
@@ -263,8 +258,7 @@ do_fwrite h s = do res <- prim_fwrite h s
                       then do errno <- getErrno
                               if errno == 0
                                  then pure (Left FileWriteError)
-                                 else do err <- getFileError
-                                         pure (Left err)
+                                 else Left <$> getFileError
                       else pure (Right ())
 
 ||| Write a line to a file
@@ -286,7 +280,18 @@ do_feof h = foreign FFI_C "fileEOF" (Ptr -> IO Int) h
 export
 fEOF : File -> IO Bool
 fEOF (FHandle h) = do eof <- do_feof h
-                      pure (not (eof == 0))
+                      pure (eof /= 0)
+
+private
+do_fremove : String -> IO Int
+do_fremove s = foreign FFI_C "fileRemove" (String -> IO Int) s
+
+||| Remove a file
+||| @s the file name
+export
+fRemove : (s : String) -> IO Bool
+fRemove s = do res <- do_fremove s
+               pure (res == 0)
 
 export
 fpoll : File -> IO Bool
@@ -305,7 +310,8 @@ readFile : (filepath : String) -> IO (Either FileError String)
 readFile fn = do Right h <- openFile fn Read
                     | Left err => pure (Left err)
                  Right max <- fileSize h
-                    | Left err => pure (Left err)
+                    | Left err => do closeFile h
+                                     pure (Left err)
                  sb <- newStringBuffer (max + 1)
                  c <- readFile' h max sb
                  closeFile h
@@ -328,8 +334,11 @@ export
 writeFile : (filepath : String) -> (contents : String) ->
             IO (Either FileError ())
 writeFile fn contents = do
-     Right h  <- openFile fn WriteTruncate | Left err => pure (Left err)
-     Right () <- fPutStr h contents        | Left err => pure (Left err)
+     Right h  <- openFile fn WriteTruncate 
+        | Left err => pure (Left err)
+     Right () <- fPutStr h contents        
+        | Left err => do closeFile h
+                         pure (Left err)
      closeFile h
      pure (Right ())
 
@@ -339,8 +348,7 @@ dirOpen : (d : String) -> IO (Either FileError Directory)
 dirOpen d
     = do dptr <- foreign FFI_C "idris_dirOpen" (String -> IO Ptr) d
          if !(nullPtr dptr)
-            then do err <- getFileError
-                    pure (Left err)
+            then Left <$> getFileError
             else pure (Right (DHandle dptr))
 
 export
@@ -351,7 +359,7 @@ export
 dirError : Directory -> IO Bool
 dirError (DHandle d)
     = do err <- foreign FFI_C "idris_dirError" (Ptr -> IO Int) d
-         pure (not (err == 0))
+         pure (err /= 0)
 
 export
 dirEntry : Directory -> IO (Either FileError String)
@@ -367,8 +375,7 @@ createDir d
     = do ok <- foreign FFI_C "idris_mkdir" (String -> IO Int) d
          if (ok == 0)
             then pure (Right ())
-            else do err <- getFileError
-                    pure (Left err)
+            else Left <$> getFileError
 
 export
 changeDir : String -> IO Bool
