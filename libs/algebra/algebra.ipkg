@@ -9,12 +9,4 @@ pkgs = base
      , contrib
 
 modules = outputFormat
-        , Core2
-        , Quantity2
-        , Lexer2
-        , ParserLexer2
-        , ParserCore2
-        , Parser2
-        , Support2
-        , IDEModeCommands2
-        , IDEModeParser2
+        , algebraREPL
