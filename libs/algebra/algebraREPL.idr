@@ -99,10 +99,21 @@ op s = terminal (\x => case tok x of
                            (Operator s1) => if s==s1 then Just 0 else Nothing
                            _ => Nothing)
 
-paren : Rule Integer -> Rule Integer
+||| Parenthesis
+||| Potentially infinite
+||| Tried adding 'Inf' but it does not seem to do anything
+paren : (Inf (Rule Integer)) -> Rule Integer
 paren exp = ((openParen <* commentSpace) <|> openParen)
              *> exp <*
              ((closeParen <* commentSpace) <|> closeParen)
+
+||| Parenthesis
+paren2 : (Rule Integer) -> Rule Integer
+paren2 exp =
+  do op "("
+     op2 <- exp
+     op ")"
+     pure op2
 
 addInt : Integer -> Integer -> Integer
 addInt a b = a+b
@@ -114,22 +125,58 @@ multInt : Integer -> Integer -> Integer
 multInt a b = a*b
 
 
+{-
+************************************************************
+* recursive definitions of grammar
+* --------------------------------
+* 
+* Combining grammars using <*> does not handle recursive definitions:
+* 
+* ||| Sequence a grammar with value type `a -> b` and a grammar
+* ||| with value type `a`. If both succeed, apply the function
+* ||| from the first grammar to the value from the second grammar.
+* ||| Guaranteed to consume if either grammar consumes.
+* export
+* (<*>) : Grammar tok c1 (a -> b) ->
+*         Grammar tok c2 a ->
+*         Grammar tok (c1 || c2) b
+* (<*>) x y = SeqEmpty x (\f => map f y)
+* 
+* Instead we can use >>= to allow recursive definitions:
+* 
+* ||| Sequence two grammars. If either consumes some input, the sequence is
+* ||| guaranteed to consume some input. If the first one consumes input, the
+* ||| second is allowed to be recursive (because it means some input has been
+* ||| consumed and therefore the input is smaller)
+* export %inline
+* (>>=) : {c1 : Bool} ->
+*         Grammar tok c1 a ->
+*         inf c1 (a -> Grammar tok c2 b) ->
+*         Grammar tok (c1 || c2) b
+* (>>=) {c1 = False} = SeqEmpty
+* (>>=) {c1 = True} = SeqEat
+* 
+* In monads, like this, we can wrap in 'do' notation. So instead of
+* 
+* getline >>= (\inpStr -> putStr inpStr)
+* 
+* we use:
+* 
+* do
+*   inpStr <- getLine
+*   putStr inpStr
+* 
+************************************************************
+-}
+
 expr : Rule Integer
 
-{-
-can we use this to allow recursive definitions?
-
-(>>=) : {c1 : Bool} ->
-        Grammar tok c1 a ->
-        inf c1 (a -> Grammar tok c2 b) ->
-        Grammar tok (c1 || c2) b
-(>>=) {c1 = False} = SeqEmpty
-(>>=) {c1 = True} = SeqEat
--}
---partial
-exprAtom : Rule Integer
+||| Potentially infinite due to paren
+||| Tried adding 'Inf' but it does not seem to do anything
+||| so had to comment out paren
+exprAtom : Inf (Rule Integer)
 exprAtom = (intLiteral <* commentSpace)
-           <|> intLiteral -- <|> (paren expr)
+           <|> intLiteral -- <|> (paren2 expr)
 
 --partial
 expr1 : Rule Integer
@@ -158,7 +205,16 @@ expr3 = map subInt exprAdd <*> (
 --          *> expr)
           *> exprAdd)
 
-expr = expr3 <|> exprAdd
+--expr = expr3 <|> exprAdd
+
+
+-- simple version
+-- c is True if guaranteed to consume input
+expr = intLiteral <|> do
+                openParen
+                r <- expr
+                closeParen
+                pure r
 
 --partial
 calc : String -> Either (ParseError (TokenData ExpressionToken))
