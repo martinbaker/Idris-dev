@@ -69,6 +69,11 @@ public export
 Rule : Type -> Type
 Rule ty = Grammar (TokenData ExpressionToken) True ty
 
+commentSpace : Rule Integer
+commentSpace = terminal (\x => case tok x of
+                           Comment s => Just 0
+                           _ => Nothing)
+
 export
 intLiteral : Rule Integer
 intLiteral
@@ -77,20 +82,24 @@ intLiteral
                            Number i => Just i
                            _ => Nothing)
 
+intLiteralC : Rule Integer
+intLiteralC = (intLiteral <* commentSpace) <|> intLiteral
+
 openParen : Rule Integer
 openParen = terminal (\x => case tok x of
                            OParen => Just 0
                            _ => Nothing)
+
+openParenC : Rule Integer
+openParenC = (openParen <* commentSpace) <|> openParen
 
 closeParen : Rule Integer
 closeParen = terminal (\x => case tok x of
                            CParen => Just 0
                            _ => Nothing)
 
-commentSpace : Rule Integer
-commentSpace = terminal (\x => case tok x of
-                           Comment s => Just 0
-                           _ => Nothing)
+closeParenC : Rule Integer
+closeParenC = (closeParen <* commentSpace) <|> closeParen
 
 ||| Matches if this is an operator token and string matches, that is,
 ||| it is the required type of operator.
@@ -99,109 +108,9 @@ op s = terminal (\x => case tok x of
                            (Operator s1) => if s==s1 then Just 0 else Nothing
                            _ => Nothing)
 
-{-
-||| Parenthesis
-||| Potentially infinite
-||| Tried adding 'Inf' but it does not seem to do anything
-paren : (Inf (Rule Integer)) -> Rule Integer
-paren exp = ((openParen <* commentSpace) <|> openParen)
-             *> exp <*
-             ((closeParen <* commentSpace) <|> closeParen)
-
-||| Parenthesis
-paren2 : (Rule Integer) -> Rule Integer
-paren2 exp =
-  do op "("
-     op2 <- exp
-     op ")"
-     pure op2
--}
-
-
-
-{-
-************************************************************
-* recursive definitions of grammar
-* --------------------------------
-* 
-* Combining grammars using <*> does not handle recursive definitions:
-* 
-* ||| Sequence a grammar with value type `a -> b` and a grammar
-* ||| with value type `a`. If both succeed, apply the function
-* ||| from the first grammar to the value from the second grammar.
-* ||| Guaranteed to consume if either grammar consumes.
-* export
-* (<*>) : Grammar tok c1 (a -> b) ->
-*         Grammar tok c2 a ->
-*         Grammar tok (c1 || c2) b
-* (<*>) x y = SeqEmpty x (\f => map f y)
-* 
-* Instead we can use >>= to allow recursive definitions:
-* 
-* ||| Sequence two grammars. If either consumes some input, the sequence is
-* ||| guaranteed to consume some input. If the first one consumes input, the
-* ||| second is allowed to be recursive (because it means some input has been
-* ||| consumed and therefore the input is smaller)
-* export %inline
-* (>>=) : {c1 : Bool} ->
-*         Grammar tok c1 a ->
-*         inf c1 (a -> Grammar tok c2 b) ->
-*         Grammar tok (c1 || c2) b
-* (>>=) {c1 = False} = SeqEmpty
-* (>>=) {c1 = True} = SeqEat
-* 
-* In monads, like this, we can wrap in 'do' notation. So instead of
-* 
-* getline >>= (\inpStr -> putStr inpStr)
-* 
-* we use:
-* 
-* do
-*   inpStr <- getLine
-*   putStr inpStr
-* 
-************************************************************
--}
-
-{-
-||| Potentially infinite due to paren
-||| Tried adding 'Inf' but it does not seem to do anything
-||| so had to comment out paren
-exprAtom : Inf (Rule Integer)
-exprAtom = (intLiteral <* commentSpace)
-           <|> intLiteral -- <|> (paren2 expr)
-
---partial
-expr1 : Rule Integer
-expr1 = map multInt exprAtom <*> (
-          (((op "*") <* commentSpace) <|> (op "*"))
-          *> exprAtom)
-
---partial
-exprMult : Rule Integer
-exprMult = expr1 <|> exprAtom
-
---partial
-expr2 : Rule Integer
-expr2 = map addInt exprMult <*> (
-          (((op "+") <* commentSpace) <|> (op "+"))
-          *> exprMult)
-
---partial
-exprAdd : Rule Integer
-exprAdd = expr2 <|> exprMult
-
---partial
-expr3 : Rule Integer
-expr3 = map subInt exprAdd <*> (
-          (((op "-") <* commentSpace) <|> (op "-"))
---          *> expr)
-          *> exprAdd)
-
---expr = expr3 <|> exprAdd
-
-
--}
+||| like op but followed by optional comment or space
+opC : String -> Rule Integer
+opC s = ((op s) <* commentSpace) <|> (op s)
 
 addInt : Integer -> Integer -> Integer
 addInt a b = a+b
@@ -215,23 +124,23 @@ multInt a b = a*b
 expr : Rule Integer
 
 factor : Rule Integer
-factor = intLiteral <|> do
-                openParen
+factor = intLiteralC <|> do
+                openParenC
                 r <- expr
-                closeParen
+                closeParenC
                 pure r
 
 term : Rule Integer
 term = map multInt factor <*> (
-          (op "*")
+          (opC "*")
           *> factor)
        <|> factor
 
 expr = map addInt term <*> (
-          (op "+")
+          (opC "+")
           *> term)
        <|> map subInt term <*> (
-          (op "-")
+          (opC "-")
           *> term)
        <|> term
 
