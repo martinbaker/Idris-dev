@@ -99,6 +99,7 @@ op s = terminal (\x => case tok x of
                            (Operator s1) => if s==s1 then Just 0 else Nothing
                            _ => Nothing)
 
+{-
 ||| Parenthesis
 ||| Potentially infinite
 ||| Tried adding 'Inf' but it does not seem to do anything
@@ -114,15 +115,8 @@ paren2 exp =
      op2 <- exp
      op ")"
      pure op2
+-}
 
-addInt : Integer -> Integer -> Integer
-addInt a b = a+b
-
-subInt : Integer -> Integer -> Integer
-subInt a b = a-b
-
-multInt : Integer -> Integer -> Integer
-multInt a b = a*b
 
 
 {-
@@ -169,8 +163,7 @@ multInt a b = a*b
 ************************************************************
 -}
 
-expr : Rule Integer
-
+{-
 ||| Potentially infinite due to paren
 ||| Tried adding 'Inf' but it does not seem to do anything
 ||| so had to comment out paren
@@ -208,19 +201,42 @@ expr3 = map subInt exprAdd <*> (
 --expr = expr3 <|> exprAdd
 
 
--- simple version
--- c is True if guaranteed to consume input
-expr = intLiteral <|> do
+-}
+
+addInt : Integer -> Integer -> Integer
+addInt a b = a+b
+
+subInt : Integer -> Integer -> Integer
+subInt a b = a-b
+
+multInt : Integer -> Integer -> Integer
+multInt a b = a*b
+
+expr : Rule Integer
+
+factor : Rule Integer
+factor = intLiteral <|> do
                 openParen
                 r <- expr
                 closeParen
                 pure r
 
---partial
+term : Rule Integer
+term = map multInt factor <*> (
+          (op "*")
+          *> factor)
+       <|> factor
+
+expr = map addInt term <*> (
+          (op "+")
+          *> term)
+       <|> map subInt term <*> (
+          (op "-")
+          *> term)
+       <|> term
+
 calc : String -> Either (ParseError (TokenData ExpressionToken))
                         (Integer, List (TokenData ExpressionToken))
---calc s = parse intLiteral (fst (lex expressionTokens s)) -- works OK
---calc s = parse (assert_total expr) (fst (lex expressionTokens s)) -- killed by signal 11
 calc s = parse expr (fst (lex expressionTokens s))
 
 lft : (ParseError (TokenData ExpressionToken)) -> IO ()
@@ -229,7 +245,6 @@ lft (Error s lst) = putStrLn ("error:"++s)
 rht : (Integer, List (TokenData ExpressionToken)) -> IO ()
 rht i = putStrLn ("right " ++ (show i))
 
---partial
 main : IO ()
 main = do
   putStr "alg>"
