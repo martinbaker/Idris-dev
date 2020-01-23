@@ -1,5 +1,11 @@
 package algebra
 
+{-
+to build:
+
+cd Idris-dev/libs/algebra
+idris --build algebra.ipkg
+-}
 --opts = "--partial-eval --total"
 
 -- required for contrib/Data/Matrix
@@ -9,4 +15,4 @@ pkgs = base
      , contrib
 
 modules = outputFormat
-        , algebraREPL
+        , parser.Lexer
