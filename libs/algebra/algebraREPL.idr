@@ -124,29 +124,37 @@ multInt a b = a*b
 expr : Rule Integer
 
 factor : Rule Integer
-factor = intLiteralC <|> do
-                openParenC
+factor = intLiteral <|> do
+                openParen
                 r <- expr
-                closeParenC
+                closeParen
                 pure r
 
 term : Rule Integer
 term = map multInt factor <*> (
-          (opC "*")
+          (op "*")
           *> factor)
        <|> factor
 
 expr = map addInt term <*> (
-          (opC "+")
+          (op "+")
           *> term)
        <|> map subInt term <*> (
-          (opC "-")
+          (op "-")
           *> term)
        <|> term
 
+processWhitespace : (List (TokenData ExpressionToken), Int, Int, String)
+                  -> (List (TokenData ExpressionToken), Int, Int, String)
+processWhitespace (x,l,c,s) = ((filter notComment x),l,c,s) where
+      notComment : TokenData ExpressionToken -> Bool
+      notComment t = case tok t of
+                          Comment _ => False
+                          _ => True
+
 calc : String -> Either (ParseError (TokenData ExpressionToken))
                         (Integer, List (TokenData ExpressionToken))
-calc s = parse expr (fst (lex expressionTokens s))
+calc s = parse expr (fst (processWhitespace (lex expressionTokens s)))
 
 lft : (ParseError (TokenData ExpressionToken)) -> IO ()
 lft (Error s lst) = putStrLn ("error:"++s)
