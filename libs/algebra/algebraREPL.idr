@@ -82,24 +82,15 @@ intLiteral
                            Number i => Just i
                            _ => Nothing)
 
-intLiteralC : Rule Integer
-intLiteralC = (intLiteral <* commentSpace) <|> intLiteral
-
 openParen : Rule Integer
 openParen = terminal (\x => case tok x of
                            OParen => Just 0
                            _ => Nothing)
 
-openParenC : Rule Integer
-openParenC = (openParen <* commentSpace) <|> openParen
-
 closeParen : Rule Integer
 closeParen = terminal (\x => case tok x of
                            CParen => Just 0
                            _ => Nothing)
-
-closeParenC : Rule Integer
-closeParenC = (closeParen <* commentSpace) <|> closeParen
 
 ||| Matches if this is an operator token and string matches, that is,
 ||| it is the required type of operator.
@@ -107,10 +98,6 @@ op : String -> Rule Integer
 op s = terminal (\x => case tok x of
                            (Operator s1) => if s==s1 then Just 0 else Nothing
                            _ => Nothing)
-
-||| like op but followed by optional comment or space
-opC : String -> Rule Integer
-opC s = ((op s) <* commentSpace) <|> (op s)
 
 addInt : Integer -> Integer -> Integer
 addInt a b = a+b
@@ -144,9 +131,19 @@ expr = map addInt term <*> (
           *> term)
        <|> term
 
+eoi : Rule Integer
+eoi = terminal (\x => case tok x of
+                           EndInput => Just 0
+                           _ => Nothing)
+
+
+exprFull : Rule Integer
+exprFull = expr <* eoi
+
 processWhitespace : (List (TokenData ExpressionToken), Int, Int, String)
                   -> (List (TokenData ExpressionToken), Int, Int, String)
-processWhitespace (x,l,c,s) = ((filter notComment x),l,c,s) where
+processWhitespace (x,l,c,s) = ((filter notComment x)++
+                                      [MkToken l c EndInput],l,c,s) where
       notComment : TokenData ExpressionToken -> Bool
       notComment t = case tok t of
                           Comment _ => False
@@ -154,7 +151,7 @@ processWhitespace (x,l,c,s) = ((filter notComment x),l,c,s) where
 
 calc : String -> Either (ParseError (TokenData ExpressionToken))
                         (Integer, List (TokenData ExpressionToken))
-calc s = parse expr (fst (processWhitespace (lex expressionTokens s)))
+calc s = parse exprFull (fst (processWhitespace (lex expressionTokens s)))
 
 lft : (ParseError (TokenData ExpressionToken)) -> IO ()
 lft (Error s lst) = putStrLn ("error:"++s)
