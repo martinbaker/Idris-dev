@@ -4,7 +4,9 @@ package algebra
 to build:
 
 cd Idris-dev/libs/algebra
+idris --clean algebra.ipkg
 idris --build algebra.ipkg
+idris --install algebra.ipkg
 -}
 --opts = "--partial-eval --total"
 
@@ -15,4 +17,9 @@ pkgs = base
      , contrib
 
 modules = outputFormat
-        , parser.Lexer
+        , Parser.Lexer
+        , Parser.FC
+        , Parser.TT
+        , Parser.Syntax
+        , Parser.Support
+        , Parser.Parser -- need to compile first, so comment out, install, then remove comment
