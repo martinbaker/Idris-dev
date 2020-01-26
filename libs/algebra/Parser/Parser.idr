@@ -13,6 +13,8 @@ import        Data.List.Views
 
 {-
 to run:
+
+cd Idris-dev/libs/algebra
 idris -p algebra -p contrib Parser/Parser.idr
 -}
 
@@ -1516,3 +1518,8 @@ command
     = do eoi
          pure NOP
   <|> nonEmptyCommand
+
+-- simpleExpr : FileName -> IndentInfo -> Rule PTerm
+calc : String -> Either (ParseError (TokenData Token))
+                        (PTerm, List (TokenData Token))
+calc s = parse (simpleExpr "filename" init) (fst (lexAlg s))

@@ -35,6 +35,7 @@ public export
 EmptyRule : Type -> Type
 EmptyRule ty = Grammar (TokenData Token) False ty
 
+{-
 public export
 data ParseError = ParseFail String (Maybe (Int, Int)) (List Token)
                 | LexFail (Int, Int, String)
@@ -49,6 +50,7 @@ Show ParseError where
       = "Lex error at " ++ show (c, l) ++ " input: " ++ str
   show (FileFail err)
       = "File error: " ++ show err
+-}
 
 export
 eoi : EmptyRule ()
