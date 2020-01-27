@@ -380,29 +380,26 @@ export
 init : IndentInfo
 init = 0
 
-continueF : EmptyRule () -> (indent : IndentInfo) -> EmptyRule ()
-continueF err indent
+continueF : EmptyRule () -> EmptyRule ()
+continueF err
     = do eoi; err
   <|> do keyword "where"; err
-  <|> do col <- column
-         if (col <= indent)
-            then err
-            else pure ()
+  <|> err
 
 -- Fail if this is the end of a block entry or end of file
 export
-continue : (indent : IndentInfo) -> EmptyRule ()
+continue : EmptyRule ()
 continue = continueF (fail "Unexpected end of expression")
 
 -- As 'continue' but failing is fatal (i.e. entire parse fails)
 export
-mustContinue : (indent : IndentInfo) -> Maybe String -> EmptyRule ()
-mustContinue indent Nothing
+mustContinue : Maybe String -> EmptyRule ()
+mustContinue Nothing
    --= continueF (fatalError "Unexpected end of expression") indent-- ************************
-   = continueF (fail "Unexpected end of expression") indent
-mustContinue indent (Just req)
+   = continueF (fail "Unexpected end of expression")
+mustContinue (Just req)
    --= continueF (fatalError ("Expected '" ++ req ++ "'")) indent --*************************
-   = continueF (fail ("Expected '" ++ req ++ "'")) indent
+   = continueF (fail ("Expected '" ++ req ++ "'"))
 
 data ValidIndent
      = AnyIndent -- In {}, entries can begin in any column
