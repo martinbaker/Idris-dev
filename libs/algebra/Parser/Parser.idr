@@ -1437,7 +1437,19 @@ command
          pure NOP
   <|> nonEmptyCommand
 
+eoi2 : Rule Integer
+eoi2 = terminal (\x => case tok x of
+                           EndInput => Just 0
+                           _ => Nothing)
+
+||| works for:
+||| calc "1"
+||| but does not yet detect operators like:
+||| calc "65+2"
+onlyExpr : Rule PTerm
+onlyExpr = simpleExpr <* eoi2
+
 -- simpleExpr : Rule PTerm
 calc : String -> Either (ParseError (TokenData Token))
                         (PTerm, List (TokenData Token))
-calc s = parse simpleExpr (fst (lexAlg s))
+calc s = parse onlyExpr (fst (lexAlg s))
