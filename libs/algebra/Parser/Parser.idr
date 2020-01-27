@@ -16,6 +16,7 @@ to run:
 
 cd Idris-dev/libs/algebra
 idris -p algebra -p contrib Parser/Parser.idr
+calc "65+2"
 -}
 
 
@@ -123,7 +124,7 @@ mutual
     --<|> 
     lazy
     --<|> if_
-    <|> doBlock
+    --<|> doBlock
     <|> do f <- simpleExpr
            args <- many (argExpr q)
            pure (applyExpImp f args)
@@ -297,7 +298,7 @@ mutual
            expr <- simpleExpr
            pure (PAs  (UN x) expr) -- PAs : Name -> (pattern : PTerm) -> PTerm
     <|> atom
-    <|> binder
+    --<|> binder
     <|> rewrite_
     <|> record_
     <|> do symbol ".("
@@ -380,7 +381,7 @@ mutual
     <|> do symbol "=>"
            pure AutoImplicit
 
-
+{- pibindAll had to be removed
   explicitPi : Rule PTerm
   explicitPi
       = do 
@@ -426,6 +427,7 @@ mutual
            symbol "->"
            scope <- typeExpr pdef
            pure (pibindAll  Implicit binders scope)
+-}
 
   lam : Rule PTerm
   lam
@@ -442,6 +444,7 @@ mutual
        bindAll ((rig, pat, ty) :: rest) scope
            = PLam rig Explicit pat ty (bindAll rest scope)
 
+{- uses block which requires indents
   letBinder : Rule (RigCount, PTerm, PTerm, List PClause)
   letBinder
       = do 
@@ -449,9 +452,10 @@ mutual
            pat <- expr plhs
            symbol "="
            val <- expr pnowith
-           alts <- block (patAlt)
+           alts <- block patAlt
            rig <- getMult rigc
            pure (rig, pat, val, alts)
+-}
 
   buildLets :
               List (RigCount, PTerm, PTerm, List PClause) ->
@@ -459,7 +463,7 @@ mutual
   buildLets [] sc = sc
   buildLets ((rig, pat, val, alts) :: rest) sc
       = PLet rig pat PImplicit val
-                 (buildLets fname rest sc) alts
+                 (buildLets rest sc) alts
 
   buildDoLets : 
                 List (RigCount, PTerm, PTerm, List PClause) ->
@@ -470,14 +474,15 @@ mutual
                then DoLet (UN n) rig val :: buildDoLets rest
                else DoLetPat (PRef (UN n)) val []
                          :: buildDoLets rest
-  buildDoLets fname ((rig, pat, val, alts) :: rest)
+  buildDoLets ((rig, pat, val, alts) :: rest)
       = DoLetPat pat val alts :: buildDoLets rest
 
+{- uses letbinder
   let_ : Rule PTerm
   let_ 
       = do keyword "let"
            res <- nonEmptyBlock letBinder
-           commitKeyword indents "in"
+           commitKeyword "in"
            scope <- typeExpr pdef
            pure (buildLets res scope)
 
@@ -488,7 +493,8 @@ mutual
            commitKeyword indents "in"
            scope <- typeExpr pdef
            pure (PLocal  (collectDefs (concat ds)) scope)
-
+-}
+{- uses block which requires indents
   case_ : Rule PTerm
   case_
       = do 
@@ -497,13 +503,14 @@ mutual
            commitKeyword indents "of"
            alts <- block caseAlt
            pure (PCase  scr alts)
-
+-}
+{- uses caseRHS
   caseAlt : Rule PClause
   caseAlt
       = do 
            lhs <- opExpr plhs
            caseRHS lhs
-
+-}
 {- cant use anything with atEnd
   caseRHS : PTerm -> Rule PClause
   caseRHS lhs
@@ -552,16 +559,18 @@ mutual
   rewrite_
       = do keyword "rewrite"
            rule <- expr pdef
-           commitKeyword indents "in"
+           commitKeyword "in"
            tm <- expr pdef
            pure (PRewrite  rule tm)
 
+{- uses block which requires indents
   doBlock : Rule PTerm
   doBlock
       = do 
            keyword "do"
            actions <- block doAct
            pure (PDoBlock  (concat actions))
+-}
 
   lowerFirst : String -> Bool
   lowerFirst "" = False
@@ -573,7 +582,7 @@ mutual
                         else fail "Not a pattern variable"
   validPatternVar _ = fail "Not a pattern variable"
 
-{- cant use anything with atEnd
+{- cant use anything with atEnd or block
   doAct : Rule (List PDo)
   doAct
       = do n <- name
@@ -607,11 +616,12 @@ mutual
                      atEnd
                      pure [DoBindPat  e val alts])
 -}
-
+{- uses caseAlt
   patAlt : Rule PClause
   patAlt
       = do symbol "|"
            caseAlt
+-}
 
   lazy : Rule PTerm
   lazy
@@ -632,6 +642,7 @@ mutual
            tm <- simpleExpr
            pure (PForce  tm)
 
+{- uses let_
   binder : Rule PTerm
   binder
       = let_
@@ -640,12 +651,13 @@ mutual
     <|> implicitPi
     <|> explicitPi
     <|> lam
+-}
 
   typeExpr : ParseOpts -> Rule PTerm
   typeExpr q
       = do 
            arg <- opExpr q
-           (do continue indents
+           (do continue
                rest <- some (do exp <- bindSymbol
                                 op <- opExpr pdef
                                 pure (exp, op))
@@ -766,12 +778,10 @@ simpleCon ret
          params <- many (argExpr plhs)
          atEnd
          pure (MkPTy cname (mkDataConType ret params))
--}
 
-simpleData : Name -> IndentInfo -> Rule PDataDecl
-simpleData n indents
+simpleData : Name -> Rule PDataDecl
+simpleData n
     = do params <- many name
-         ty
          --let tyfc = MkFC tyend
          symbol "="
          let conRetTy = papply (PRef n)
@@ -780,6 +790,7 @@ simpleData n indents
                         (simpleCon conRetTy)
          pure (MkPData  n
                        (mkTyConType params) [] cons)
+-}
 
 dataOpt : Rule DataOpt
 dataOpt
@@ -805,13 +816,13 @@ dataBody n ty
          cs <- blockAfter tyDecl
          pure (MkPData  n ty opts cs)
 -}
-
-gadtData : Int -> Name -> IndentInfo -> Rule PDataDecl
+{- dataBody
+gadtData : Int -> Name -> Rule PDataDecl
 gadtData  mincol n
     = do symbol ":"
          commit
          ty <- expr pdef
-         dataBody mincol n indents ty
+         dataBody mincol n ty
 
 dataDeclBody : Rule PDataDecl
 dataDeclBody
@@ -819,8 +830,8 @@ dataDeclBody
          col <- column
          keyword "data"
          n <- name
-         simpleData n indents
-           <|> gadtData col n indents
+         simpleData n
+           <|> gadtData col n
 
 dataDecl : Rule PDecl
 dataDecl
@@ -828,6 +839,7 @@ dataDecl
          vis <- visibility
          dat <- dataDeclBody
          pure (PData  vis dat)
+-}
 
 stripBraces : String -> String
 stripBraces str = pack (drop '{' (reverse (drop '}' (reverse (unpack str)))))
@@ -931,7 +943,7 @@ namespaceDecl
          ds <- assert_total (nonEmptyBlock (topDecl fname))
          pure (PNamespace  ns (concat ds))
 -}
-
+{-
 mutualDecls : Rule PDecl
 mutualDecls
     = do 
@@ -939,7 +951,8 @@ mutualDecls
          commit
          ds <- assert_total (nonEmptyBlock topDecl)
          pure (PMutual  (concat ds))
-
+-}
+{- nonemptyblock
 paramDecls : Rule PDecl
 paramDecls
     = do keyword "parameters"
@@ -953,6 +966,7 @@ paramDecls
          symbol ")"
          ds <- assert_total (nonEmptyBlock topDecl)
          pure (PParameters  ps (collectDefs (concat ds)))
+-}
 
 fnOpt : Rule PFnOpt
 fnOpt
@@ -963,6 +977,7 @@ fnOpt
   <|> do keyword "covering"
          pure $ IFnOpt Covering
 
+{- uses block which requires indents
 fnDirectOpt : Rule PFnOpt
 fnDirectOpt
     = do exactIdent "hint"
@@ -980,7 +995,8 @@ fnDirectOpt
   <|> do exactIdent "foreign"
          cs <- block (expr pdef)
          pure $ PForeign cs
-
+-}
+{- fndirectopt
 visOpt : Rule (Either Visibility PFnOpt)
 visOpt
     = do vis <- visOption
@@ -990,6 +1006,7 @@ visOpt
   <|> do symbol "%"
          opt <- fnDirectOpt
          pure (Right opt)
+-}
 
 getVisibility : Maybe Visibility -> List (Either Visibility PFnOpt) ->
                 EmptyRule Visibility
@@ -1107,7 +1124,7 @@ fieldDecl
                             _ => Rig1
              ns <- sepBy1 (symbol ",") name
              symbol ":"
-             ty <- expr pdef fname indents
+             ty <- expr pdef
              pure (map (\n => MkField 
                                       rig p n ty) ns)
 
@@ -1130,7 +1147,7 @@ recordDecl
                 atEnd
                 pure n
 -}
-
+{-visOpt
 claim : Rule PDecl
 claim 
     = do visOpts <- many visOpt
@@ -1140,11 +1157,13 @@ claim
          rig <- getMult m
          cl <- tyDecl
          pure (PClaim  rig vis opts cl)
-
+-}
+{- clause
 definition : Rule PDecl
 definition
     = do nd <- clause 0
          pure (PDef  [nd])
+-}
 
 fixDecl : Rule (List PDecl)
 fixDecl
@@ -1171,7 +1190,8 @@ directiveDecl
 
 -- Declared at the top
 -- topDecl : Rule (List PDecl)
-topDecl
+topDecl = fail "Couldn't parse declaration"
+{-
     = do d <- dataDecl
          pure [d]
   <|> do d <- claim
@@ -1202,6 +1222,7 @@ topDecl
 --                (CGAction (fst cgrest) (stripBraces (trim (snd cgrest))))]
   --<|> fatalError "Couldn't parse declaration" --****************************************
   <|> fail "Couldn't parse declaration"
+-}
 
 -- All the clauses get parsed as one-clause definitions. Collect any
 -- neighbouring clauses into one definition. This might mean merging two
@@ -1243,7 +1264,7 @@ import_
          ns <- namespace_ -- namespace_ uses col ****************************
          nsAs <- option ns (do exactIdent "as"
                                namespace_)
-         atEnd indents
+         atEnd
          pure (MkImport  reexp ns nsAs)
 -}
 
@@ -1361,7 +1382,7 @@ editCmd
 nonEmptyCommand : Rule REPLCmd
 nonEmptyCommand
     = do symbol ":"; replCmd ["t", "type"]
-         tm <- expr pdef "(interactive)" init
+         tm <- expr pdef --"(interactive)"
          pure (Check tm)
   <|> do symbol ":"; replCmd ["printdef"]
          n <- name
@@ -1382,10 +1403,10 @@ nonEmptyCommand
          pure (SetOpt opt)
   <|> do symbol ":"; replCmd ["c", "compile"]
          n <- unqualifiedName
-         tm <- expr pdef "(interactive)" init
+         tm <- expr pdef --"(interactive)"
          pure (Compile tm n)
   <|> do symbol ":"; exactIdent "exec"
-         tm <- expr pdef "(interactive)" init
+         tm <- expr pdef --"(interactive)"
          pure (Exec tm)
   <|> do symbol ":"; replCmd ["r", "reload"]
          pure Reload
@@ -1406,7 +1427,7 @@ nonEmptyCommand
          pure ShowVersion
   <|> do symbol ":"; cmd <- editCmd
          pure (Editing cmd)
-  <|> do tm <- expr pdef "(interactive)" init
+  <|> do tm <- expr pdef --"(interactive)" init
          pure (Eval tm)
 
 export
