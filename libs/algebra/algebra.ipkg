@@ -7,6 +7,11 @@ cd Idris-dev/libs/algebra
 idris --clean algebra.ipkg
 idris --build algebra.ipkg
 idris --install algebra.ipkg
+
+to run:
+idris -p algebra -p contrib Parser/Parser.idr
+calc "1"
+:exec disp "1"
 -}
 --opts = "--partial-eval --total"
 
@@ -17,6 +22,7 @@ pkgs = base
      , contrib
 
 modules = outputFormat
+        , Parser.displayGrammar
         , Parser.Lexer
         , Parser.FC
         , Parser.TT

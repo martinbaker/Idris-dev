@@ -6,6 +6,7 @@ import public Parser.Support
 import        Parser.Lexer
 import        Parser.FC
 import public Parser.Syntax
+import public Parser.displayGrammar
 --import        TTImp.TTImp --**************
 
 import public Text.Parser
@@ -1453,3 +1454,6 @@ onlyExpr = simpleExpr <* eoi2
 calc : String -> Either (ParseError (TokenData Token))
                         (PTerm, List (TokenData Token))
 calc s = parse onlyExpr (fst (lexAlg s))
+
+disp : String -> IO ()
+disp s = outputGrammar simpleExpr
